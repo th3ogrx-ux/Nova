@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOVA</title>
+  <script type="module" crossorigin src="/assets/index-dvofGVgL.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-C8RpDqbc.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .brand-word{font-family:'Orbitron',sans-serif;font-weight:700;}
+    .brand-mark{background:none!important;box-shadow:none!important;border-radius:0!important;object-fit:contain;}
+    .brand-mark:after{content:none!important;}
+    .brand-row{display:flex;align-items:center;justify-content:center;gap:12px;}
+    .code-wrap .brand-row{margin-bottom:26px;}
+    .code-wrap .brand-row .brand-mark{width:44px;height:44px;margin:0;}
+    .code-wrap .brand-row h1{margin-bottom:0;}
+    .sidebar-head .brand-row{justify-content:flex-start;margin:0;}
+    .sidebar-head .brand-row .brand-mark{width:30px;height:30px;margin:0;}
+  </style>
+</head>
+<body>
+<div class="noise"></div>
+<div id="app">
+
+  <!-- ============ SCREEN: ACCESS CODE ============ -->
+  <div class="screen active" id="screen-code">
+    <div class="code-wrap">
+      <div class="brand-row">
+        <img class="brand-mark" src="/assets/nova-icon.png" alt="NOVA">
+        <h1 class="metal-title brand-word">NOVA</h1>
+      </div>
+      <p class="sub">Entrez votre code d'accès pour continuer</p>
+      <div class="glass-card code-card">
+        <div class="field">
+          <label class="field-label">Code d'accès</label>
+          <input type="text" id="code-input" class="code-input" placeholder="XXX-XXXXXX" maxlength="12">
+        </div>
+        <button class="btn primary" id="code-submit">Valider le code</button>
+        <button class="btn" id="existing-account-btn" type="button">J'ai déjà un compte</button>
+        <div class="error-msg" id="code-error"></div>
+        <div class="info-msg" id="code-info"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: EXISTING ACCOUNT ============ -->
+  <div class="screen" id="screen-login">
+    <div class="code-wrap">
+      <h1 class="metal-title">Se connecter</h1>
+      <p class="sub">Connecte-toi avec ton email et ton mot de passe</p>
+      <div class="glass-card code-card">
+        <div class="field">
+          <label class="field-label">Adresse email</label>
+          <input type="email" id="login-email" placeholder="toi@email.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label class="field-label">Mot de passe</label>
+          <input type="password" id="login-password" placeholder="Ton mot de passe" autocomplete="current-password">
+        </div>
+        <button class="btn primary" id="login-submit">Se connecter</button>
+        <div class="error-msg" id="login-error"></div>
+        <a class="back-link" id="login-back">← Retour au code d'accès</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: PROFILE CREATION ============ -->
+  <div class="screen" id="screen-profile-create">
+    <div class="create-wrap">
+      <div class="glass-card create-card">
+        <h1 class="metal-title">Créer mon compte</h1>
+        <p class="sub">Ton accès est validé — complète ton profil</p>
+        <span class="role-pill" id="role-pill-create">Setter</span>
+
+        <label class="photo-upload" id="photo-upload-create">
+          <span class="plus" id="photo-plus-create">+</span>
+          <img id="photo-preview-create" style="display:none;">
+          <input type="file" id="photo-input-create" accept="image/*">
+        </label>
+
+        <div class="field">
+          <label class="field-label">Pseudo / prénom</label>
+          <input type="text" id="create-pseudo" placeholder="Ex : Lucas">
+        </div>
+        <div class="field">
+          <label class="field-label">Bio <span style="text-transform:none; opacity:.7;">(optionnel)</span></label>
+          <textarea id="create-bio" rows="2" placeholder="Une phrase sur toi..."></textarea>
+        </div>
+        <div class="field">
+          <label class="field-label">Adresse email</label>
+          <input type="email" id="create-email" placeholder="toi@email.com">
+        </div>
+        <div class="field">
+          <label class="field-label">Mot de passe</label>
+          <input type="password" id="create-password" placeholder="8 caractères minimum" autocomplete="new-password">
+        </div>
+
+        <button class="btn primary" id="create-submit">Créer mon compte</button>
+        <div class="error-msg" id="create-error"></div>
+        <a class="back-link" id="create-back">← Retour au code d'accès</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: APP SHELL ============ -->
+  <div class="screen" id="screen-app">
+    <div class="topbar">
+      <div class="hamburger" id="hamburger-btn"><span></span><span></span><span></span></div>
+      <div class="brand metal-title brand-word">NOVA</div>
+      <button type="button" id="bell-btn" class="icon-btn" style="margin-left:auto;position:relative;" title="Signalements">
+        🔔<span id="bell-badge" style="display:none;position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:#ef4444;"></span>
+      </button>
+    </div>
+
+    <!-- Affiché uniquement si le compte connecté est encore "anonyme" côté
+         Supabase (email jamais confirmé) : permet de finaliser la sécurisation
+         du compte sans avoir à ressaisir le code d'accès. -->
+    <div class="glass-card" id="account-security-banner" style="display:none; margin:12px 16px 0;">
+      <p style="margin:0 0 10px; font-size:13px;">Ton compte n'a pas encore d'email de connexion confirmé. Ajoute-le pour pouvoir te reconnecter depuis un autre appareil.</p>
+      <div class="field">
+        <label class="field-label">Adresse email</label>
+        <input type="email" id="secure-email" placeholder="toi@email.com">
+      </div>
+      <div class="field">
+        <label class="field-label">Mot de passe</label>
+        <input type="password" id="secure-password" placeholder="8 caractères minimum" autocomplete="new-password">
+      </div>
+      <button class="btn primary btn-sm" id="secure-submit">Sécuriser mon compte</button>
+      <div class="error-msg" id="secure-error"></div>
+    </div>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-head">
+        <div class="brand-row">
+          <img class="brand-mark" src="/assets/nova-icon.png" alt="NOVA">
+          <h2 class="metal-title brand-word">NOVA</h2>
+        </div>
+      </div>
+      <div class="glow-divider" style="margin:0 18px; width:auto;"></div>
+      <div class="nav-list">
+        <div class="nav-item chef-only active" data-view="results"><span class="dot"></span>Résultats</div>
+        <div class="nav-item" data-view="suivi" style="display:none;"><span class="dot"></span>Suivi business</div>
+        <div class="nav-item" data-view="dms"><span class="dot"></span>Journal de DMs</div>
+        <div class="nav-item chef-only" data-view="stats"><span class="dot"></span>Analyse / Stats</div>
+        <div class="nav-item" id="nav-chat" data-view="chat"><span class="dot"></span>Chat</div>
+        <div class="nav-item" id="nav-resources" data-view="resources"><span class="dot"></span>Ressources</div>
+        <div class="nav-item" data-view="classement" style="display:none;"><span class="dot"></span>Classement</div>
+        <div class="nav-item admin-item" id="nav-admin" data-view="admin" style="display:none;"><span class="dot"></span>Gérer l'équipe</div>
+      </div>
+      <div class="glow-divider" style="margin:0 18px; width:auto;"></div>
+      <div class="sidebar-profile">
+        <label class="avatar" id="my-avatar">
+          <span id="my-avatar-initial"></span>
+          <img id="my-avatar-img" style="display:none;">
+          <input type="file" id="my-avatar-input" accept="image/*">
+        </label>
+        <div class="sidebar-profile-info">
+          <div class="sidebar-profile-name" id="my-name-display"></div>
+          <div class="sidebar-profile-role" id="my-role-display"></div>
+        </div>
+        <div style="position:relative;">
+          <button type="button" id="settings-btn" class="icon-btn" title="Paramètres">⚙</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="main-inner">
+
+        <div class="view active" id="view-results">
+
+          <!-- dashboard global -->
+          <div id="dash-global-panel">
+            <div class="glass-card global-stat">
+              <div>
+                <div class="global-stat-label">CA total — tous clients</div>
+                <div class="global-stat-value" id="global-ca-total">0 €</div>
+              </div>
+              <div class="global-stat-meta" id="global-client-count">0 client</div>
+            </div>
+
+            <div class="dash-toolbar">
+              <h1 class="metal-title">Clients</h1>
+              <button class="btn primary btn-sm" id="btn-add-client">+ Ajouter un client</button>
+            </div>
+
+            <div class="client-grid" id="client-grid"></div>
+          </div>
+
+          <!-- vue détail client -->
+          <div id="dash-detail-panel" style="display:none;">
+            <div class="detail-head">
+              <div class="back-btn" id="btn-back-to-clients">←</div>
+              <div class="client-avatar" id="detail-avatar"></div>
+              <div>
+                <div class="detail-head-name" id="detail-name"></div>
+                <div class="detail-head-sub" id="detail-sub"></div>
+              </div>
+              <button class="btn btn-sm danger detail-delete" id="btn-delete-client">Supprimer le client</button>
+            </div>
+
+            <div class="detail-stats">
+              <div class="badge glass-card">
+                <span class="badge-label">Dernière semaine</span>
+                <span class="badge-value" id="detail-week">0 €</span>
+              </div>
+              <div class="badge glass-card">
+                <span class="badge-label">Dernier mois</span>
+                <span class="badge-value" id="detail-month">0 €</span>
+              </div>
+              <div class="badge glass-card">
+                <span class="badge-label">CA total client</span>
+                <span class="badge-value" id="detail-total">0 €</span>
+              </div>
+            </div>
+
+            <div class="entry-toolbar">
+              <h3>Historique des saisies</h3>
+              <button class="btn btn-sm" id="btn-add-entry">+ Ajouter une saisie</button>
+            </div>
+            <div id="entry-list"></div>
+
+            <div class="glow-divider" style="margin:30px 0;"></div>
+
+            <div class="glass-card panel-section">
+              <div class="panel-title">Statut & collaboration</div>
+              <div class="panel-grid">
+                <div class="field">
+                  <label class="field-label">Statut</label>
+                  <select id="client-status">
+                    <option value="actif">Actif</option>
+                    <option value="pause">En pause</option>
+                    <option value="churn">Churné</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="field-label">Début de collaboration</label>
+                  <input type="date" id="client-start-date">
+                </div>
+              </div>
+              <div class="field" id="client-end-date-field" style="margin-top:16px; display:none;">
+                <label class="field-label">Date de fin</label>
+                <input type="date" id="client-end-date">
+              </div>
+            </div>
+
+            <div class="glass-card panel-section">
+              <div class="panel-title">Objectif mensuel</div>
+              <div class="panel-grid single">
+                <div class="field">
+                  <label class="field-label">Objectif (€ / mois)</label>
+                  <input type="number" id="client-objective" min="0" step="50" placeholder="Ex : 5000">
+                </div>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" id="objective-progress-fill" style="width:0%;"></div>
+              </div>
+              <div class="progress-label">
+                <span id="objective-current">0 €</span>
+                <span id="objective-target">/ 0 €</span>
+              </div>
+            </div>
+
+            <div class="glass-card panel-section">
+              <div class="panel-title">Forfait & rémunération</div>
+              <div class="field">
+                <label class="field-label">Type de forfait</label>
+                <select id="client-plan-type">
+                  <option value="fixe">Fixe</option>
+                  <option value="commission">% Commission</option>
+                  <option value="hybride">Hybride</option>
+                </select>
+              </div>
+              <div class="plan-fields">
+                <div class="field" id="plan-fixed-field">
+                  <label class="field-label">Montant fixe (€/mois)</label>
+                  <input type="number" id="client-plan-fixed" min="0" step="10">
+                </div>
+                <div class="field" id="plan-percent-field">
+                  <label class="field-label">Commission (%)</label>
+                  <input type="number" id="client-plan-percent" min="0" max="100" step="0.5">
+                </div>
+              </div>
+              <div class="commission-result">
+                <span class="label">Ta commission générée ce mois-ci</span>
+                <span class="value" id="commission-result-value">0 €</span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+        <div class="view" id="view-suivi">
+          <div class="placeholder-block"><span class="metal-title">Suivi business</span>À venir.</div>
+        </div>
+        <div class="view" id="view-dms">
+          <div class="dm-toolbar">
+            <h1 class="metal-title">Journal de DMs</h1>
+            <button class="btn primary btn-sm" id="btn-add-prospect">+ Ajouter un prospect</button>
+          </div>
+
+          <div class="glass-card activity-panel">
+            <div class="activity-head">
+              <div class="panel-title">Activité de l'équipe</div>
+              <div class="period-tabs" id="activity-period-tabs">
+                <div class="period-tab" data-period="day">Aujourd'hui</div>
+                <div class="period-tab active" data-period="week">Cette semaine</div>
+                <div class="period-tab" data-period="month">Ce mois</div>
+                <div class="period-tab" data-period="all">Tout</div>
+              </div>
+            </div>
+            <div id="activity-list"></div>
+          </div>
+
+          <div class="filter-row">
+            <select id="dm-filter-setter"><option value="all">Tous les setters</option></select>
+            <select id="dm-filter-secteur"><option value="all">Tous les secteurs</option></select>
+          </div>
+
+          <div id="dm-journal"></div>
+        </div>
+        <div class="view" id="view-stats">
+
+          <!-- vue liste stats -->
+          <div id="stats-list-panel">
+            <div class="dash-toolbar">
+              <h1 class="metal-title">Analyse / Stats</h1>
+            </div>
+            <div id="stats-list"></div>
+          </div>
+
+          <!-- vue détail stats -->
+          <div id="stats-detail-panel" style="display:none;">
+            <div class="detail-head">
+              <div class="back-btn" id="btn-back-to-stats">←</div>
+              <div class="client-avatar" id="stats-detail-avatar"></div>
+              <div>
+                <div class="detail-head-name" id="stats-detail-name"></div>
+                <div class="detail-head-sub" id="stats-detail-sub"></div>
+              </div>
+            </div>
+
+            <div class="glass-card chart-panel">
+              <div class="chart-toggle">
+                <div class="period-tab active" data-chart-mode="month">Par mois</div>
+                <div class="period-tab" data-chart-mode="week">Par semaine</div>
+              </div>
+              <div class="chart-svg-wrap" id="stats-chart"></div>
+            </div>
+
+            <div class="indicator-grid">
+              <div class="glass-card indicator-card">
+                <div class="indicator-label">Progression vs objectif</div>
+                <div class="indicator-value" id="stats-objective-value">—</div>
+                <div class="indicator-sub" id="stats-objective-trend">—</div>
+              </div>
+              <div class="glass-card indicator-card">
+                <div class="indicator-label">Rentabilité cumulée</div>
+                <div class="indicator-value" id="stats-profitability-value">—</div>
+                <div class="indicator-sub">Commission générée depuis le début</div>
+              </div>
+              <div class="glass-card indicator-card">
+                <div class="indicator-label">Ancienneté</div>
+                <div class="indicator-value" id="stats-seniority-value">—</div>
+                <div class="indicator-sub" id="stats-seniority-sub">—</div>
+              </div>
+              <div class="glass-card indicator-card">
+                <div class="indicator-label">Régularité</div>
+                <div class="indicator-value" id="stats-regularity-value">—</div>
+                <div class="indicator-sub" id="stats-regularity-sub">—</div>
+              </div>
+              <div class="glass-card indicator-card" style="grid-column:1/-1;">
+                <div class="indicator-label">Comparaison avec la moyenne agence</div>
+                <div class="indicator-value" id="stats-agency-value">—</div>
+                <div class="indicator-sub" id="stats-agency-sub">—</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="view" id="view-chat">
+          <div class="dash-toolbar">
+            <h1 class="metal-title">Chat</h1>
+            <div class="period-tabs" id="chat-mode-tabs">
+              <div class="period-tab active" data-mode="group" id="chat-tab-group">Groupe</div>
+              <div class="period-tab" data-mode="individuel" id="chat-tab-indiv">Individuel</div>
+            </div>
+          </div>
+          <div class="glass-card" style="height:66vh;overflow:hidden;display:flex;flex-direction:column;">
+            <div id="chat-back-row" style="display:none;padding:10px 16px;border-bottom:1px solid rgba(184,188,194,.14);cursor:pointer;font-size:13px;opacity:.75;">&larr; Retour à la liste</div>
+            <div id="chat-member-list" style="display:none;flex:1;overflow-y:auto;"></div>
+            <div id="chat-thread" style="flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;">
+              <div id="chat-header" style="padding:12px 18px;font-weight:600;border-bottom:1px solid rgba(184,188,194,.14);">Groupe</div>
+              <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;"></div>
+              <form id="chat-form" style="display:flex;border-top:1px solid rgba(184,188,194,.14);">
+                <input id="chat-input" placeholder="Message..." autocomplete="off" style="flex:1;background:transparent;border:none;color:var(--metal-2);padding:14px 16px;font-size:14px;outline:none;font-family:inherit;">
+                <button type="submit" class="btn primary" style="border-radius:0;">Envoyer</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="view" id="view-resources">
+          <div class="dash-toolbar">
+            <h1 class="metal-title">Ressources</h1>
+            <button class="btn primary" id="res-add-btn" type="button" style="display:none;">+ Ajouter</button>
+          </div>
+
+          <div id="res-pinned-wrap" style="margin-bottom:14px;"></div>
+          <div id="res-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;"></div>
+
+          <div id="res-detail" style="display:none;">
+            <div id="res-back" style="cursor:pointer;opacity:.75;font-size:13px;margin-bottom:16px;">&larr; Retour aux ressources</div>
+            <h2 id="res-detail-title" class="metal-title" style="display:block;margin-bottom:16px;"></h2>
+            <div id="res-items" style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;"></div>
+            <form id="res-item-form" style="display:none;gap:8px;">
+              <input id="res-item-input" placeholder="Nouvelle ressource (texte ou lien)..." autocomplete="off" style="flex:1;padding:11px 14px;border-radius:8px;border:1px solid rgba(184,188,194,.2);background:transparent;color:var(--metal-2);font-family:inherit;font-size:14px;outline:none;">
+              <button type="submit" class="btn primary">Ajouter</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="view" id="view-classement">
+          <div class="dash-toolbar">
+            <h1 class="metal-title">Classement</h1>
+            <div class="period-tabs" id="classement-period-tabs">
+              <div class="period-tab" data-period="week">Cette semaine</div>
+              <div class="period-tab active" data-period="month">Ce mois</div>
+              <div class="period-tab" data-period="all">Depuis le début</div>
+            </div>
+          </div>
+
+          <div class="podium" id="classement-podium"></div>
+          <div id="classement-rest"></div>
+        </div>
+
+        <div class="view" id="view-admin">
+          <div class="view-head">
+            <h1 class="metal-title" style="display:block;">Gérer l'équipe</h1>
+            <p>Tous les setters ayant créé un compte via un code.</p>
+          </div>
+          <div class="team-list" id="team-list"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL: signaler un problème -->
+<div class="modal-overlay" id="modal-report-issue">
+  <div class="glass-card modal-box">
+    <h2>Signaler un problème</h2>
+    <div class="field">
+      <label class="field-label">Décris le problème</label>
+      <textarea id="report-issue-text" rows="4" style="width:100%;background:transparent;border:1px solid rgba(184,188,194,.2);border-radius:8px;color:var(--metal-2);padding:10px 12px;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="btn-cancel-report">Annuler</button>
+      <button class="btn primary" id="btn-send-report">Envoyer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: liste des signalements (chef) -->
+<div class="modal-overlay" id="modal-reports-list">
+  <div class="glass-card modal-box" style="max-width:460px;max-height:80vh;overflow-y:auto;">
+    <h2>Signalements</h2>
+    <div id="reports-list-items" style="display:flex;flex-direction:column;gap:10px;margin:14px 0;"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="btn-close-reports">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: paramètres -->
+<div class="modal-overlay" id="modal-settings">
+  <div class="glass-card modal-box">
+    <h2>Paramètres</h2>
+    <div id="settings-edit-pseudo" class="nova-member-row" style="border-radius:8px;margin-bottom:6px;">Changer de pseudo</div>
+    <div id="settings-edit-photo" class="nova-member-row" style="border-radius:8px;margin-bottom:6px;">Changer de photo de profil</div>
+    <div id="settings-report-issue" class="nova-member-row" style="border-radius:8px;margin-bottom:6px;">Signaler un problème</div>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="btn ghost" id="btn-close-settings">Fermer</button>
+      <button class="btn danger" id="settings-logout">Se déconnecter</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ajouter un client -->
+<div class="modal-overlay" id="modal-add-client">
+  <div class="glass-card modal-box">
+    <h2>Nouveau client</h2>
+    <div class="field">
+      <label class="field-label">Prénom</label>
+      <input type="text" id="new-client-name" placeholder="Ex : Sarah">
+    </div>
+    <div class="error-msg" id="new-client-error"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="btn-cancel-add-client">Annuler</button>
+      <button class="btn primary" id="btn-confirm-add-client">Créer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ajouter / éditer une saisie -->
+<div class="modal-overlay" id="modal-entry">
+  <div class="glass-card modal-box">
+    <h2 id="entry-modal-title">Ajouter une saisie</h2>
+    <div class="field">
+      <label class="field-label">Date</label>
+      <input type="date" id="entry-date">
+    </div>
+    <div class="field">
+      <label class="field-label">Montant (€)</label>
+      <input type="number" id="entry-amount" placeholder="0" min="0" step="0.01">
+    </div>
+    <div class="error-msg" id="entry-error"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="btn-cancel-entry">Annuler</button>
+      <button class="btn primary" id="btn-confirm-entry">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ajouter / éditer un prospect -->
+<div class="modal-overlay" id="modal-prospect">
+  <div class="glass-card modal-box">
+    <h2 id="prospect-modal-title">Ajouter un prospect</h2>
+    <div class="field">
+      <label class="field-label">Contact</label>
+      <input type="text" id="prospect-contact" placeholder="@pseudo (Insta), email, TikTok...">
+    </div>
+    <div class="field">
+      <label class="field-label">Secteur d'activité</label>
+      <input type="text" id="prospect-secteur" list="secteur-suggestions" placeholder="Ex : Fitness, Immobilier...">
+      <datalist id="secteur-suggestions"></datalist>
+    </div>
+    <div class="field">
+      <label class="field-label">Date du DM</label>
+      <input type="date" id="prospect-date">
+    </div>
+    <div class="field">
+      <label class="field-label">Statut</label>
+      <select id="prospect-status">
+        <option value="sent">DM envoyé</option>
+        <option value="replied">Réponse reçue</option>
+        <option value="meeting">RDV pris</option>
+        <option value="not_interested">Pas intéressé</option>
+      </select>
+    </div>
+    <div class="error-msg" id="prospect-error"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="btn-cancel-prospect">Annuler</button>
+      <button class="btn primary" id="btn-confirm-prospect">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="/assets/chat-widget.js"></script>
+
+</body>
+</html>
