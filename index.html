@@ -147,6 +147,7 @@
         <div class="nav-item" data-view="dms"><span class="dot"></span>Journal de DMs</div>
         <div class="nav-item chef-only" data-view="stats"><span class="dot"></span>Analyse / Stats</div>
         <div class="nav-item" id="nav-chat" data-view="chat"><span class="dot"></span>Chat</div>
+        <div class="nav-item" id="nav-boxmail" data-view="boxmail"><span class="dot"></span>BoxMail<span class="nova-boxmail-badge" id="boxmail-nav-badge" style="display:none;"></span></div>
         <div class="nav-item" id="nav-resources" data-view="resources"><span class="dot"></span>Ressources</div>
         <div class="nav-item" data-view="classement" style="display:none;"><span class="dot"></span>Classement</div>
         <div class="nav-item admin-item" id="nav-admin" data-view="admin" style="display:none;"><span class="dot"></span>Gérer l'équipe</div>
@@ -404,6 +405,46 @@
           </div>
         </div>
 
+        <div class="view" id="view-boxmail">
+          <div class="dash-toolbar">
+            <h1 class="metal-title">BoxMail</h1>
+            <div class="period-tabs" id="boxmail-mode-tabs">
+              <div class="period-tab" data-mode="send" id="boxmail-tab-send">Envoyer</div>
+              <div class="period-tab active" data-mode="inbox" id="boxmail-tab-inbox">Boîte de réception<span class="nova-boxmail-badge" id="boxmail-tab-badge" style="display:none;"></span></div>
+            </div>
+          </div>
+
+          <div id="boxmail-send-panel" style="display:none;">
+            <div class="glass-card panel-section">
+              <div class="field">
+                <label class="field-label">Destinataire (pseudo)</label>
+                <input type="text" id="boxmail-to" list="boxmail-pseudo-suggestions" placeholder="Pseudo du destinataire" autocomplete="off">
+                <datalist id="boxmail-pseudo-suggestions"></datalist>
+              </div>
+              <div class="field">
+                <label class="field-label">Message</label>
+                <textarea id="boxmail-content" rows="6" placeholder="Ton message..."></textarea>
+              </div>
+              <div class="error-msg" id="boxmail-send-error"></div>
+              <div class="info-msg" id="boxmail-send-success"></div>
+              <button class="btn primary" id="boxmail-send-btn">Envoyer</button>
+            </div>
+          </div>
+
+          <div id="boxmail-inbox-panel">
+            <div id="boxmail-inbox-list"></div>
+
+            <div id="boxmail-detail" style="display:none;">
+              <div id="boxmail-detail-back" style="cursor:pointer;opacity:.75;font-size:13px;margin-bottom:16px;">&larr; Retour à la boîte de réception</div>
+              <div class="glass-card panel-section">
+                <div style="font-size:12px;opacity:.6;margin-bottom:10px;" id="boxmail-detail-meta"></div>
+                <div id="boxmail-detail-content" style="white-space:pre-wrap;line-height:1.5;"></div>
+              </div>
+              <button class="btn primary" id="boxmail-validate-btn" style="margin-top:16px;">✓ Valider</button>
+            </div>
+          </div>
+        </div>
+
         <div class="view" id="view-resources">
           <div class="dash-toolbar">
             <h1 class="metal-title">Ressources</h1>
@@ -565,6 +606,7 @@
 <div id="toast"></div>
 
 <script src="/assets/chat-widget.js"></script>
+<script src="/assets/boxmail-widget.js"></script>
 
 </body>
 </html>
