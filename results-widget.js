@@ -303,10 +303,14 @@
 
       navResultsMain.addEventListener("click", function (e) {
         e.stopPropagation();
-        // Le bundle compilé ouvre automatiquement la page Résultats sur ce
-        // clic ; on annule cette navigation pour ne faire QUE déplier le
-        // sous-menu, la navigation réelle se fait via un sous-élément.
+        // Le bundle compilé ouvre automatiquement la page Résultats et ferme
+        // le menu latéral sur ce clic ; on annule les deux pour ne faire QUE
+        // déplier le sous-menu, la navigation réelle se fait via un sous-élément.
         restoreView(lastView);
+        var sidebar = document.getElementById("sidebar");
+        var sidebarOverlay = document.getElementById("sidebar-overlay");
+        if (sidebar) sidebar.classList.add("open");
+        if (sidebarOverlay) sidebarOverlay.classList.add("open");
         var isOpen = navResultsSublist.classList.toggle("open");
         if (navResultsCaret) navResultsCaret.classList.toggle("open", isOpen);
       });
