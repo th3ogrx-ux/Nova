@@ -57,19 +57,26 @@
 
     function loadCaTotal() {
       if (!caValueEl) return;
-      supabase.from("clients").select("entries").then(function (res) {
-        var rows = (res && res.data) || [];
+      Promise.all([
+        supabase.from("clients").select("entries"),
+        supabase.from("one_shot_sales").select("amount")
+      ]).then(function (results) {
+        var clientRows = (results[0] && results[0].data) || [];
+        var saleRows = (results[1] && results[1].data) || [];
         var total = 0;
-        rows.forEach(function (c) {
+        clientRows.forEach(function (c) {
           (c.entries || []).forEach(function (e) { total += Number(e.amount) || 0; });
         });
+        saleRows.forEach(function (s) { total += Number(s.amount) || 0; });
         caValueEl.textContent = fmtEUR(total);
       });
     }
 
     function loadActivity() {
       if (!activityDmEl) return;
-      supabase.from("prospects").select("status").then(function (res) {
+      var midnight = new Date();
+      midnight.setHours(0, 0, 0, 0);
+      supabase.from("prospects").select("status").gte("created_at", midnight.toISOString()).then(function (res) {
         var rows = (res && res.data) || [];
         var replied = 0, sold = 0;
         rows.forEach(function (r) {

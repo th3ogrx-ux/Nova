@@ -147,7 +147,6 @@
         <div class="nav-item" data-view="dms"><span class="dot"></span>Journal de DMs</div>
         <div class="nav-item" id="nav-equipe" data-view="equipe"><span class="dot"></span>Équipe</div>
         <div class="nav-item" id="nav-rewards" data-view="rewards"><span class="dot"></span>Récompenses</div>
-        <div class="nav-item chef-only" data-view="stats"><span class="dot"></span>Analyse / Stats</div>
         <div class="nav-item" id="nav-boxmail" data-view="boxmail"><span class="dot"></span>BoxMail<span class="nova-boxmail-badge" id="boxmail-nav-badge" style="display:none;"></span></div>
         <div class="nav-item" id="nav-resources" data-view="resources"><span class="dot"></span>Ressources</div>
         <div class="nav-item" data-view="classement" style="display:none;"><span class="dot"></span>Classement</div>
@@ -179,7 +178,7 @@
           </div>
           <div class="home-grid" id="home-grid">
             <div class="home-tile" id="home-tile-ca" data-view="results">
-              <div class="home-tile-label">CA total</div>
+              <div class="home-tile-label">Résultat total</div>
               <div class="home-tile-value" id="home-ca-value">—</div>
             </div>
             <div class="home-tile home-tile-stack" id="home-tile-activity" data-view="dms">
@@ -408,65 +407,6 @@
           </div>
 
           <div id="dm-journal"></div>
-        </div>
-        <div class="view" id="view-stats">
-
-          <!-- vue liste stats -->
-          <div id="stats-list-panel">
-            <div class="dash-toolbar">
-              <h1 class="metal-title">Analyse / Stats</h1>
-            </div>
-            <div id="stats-list"></div>
-          </div>
-
-          <!-- vue détail stats -->
-          <div id="stats-detail-panel" style="display:none;">
-            <div class="detail-head">
-              <div class="back-btn" id="btn-back-to-stats">←</div>
-              <div class="client-avatar" id="stats-detail-avatar"></div>
-              <div>
-                <div class="detail-head-name" id="stats-detail-name"></div>
-                <div class="detail-head-sub" id="stats-detail-sub"></div>
-              </div>
-            </div>
-
-            <div class="glass-card chart-panel">
-              <div class="chart-toggle">
-                <div class="period-tab active" data-chart-mode="month">Par mois</div>
-                <div class="period-tab" data-chart-mode="week">Par semaine</div>
-              </div>
-              <div class="chart-svg-wrap" id="stats-chart"></div>
-            </div>
-
-            <div class="indicator-grid">
-              <div class="glass-card indicator-card">
-                <div class="indicator-label">Progression vs objectif</div>
-                <div class="indicator-value" id="stats-objective-value">—</div>
-                <div class="indicator-sub" id="stats-objective-trend">—</div>
-              </div>
-              <div class="glass-card indicator-card">
-                <div class="indicator-label">Rentabilité cumulée</div>
-                <div class="indicator-value" id="stats-profitability-value">—</div>
-                <div class="indicator-sub">Commission générée depuis le début</div>
-              </div>
-              <div class="glass-card indicator-card">
-                <div class="indicator-label">Ancienneté</div>
-                <div class="indicator-value" id="stats-seniority-value">—</div>
-                <div class="indicator-sub" id="stats-seniority-sub">—</div>
-              </div>
-              <div class="glass-card indicator-card">
-                <div class="indicator-label">Régularité</div>
-                <div class="indicator-value" id="stats-regularity-value">—</div>
-                <div class="indicator-sub" id="stats-regularity-sub">—</div>
-              </div>
-              <div class="glass-card indicator-card" style="grid-column:1/-1;">
-                <div class="indicator-label">Comparaison avec la moyenne agence</div>
-                <div class="indicator-value" id="stats-agency-value">—</div>
-                <div class="indicator-sub" id="stats-agency-sub">—</div>
-              </div>
-            </div>
-          </div>
-
         </div>
         <div class="view" id="view-boxmail">
           <div class="dash-toolbar">

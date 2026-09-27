@@ -144,6 +144,14 @@
       });
     }
 
+    function recordEarnedBadges(stats) {
+      if (!me || me.role === "chef") return;
+      var earned = window.ZenoaBadges.computeEarned(stats);
+      if (!earned.length) return;
+      var rows = earned.map(function (b) { return { user_id: me.id, badge_id: b.id }; });
+      supabase.from("badge_events").upsert(rows, { onConflict: "user_id,badge_id", ignoreDuplicates: true }).then(function () {});
+    }
+
     function renderQuests() {
       if (!questsEl) return;
       questsEl.innerHTML = "";
@@ -193,6 +201,7 @@
                 if (res && res.error) { alert("Erreur : " + res.error.message); return; }
                 me.selected_badge_id = badge.id;
                 renderBadgesPicker();
+                applyMyAvatarBadge();
               });
             });
           }
@@ -213,12 +222,37 @@
       });
     }
 
+    function applyMyAvatarBadge() {
+      var avatarEl = document.getElementById("my-avatar");
+      if (!avatarEl || !me) return;
+      var old = document.getElementById("my-avatar-badge");
+      myStats().then(function (stats) {
+        recordEarnedBadges(stats);
+        var badge = window.ZenoaBadges.pickActiveBadge(stats, me.selected_badge_id);
+        if (old) old.remove();
+        if (!badge) return;
+        var tag = el("span", { id: "my-avatar-badge", title: badge.label }, badge.icon);
+        tag.style.cssText = "position:absolute;bottom:-3px;right:-3px;font-size:14px;line-height:1;background:var(--bg-panel);border-radius:50%;padding:1px;";
+        avatarEl.appendChild(tag);
+      });
+    }
+
     function boot(userId) {
       supabase.from("profiles").select("id,role,selected_badge_id").eq("id", userId).single().then(function (res) {
         if (!res || !res.data) return;
         me = res.data;
         if (navRewards) navRewards.style.display = me.role === "chef" ? "none" : "flex";
         if (settingsBadgesTile) settingsBadgesTile.style.display = me.role === "chef" ? "none" : "flex";
+        applyMyAvatarBadge();
+
+        if (me.role !== "chef") {
+          supabase.channel("nova-badges-" + me.id)
+            .on("postgres_changes", { event: "*", schema: "public", table: "prospects", filter: "setter_id=eq." + me.id }, function () {
+              applyMyAvatarBadge();
+              renderQuests();
+            })
+            .subscribe();
+        }
       });
     }
 

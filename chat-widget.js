@@ -167,10 +167,26 @@
     function fetchProspectNotifs() {
       if (!me || me.role !== "chef") return Promise.resolve([]);
       return supabase.from("prospects").select("id,contact,setter_id,created_at")
-        .neq("setter_id", me.id).order("created_at", { ascending: false }).limit(20)
+        .eq("status", "sold").neq("setter_id", me.id).order("created_at", { ascending: false }).limit(20)
         .then(function (res) {
           return ((res && res.data) || []).map(function (r) {
-            return { created_at: r.created_at, text: (profilesCache[r.setter_id] || "Quelqu'un") + " a ajouté un prospect : " + r.contact, view: "dms" };
+            return { created_at: r.created_at, text: (profilesCache[r.setter_id] || "Quelqu'un") + " a fait une vente : " + r.contact, view: "dms" };
+          });
+        });
+    }
+
+    function fetchBadgeNotifs() {
+      if (!me || me.role !== "chef") return Promise.resolve([]);
+      return supabase.from("badge_events").select("id,user_id,badge_id,created_at")
+        .order("created_at", { ascending: false }).limit(20)
+        .then(function (res) {
+          var rows = (res && res.data) || [];
+          var badgesById = {};
+          if (window.ZenoaBadges) window.ZenoaBadges.BADGES.forEach(function (b) { badgesById[b.id] = b; });
+          return rows.map(function (r) {
+            var badge = badgesById[r.badge_id];
+            var label = badge ? (badge.icon + " " + badge.label) : r.badge_id;
+            return { created_at: r.created_at, text: (profilesCache[r.user_id] || "Quelqu'un") + " a débloqué le badge " + label, view: "admin" };
           });
         });
     }
@@ -187,8 +203,8 @@
     }
 
     function loadNotifications() {
-      return Promise.all([fetchBoxmailNotifs(), fetchProspectNotifs(), fetchReportNotifs()]).then(function (lists) {
-        var all = lists[0].concat(lists[1]).concat(lists[2]);
+      return Promise.all([fetchBoxmailNotifs(), fetchProspectNotifs(), fetchBadgeNotifs(), fetchReportNotifs()]).then(function (lists) {
+        var all = lists[0].concat(lists[1]).concat(lists[2]).concat(lists[3]);
         all.sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); });
         return all.slice(0, 30);
       });
@@ -600,7 +616,7 @@
       var buttons = teamListEl.querySelectorAll("button[data-uid]");
       var ids = Array.prototype.map.call(buttons, function (b) { return b.getAttribute("data-uid"); });
       if (!ids.length) return;
-      supabase.from("profiles").select("id,email,last_seen_at,custom_role,selected_badge_id").in("id", ids).then(function (res) {
+      supabase.from("profiles").select("id,email,last_seen_at,custom_role,selected_badge_id,account_label").in("id", ids).then(function (res) {
         if (!res || res.error) return;
         var map = {};
         res.data.forEach(function (p) { map[p.id] = p; });
@@ -613,13 +629,19 @@
             var info = row.querySelector(".team-row-info");
             if (!info) return;
             var p = map[uid] || {};
+            var online = activityLabel(p.last_seen_at) === "Connecté actuellement";
             var line = info.querySelector(".nova-activity-line");
             if (!line) {
               line = el("div", { class: "nova-activity-line" });
-              line.style.cssText = "font-size:12px;opacity:.55;margin-top:2px;";
+              line.style.cssText = "font-size:12px;opacity:.55;margin-top:2px;display:flex;align-items:center;gap:6px;";
+              var dot = el("span", { class: "nova-online-dot" });
+              dot.style.cssText = "width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0;";
+              line.appendChild(dot);
+              line.appendChild(el("span", { class: "nova-activity-text" }));
               info.appendChild(line);
             }
-            line.textContent = activityLabel(p.last_seen_at);
+            line.querySelector(".nova-online-dot").style.background = online ? "#4FBF7A" : "#D9534F";
+            line.querySelector(".nova-activity-text").textContent = activityLabel(p.last_seen_at);
 
             var meta = info.querySelector(".team-row-meta");
             if (meta) {
@@ -635,6 +657,26 @@
               if (badge) {
                 var tag = el("span", { class: "nova-badge-tag", title: badge.label }, badge.icon);
                 nameEl.appendChild(tag);
+              }
+            }
+
+            if (nameEl) {
+              var statusTag = nameEl.querySelector(".status-tag");
+              if (statusTag && !statusTag.classList.contains("banned")) {
+                var label = p.account_label === "test" ? "test" : "actif";
+                statusTag.textContent = label === "test" ? "Test" : "Actif";
+                statusTag.style.cursor = "pointer";
+                statusTag.style.color = label === "test" ? "#f2c572" : "#4FBF7A";
+                statusTag.style.borderColor = label === "test" ? "#d4af3759" : "#4FBF7A59";
+                statusTag.style.background = label === "test" ? "#d4af3714" : "#4FBF7A12";
+                statusTag.onclick = function (e) {
+                  e.stopPropagation();
+                  var next = label === "test" ? "actif" : "test";
+                  supabase.from("profiles").update({ account_label: next }).eq("id", uid).then(function (r) {
+                    if (r && r.error) { alert("Erreur : " + r.error.message); return; }
+                    decorateTeamList();
+                  });
+                };
               }
             }
           });
@@ -681,7 +723,8 @@
           if (me.role === "chef") {
             supabase.channel("nova-notifs-chef")
               .on("postgres_changes", { event: "INSERT", schema: "public", table: "issue_reports" }, refreshBellBadge)
-              .on("postgres_changes", { event: "INSERT", schema: "public", table: "prospects" }, refreshBellBadge)
+              .on("postgres_changes", { event: "UPDATE", schema: "public", table: "prospects" }, refreshBellBadge)
+              .on("postgres_changes", { event: "INSERT", schema: "public", table: "badge_events" }, refreshBellBadge)
               .subscribe();
           }
 

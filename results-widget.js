@@ -191,7 +191,18 @@
           if (r.description) left.appendChild(el("div", { class: "oneshot-row-desc" }, r.description));
           left.appendChild(el("div", { class: "oneshot-row-meta" }, new Date(r.sale_date + "T00:00:00").toLocaleDateString("fr-FR")));
           row.appendChild(left);
-          row.appendChild(el("div", { class: "oneshot-row-amount" }, fmtEUR(r.amount)));
+          var right = el("div", { style: "display:flex;align-items:center;gap:12px;" });
+          right.appendChild(el("div", { class: "oneshot-row-amount" }, fmtEUR(r.amount)));
+          var del = el("span", { class: "res-del", style: "position:static;cursor:pointer;opacity:.6;" }, "✕");
+          del.addEventListener("click", function () {
+            if (!confirm("Supprimer cette vente one-shot ?")) return;
+            supabase.from("one_shot_sales").delete().eq("id", r.id).then(function (res) {
+              if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+              renderOneshot();
+            });
+          });
+          right.appendChild(del);
+          row.appendChild(right);
           oneshotListEl.appendChild(row);
         });
       });
