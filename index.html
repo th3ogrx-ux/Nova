@@ -142,6 +142,7 @@
       </div>
       <div class="glow-divider" style="margin:0 18px; width:auto;"></div>
       <div class="nav-list">
+        <div class="nav-item chef-only" id="nav-accueil" data-view="accueil"><span class="dot"></span>Accueil</div>
         <div class="nav-item chef-only active" data-view="results"><span class="dot"></span>Résultats</div>
         <div class="nav-item" data-view="suivi" style="display:none;"><span class="dot"></span>Suivi business</div>
         <div class="nav-item" data-view="dms"><span class="dot"></span>Journal de DMs</div>
@@ -170,6 +171,26 @@
 
     <div class="main">
       <div class="main-inner">
+
+        <div class="view" id="view-accueil">
+          <div class="dash-toolbar">
+            <h1 class="metal-title">Accueil</h1>
+          </div>
+          <div class="home-grid" id="home-grid">
+            <div class="home-tile" id="home-tile-ca" data-view="results">
+              <div class="home-tile-label">CA total</div>
+              <div class="home-tile-value" id="home-ca-value">—</div>
+            </div>
+            <div class="home-tile" id="home-tile-activity" data-view="dms">
+              <div class="home-tile-label">Activité de l'équipe</div>
+              <div class="home-tile-value" id="home-activity-value">—</div>
+            </div>
+            <div class="home-tile" id="home-tile-boxmail" data-view="boxmail">
+              <div class="home-tile-label">Ma boîte de réception</div>
+              <div class="home-tile-value" id="home-boxmail-value">—</div>
+            </div>
+          </div>
+        </div>
 
         <div class="view active" id="view-results">
 
@@ -464,6 +485,35 @@
           <div class="team-list" id="team-list"></div>
         </div>
 
+        <div class="view" id="view-settings">
+          <div class="view-head">
+            <div class="back-btn" id="btn-back-settings">←</div>
+            <h1 class="metal-title" style="display:block;">Paramètres</h1>
+          </div>
+          <div class="settings-grid" id="settings-grid">
+            <div class="settings-tile" id="settings-edit-pseudo">
+              <div class="settings-tile-icon">✎</div>
+              <div class="settings-tile-label">Changer de pseudo</div>
+            </div>
+            <div class="settings-tile" id="settings-edit-photo">
+              <div class="settings-tile-icon">🖼</div>
+              <div class="settings-tile-label">Changer de photo de profil</div>
+            </div>
+            <div class="settings-tile" id="settings-report-issue">
+              <div class="settings-tile-icon">⚠</div>
+              <div class="settings-tile-label">Signaler un problème</div>
+            </div>
+            <div class="settings-tile" id="settings-manage-roles" style="display:none;">
+              <div class="settings-tile-icon">🏷</div>
+              <div class="settings-tile-label">Rôles de l'équipe</div>
+            </div>
+            <div class="settings-tile settings-tile-danger" id="settings-logout">
+              <div class="settings-tile-icon">⏻</div>
+              <div class="settings-tile-label">Se déconnecter</div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -496,20 +546,6 @@
   </div>
 </div>
 
-<!-- MODAL: paramètres -->
-<div class="modal-overlay" id="modal-settings">
-  <div class="glass-card modal-box">
-    <h2>Paramètres</h2>
-    <div id="settings-edit-pseudo" class="nova-member-row" style="border-radius:8px;margin-bottom:6px;">Changer de pseudo</div>
-    <div id="settings-edit-photo" class="nova-member-row" style="border-radius:8px;margin-bottom:6px;">Changer de photo de profil</div>
-    <div id="settings-report-issue" class="nova-member-row" style="border-radius:8px;margin-bottom:6px;">Signaler un problème</div>
-    <div id="settings-manage-roles" class="nova-member-row" style="border-radius:8px;margin-bottom:6px;display:none;">Rôles de l'équipe</div>
-    <div class="modal-actions" style="margin-top:14px;">
-      <button class="btn ghost" id="btn-close-settings">Fermer</button>
-      <button class="btn danger" id="settings-logout">Se déconnecter</button>
-    </div>
-  </div>
-</div>
 
 <!-- MODAL: rôles de l'équipe (chef) -->
 <div class="modal-overlay" id="modal-roles">
@@ -611,6 +647,7 @@
 <script src="/chat-widget.js"></script>
 <script src="/boxmail-widget.js"></script>
 <script src="/dm-widget.js"></script>
+<script src="/home-widget.js"></script>
 
 </body>
 </html>

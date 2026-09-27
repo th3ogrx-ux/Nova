@@ -1,0 +1,125 @@
+(function () {
+  "use strict";
+
+  var SUPABASE_URL = "https://mfdqxzccmzumxiichdqw.supabase.co";
+  var SUPABASE_KEY = "sb_publishable_Qes5VQ0OcaAEVh_kMjej6A_HJ6yxY3T";
+
+  function loadSupabase(cb) {
+    if (window.supabase && window.supabase.createClient) return cb();
+    var s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
+    s.onload = cb;
+    document.head.appendChild(s);
+  }
+
+  function findExistingStorageKey() {
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && /^sb-.*-auth-token$/.test(k)) return k;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function fmtEUR(n) {
+    return (n || 0).toLocaleString("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+  }
+
+  var CSS = "\n.home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;}\n.home-tile{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:18px;border-radius:18px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);cursor:pointer;}\n.home-tile:hover{background:rgba(255,255,255,.09);}\n.home-tile-label{font-size:14px;opacity:.7;font-weight:600;}\n.home-tile-value{font-size:32px;font-weight:700;background:linear-gradient(180deg,var(--metal-2) 0%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}\n";
+
+  function init() {
+    var style = document.createElement("style");
+    style.textContent = CSS;
+    document.head.appendChild(style);
+
+    var existingKey = findExistingStorageKey();
+    var clientOpts = existingKey ? { auth: { storageKey: existingKey } } : {};
+    var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, clientOpts);
+
+    var me = null;
+    var homeGrid = document.getElementById("home-grid");
+    var caValueEl = document.getElementById("home-ca-value");
+    var activityValueEl = document.getElementById("home-activity-value");
+    var boxmailValueEl = document.getElementById("home-boxmail-value");
+
+    if (!homeGrid) return;
+
+    homeGrid.querySelectorAll(".home-tile").forEach(function (tile) {
+      tile.addEventListener("click", function () {
+        var view = tile.getAttribute("data-view");
+        var navEl = document.querySelector('.nav-item[data-view="' + view + '"]');
+        if (navEl) navEl.click();
+      });
+    });
+
+    function loadCaTotal() {
+      if (!caValueEl) return;
+      supabase.from("clients").select("entries").then(function (res) {
+        var rows = (res && res.data) || [];
+        var total = 0;
+        rows.forEach(function (c) {
+          (c.entries || []).forEach(function (e) { total += Number(e.amount) || 0; });
+        });
+        caValueEl.textContent = fmtEUR(total);
+      });
+    }
+
+    function loadActivity() {
+      if (!activityValueEl) return;
+      var since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+      supabase.from("prospects").select("id", { count: "exact", head: true }).gte("created_at", since).then(function (res) {
+        var count = (res && res.count) || 0;
+        activityValueEl.textContent = count + (count > 1 ? " DMs" : " DM") ;
+      });
+    }
+
+    function loadBoxmail() {
+      if (!boxmailValueEl || !me) return;
+      supabase.from("boxmails").select("id", { count: "exact", head: true })
+        .eq("recipient_id", me.id).is("read_at", null).is("validated_at", null)
+        .then(function (res) {
+          var count = (res && res.count) || 0;
+          boxmailValueEl.textContent = count + (count > 1 ? " non lus" : " non lu");
+        });
+    }
+
+    function switchToAccueil() {
+      document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
+      var navEl = document.getElementById("nav-accueil");
+      if (navEl) navEl.classList.add("active");
+      document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+      var v = document.getElementById("view-accueil");
+      if (v) v.classList.add("active");
+    }
+
+    function boot(userId) {
+      supabase.from("profiles").select("id,role").eq("id", userId).single().then(function (res) {
+        if (!res || !res.data) return;
+        me = res.data;
+
+        if (me.role === "chef") {
+          switchToAccueil();
+        }
+
+        loadCaTotal();
+        loadActivity();
+        loadBoxmail();
+      });
+    }
+
+    supabase.auth.getSession().then(function (res) {
+      var session = res && res.data && res.data.session;
+      if (session && session.user) boot(session.user.id);
+    });
+    supabase.auth.onAuthStateChange(function (event, session) {
+      if (session && session.user && !me) boot(session.user.id);
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () { loadSupabase(init); });
+  } else {
+    loadSupabase(init);
+  }
+})();

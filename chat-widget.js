@@ -29,7 +29,7 @@
     return e;
   }
 
-  var CSS = "\n.nova-member-row-v2{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid rgba(199,194,219,.10)}\n.nova-member-row-v2:hover{background:rgba(255,255,255,.04)}\n.nova-member-avatar{width:40px;height:40px;border-radius:50%;flex-shrink:0;object-fit:cover;background:linear-gradient(135deg,#BF5AF2,#300A66);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;}\n.nova-member-text{min-width:0;flex:1;}\n.nova-member-name{font-family:'Poppins',sans-serif;font-weight:600;font-size:14.5px;margin-bottom:2px;}\n.nova-member-preview{font-size:12.5px;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}\n.res-card{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);cursor:pointer;font-size:16px;font-weight:700;word-break:break-word}\n.res-card:hover{background:rgba(255,255,255,.09)}\n.res-item{padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.05);font-size:14px;word-break:break-word}\n.res-item a{color:#E0B3FF}\n.res-card{position:relative}\n.res-del{position:absolute;top:6px;right:8px;font-size:14px;opacity:.6;line-height:1}\n.res-del:hover{opacity:1;color:#ef4444}\n.res-item{position:relative;padding-right:34px}\n.res-item .res-del{top:8px;right:10px}\n.res-card-wide{aspect-ratio:auto!important;width:100%;height:120px;font-size:20px;}\n.res-card-empty{opacity:.55;font-weight:500;font-size:15px;border-style:dashed;}\n.res-card.dragging{opacity:.55;transform:scale(1.05);z-index:5;box-shadow:0 12px 30px #000a;touch-action:none;}\n.res-edit{position:absolute;top:6px;left:8px;font-size:13px;opacity:.6;}\n.res-edit:hover{opacity:1;}\n.nav-item.unread-nav{font-weight:700;}\n";
+  var CSS = "\n.nova-member-row-v2{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid rgba(199,194,219,.10)}\n.nova-member-row-v2:hover{background:rgba(255,255,255,.04)}\n.nova-member-avatar{width:40px;height:40px;border-radius:50%;flex-shrink:0;object-fit:cover;background:linear-gradient(135deg,#BF5AF2,#300A66);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;}\n.nova-member-text{min-width:0;flex:1;}\n.nova-member-name{font-family:'Poppins',sans-serif;font-weight:600;font-size:14.5px;margin-bottom:2px;}\n.nova-member-preview{font-size:12.5px;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}\n.res-card{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);cursor:pointer;font-size:16px;font-weight:700;word-break:break-word}\n.res-card:hover{background:rgba(255,255,255,.09)}\n.res-item{padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.05);font-size:14px;word-break:break-word}\n.res-item a{color:#E0B3FF}\n.res-card{position:relative}\n.res-del{position:absolute;top:6px;right:8px;font-size:14px;opacity:.6;line-height:1}\n.res-del:hover{opacity:1;color:#ef4444}\n.res-item{position:relative;padding-right:34px}\n.res-item .res-del{top:8px;right:10px}\n.res-card-wide{aspect-ratio:auto!important;width:100%;height:120px;font-size:20px;}\n.res-card-empty{opacity:.55;font-weight:500;font-size:15px;border-style:dashed;}\n.res-card.dragging{opacity:.55;transform:scale(1.05);z-index:5;box-shadow:0 12px 30px #000a;touch-action:none;}\n.res-edit{position:absolute;top:6px;left:8px;font-size:13px;opacity:.6;}\n.res-edit:hover{opacity:1;}\n.nav-item.unread-nav{font-weight:700;}\n.settings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;}\n.settings-tile{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:14px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);cursor:pointer;font-size:14px;font-weight:600;}\n.settings-tile:hover{background:rgba(255,255,255,.09);}\n.settings-tile-icon{font-size:28px;}\n.settings-tile-label{word-break:break-word;}\n.settings-tile-danger{border-color:#d9534f4d;color:#e39490;}\n.settings-tile-danger:hover{background:#d9534f14;}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -55,8 +55,7 @@
     var resItemForm = document.getElementById("res-item-form");
     var resItemInput = document.getElementById("res-item-input");
     var settingsBtn = document.getElementById("settings-btn");
-    var modalSettings = document.getElementById("modal-settings");
-    var btnCloseSettings = document.getElementById("btn-close-settings");
+    var btnBackSettings = document.getElementById("btn-back-settings");
     var settingsLogout = document.getElementById("settings-logout");
     var settingsEditPseudo = document.getElementById("settings-edit-pseudo");
     var settingsEditPhoto = document.getElementById("settings-edit-photo");
@@ -76,14 +75,27 @@
     var rolesListItems = document.getElementById("roles-list-items");
     var btnCloseRoles = document.getElementById("btn-close-roles");
 
-    if (settingsBtn && modalSettings) {
+    var previousViewBeforeSettings = null;
+
+    function switchToView(viewName) {
+      document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
+      var navEl = document.querySelector('.nav-item[data-view="' + viewName + '"]');
+      if (navEl) navEl.classList.add("active");
+      document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+      var v = document.getElementById("view-" + viewName);
+      if (v) v.classList.add("active");
+    }
+
+    if (settingsBtn) {
       settingsBtn.addEventListener("click", function () {
-        modalSettings.classList.add("open");
+        var activeNav = document.querySelector(".nav-item.active");
+        previousViewBeforeSettings = activeNav ? activeNav.getAttribute("data-view") : "results";
+        switchToView("settings");
       });
     }
-    if (btnCloseSettings) {
-      btnCloseSettings.addEventListener("click", function () {
-        modalSettings.classList.remove("open");
+    if (btnBackSettings) {
+      btnBackSettings.addEventListener("click", function () {
+        switchToView(previousViewBeforeSettings || "results");
       });
     }
     if (settingsLogout) {
@@ -109,14 +121,12 @@
     }
     if (settingsEditPhoto && myAvatarInput) {
       settingsEditPhoto.addEventListener("click", function () {
-        modalSettings.classList.remove("open");
         myAvatarInput.click(); // réutilise l'upload déjà géré par l'app
       });
     }
 
     if (settingsReportIssue && modalReportIssue) {
       settingsReportIssue.addEventListener("click", function () {
-        modalSettings.classList.remove("open");
         reportIssueText.value = "";
         modalReportIssue.classList.add("open");
       });
@@ -287,7 +297,6 @@
 
     if (settingsManageRoles && modalRoles) {
       settingsManageRoles.addEventListener("click", function () {
-        modalSettings.classList.remove("open");
         renderRolesList();
         modalRoles.classList.add("open");
       });
@@ -614,7 +623,7 @@
         me = res.data;
         profilesCache[me.id] = me.pseudo;
         applyMyCustomRole(me.custom_role);
-        if (settingsManageRoles) settingsManageRoles.style.display = me.role === "chef" ? "block" : "none";
+        if (settingsManageRoles) settingsManageRoles.style.display = me.role === "chef" ? "" : "none";
 
         supabase.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("id", me.id).then(function () {});
         setInterval(function () {
