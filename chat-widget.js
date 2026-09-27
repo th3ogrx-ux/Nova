@@ -52,7 +52,7 @@
     return e;
   }
 
-  var CSS = "\n.nova-member-row-v2{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid rgba(199,194,219,.10)}\n.nova-member-row-v2:hover{background:rgba(255,255,255,.04)}\n.nova-member-avatar{width:40px;height:40px;border-radius:50%;flex-shrink:0;object-fit:cover;background:linear-gradient(135deg,#BF5AF2,#300A66);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;}\n.nova-member-text{min-width:0;flex:1;}\n.nova-member-name{font-family:'Poppins',sans-serif;font-weight:600;font-size:14.5px;margin-bottom:2px;}\n.nova-member-preview{font-size:12.5px;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}\n.res-card{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);cursor:pointer;font-size:16px;font-weight:700;word-break:break-word}\n.res-card:hover{background:rgba(255,255,255,.09)}\n.res-item{padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.05);font-size:14px;word-break:break-word}\n.res-item a{color:#E0B3FF}\n.res-card{position:relative}\n.res-del{position:absolute;top:6px;right:8px;font-size:14px;opacity:.6;line-height:1}\n.res-del:hover{opacity:1;color:#ef4444}\n.res-item{position:relative;padding-right:34px}\n.res-item .res-del{top:8px;right:10px}\n.res-card-wide{aspect-ratio:auto!important;width:100%;height:120px;font-size:20px;}\n.res-card-empty{opacity:.55;font-weight:500;font-size:15px;border-style:dashed;}\n.res-card.dragging{opacity:.55;transform:scale(1.05);z-index:5;box-shadow:0 12px 30px #000a;touch-action:none;}\n.res-edit{position:absolute;top:6px;left:8px;font-size:13px;opacity:.6;}\n.res-edit:hover{opacity:1;}\n.nav-item.unread-nav{font-weight:700;}\n.settings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;}\n.settings-tile{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:14px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);cursor:pointer;font-size:14px;font-weight:600;}\n.settings-tile:hover{background:rgba(255,255,255,.09);}\n.settings-tile-icon{font-size:28px;}\n.settings-tile-label{word-break:break-word;}\n.settings-tile-danger{border-color:#d9534f4d;color:#e39490;}\n.settings-tile-danger:hover{background:#d9534f14;}\n#screen-login{align-items:center;justify-content:center;padding:24px;}\n.nova-notif-row{display:flex;align-items:flex-start;gap:12px;}\n.nova-notif-icon{width:32px;height:32px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#BF5AF2,#300A66);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;overflow:hidden;}\n.nova-notif-icon img{width:100%;height:100%;object-fit:cover;}\n.nova-notif-body{flex:1;min-width:0;padding-right:20px;}\n";
+  var CSS = "\n.nova-member-row-v2{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid rgba(199,194,219,.10)}\n.nova-member-row-v2:hover{background:rgba(255,255,255,.04)}\n.nova-member-avatar{width:40px;height:40px;border-radius:50%;flex-shrink:0;object-fit:cover;background:linear-gradient(135deg,#BF5AF2,#300A66);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;}\n.nova-member-text{min-width:0;flex:1;}\n.nova-member-name{font-family:'Poppins',sans-serif;font-weight:600;font-size:14.5px;margin-bottom:2px;}\n.nova-member-preview{font-size:12.5px;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}\n.res-card{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);cursor:pointer;font-size:16px;font-weight:700;word-break:break-word}\n.res-card:hover{background:rgba(255,255,255,.09)}\n.res-item{padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.05);font-size:14px;word-break:break-word}\n.res-item a{color:#E0B3FF}\n.res-card{position:relative}\n.res-del{position:absolute;top:6px;right:8px;font-size:14px;opacity:.6;line-height:1}\n.res-del:hover{opacity:1;color:#ef4444}\n.res-item{position:relative;padding-right:34px}\n.res-item .res-del{top:8px;right:10px}\n.res-card-wide{aspect-ratio:auto!important;width:100%;height:120px;font-size:20px;}\n.res-card-empty{opacity:.55;font-weight:500;font-size:15px;border-style:dashed;}\n.res-card.dragging{opacity:.55;transform:scale(1.05);z-index:5;box-shadow:0 12px 30px #000a;touch-action:none;}\n.res-edit{position:absolute;top:6px;left:8px;font-size:13px;opacity:.6;}\n.res-edit:hover{opacity:1;}\n.nav-item.unread-nav{font-weight:700;}\n.settings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;}\n.settings-tile{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:14px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);cursor:pointer;font-size:14px;font-weight:600;}\n.settings-tile:hover{background:rgba(255,255,255,.09);}\n.settings-tile-icon{font-size:28px;}\n.settings-tile-label{word-break:break-word;}\n.settings-tile-danger{border-color:#d9534f4d;color:#e39490;}\n.settings-tile-danger:hover{background:#d9534f14;}\n#screen-login{align-items:center;justify-content:center;padding:24px;}\n.nova-notif-row{display:flex;align-items:flex-start;gap:12px;}\n.nova-notif-icon{width:32px;height:32px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#BF5AF2,#300A66);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;overflow:hidden;}\n.nova-notif-icon img{width:100%;height:100%;object-fit:cover;}\n.nova-notif-body{flex:1;min-width:0;padding-right:20px;}\n.nova-video-player{border-radius:20px;overflow:hidden;background:radial-gradient(ellipse at 30% 20%,#300a6640,transparent 60%),radial-gradient(ellipse at 80% 80%,#bf5af233,transparent 55%),#0c0518;border:1px solid rgba(199,194,219,.16);box-shadow:0 20px 60px #00000073;}\n.nova-video-progress{display:flex;gap:5px;padding:14px 16px 0;}\n.nova-video-seg{flex:1;height:3px;border-radius:3px;background:rgba(255,255,255,.14);}\n.nova-video-seg.done{background:linear-gradient(90deg,var(--warm-1),var(--warm-2));}\n.nova-video-seg.current{background:linear-gradient(90deg,var(--warm-1),var(--warm-2));animation:nova-video-pulse 1.4s ease-in-out infinite;}\n.nova-video-seg.current.paused{animation:none;opacity:.7;}\n@keyframes nova-video-pulse{0%,100%{opacity:1;}50%{opacity:.42;}}\n.nova-video-stage{min-height:220px;display:flex;align-items:center;justify-content:center;text-align:center;padding:36px 30px;}\n.nova-video-text{font-size:17px;line-height:1.55;font-weight:500;color:var(--metal-2);opacity:0;transform:translateY(8px);transition:opacity .45s ease,transform .45s ease;max-width:520px;}\n.nova-video-text.show{opacity:1;transform:translateY(0);}\n.nova-video-controls{display:flex;align-items:center;justify-content:center;gap:14px;padding:16px 16px 20px;}\n.nova-video-btn{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(199,194,219,.2);color:var(--metal-2);font-size:14px;background:rgba(255,255,255,.04);transition:background .2s ease;}\n.nova-video-btn:hover{background:rgba(255,255,255,.1);}\n.nova-video-btn.play{width:46px;height:46px;font-size:17px;background:linear-gradient(120deg,var(--warm-1),var(--warm-2));color:#04010a;border:none;}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -76,6 +76,8 @@
     var resItemsEl = document.getElementById("res-items");
     var resItemForm = document.getElementById("res-item-form");
     var resItemInput = document.getElementById("res-item-input");
+    var resPinnedVideo = document.getElementById("res-pinned-video");
+    var resManageToggle = document.getElementById("res-manage-toggle");
     var settingsBtn = document.getElementById("settings-btn");
     var btnBackSettings = document.getElementById("btn-back-settings");
     var settingsLogout = document.getElementById("settings-logout");
@@ -425,6 +427,11 @@
       });
     }
 
+    document.querySelectorAll(".nav-item").forEach(function (navEl) {
+      if (navEl === navResources) return;
+      navEl.addEventListener("click", function () { stopPinnedVideo(); });
+    });
+
     function initials(name) {
       return (name || "?").trim().slice(0, 2).toUpperCase();
     }
@@ -444,6 +451,7 @@
     }
 
     function backToGrid() {
+      stopPinnedVideo();
       resDetail.style.display = "none";
       resGrid.style.display = "grid";
       renderResourceGrid();
@@ -591,11 +599,24 @@
       resGrid.style.display = "none";
       resDetail.style.display = "block";
       resDetailTitle.textContent = cat.title;
-      resItemForm.style.display = me.role === "chef" ? "flex" : "none";
       resItemForm.dataset.categoryId = cat.id;
       resItemsEl.innerHTML = "";
+      stopPinnedVideo();
+
+      var isPinned = !!cat.is_pinned;
+      resPinnedVideo.style.display = isPinned ? "block" : "none";
+      resManageToggle.style.display = isPinned && me.role === "chef" ? "block" : "none";
+      resManageToggle.textContent = "✎ Gérer le contenu";
+      resItemsEl.style.display = isPinned ? "none" : "flex";
+      resItemForm.style.display = !isPinned && me.role === "chef" ? "flex" : "none";
+
       supabase.from("resource_items").select("id,content").eq("category_id", cat.id).order("created_at").then(function (res) {
         var rows = (res && res.data) || [];
+
+        if (isPinned) {
+          renderPinnedVideoPlayer(rows.map(function (r) { return r.content; }));
+        }
+
         rows.forEach(function (r) {
           var box = el("div", { class: "res-item" });
           box.appendChild(linkify(r.content));
@@ -603,8 +624,8 @@
             var del = el("span", { class: "res-del" }, "✕");
             del.addEventListener("click", function () {
               if (!confirm("Supprimer cette ressource ?")) return;
-              supabase.from("resource_items").delete().eq("id", r.id).then(function (res) {
-                if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+              supabase.from("resource_items").delete().eq("id", r.id).then(function (res2) {
+                if (res2 && res2.error) { alert("Erreur : " + res2.error.message); return; }
                 box.remove();
               });
             });
@@ -613,6 +634,158 @@
           resItemsEl.appendChild(box);
         });
       });
+    }
+
+    if (resManageToggle) {
+      resManageToggle.addEventListener("click", function () {
+        var showing = resItemsEl.style.display !== "none";
+        resItemsEl.style.display = showing ? "none" : "flex";
+        resItemForm.style.display = showing ? "none" : (me.role === "chef" ? "flex" : "none");
+        resManageToggle.textContent = showing ? "✎ Gérer le contenu" : "✕ Fermer l'édition";
+      });
+    }
+
+    var pinnedVideoState = null;
+
+    function stopPinnedVideo() {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      if (pinnedVideoState) {
+        pinnedVideoState.stopped = true;
+        if (pinnedVideoState.fallbackTimer) clearTimeout(pinnedVideoState.fallbackTimer);
+        pinnedVideoState = null;
+      }
+    }
+
+    function stripForSpeech(text) {
+      return text.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}]/gu, "").trim();
+    }
+
+    function renderPinnedVideoPlayer(lines) {
+      resPinnedVideo.innerHTML = "";
+      if (!lines.length) {
+        resPinnedVideo.appendChild(el("div", { class: "empty-note" }, "Aucun contenu pour le moment."));
+        return;
+      }
+
+      var player = el("div", { class: "nova-video-player" });
+      var progress = el("div", { class: "nova-video-progress" });
+      var segs = lines.map(function () {
+        var seg = el("div", { class: "nova-video-seg" });
+        progress.appendChild(seg);
+        return seg;
+      });
+      player.appendChild(progress);
+
+      var stage = el("div", { class: "nova-video-stage" });
+      var textEl = el("div", { class: "nova-video-text" });
+      stage.appendChild(textEl);
+      player.appendChild(stage);
+
+      var controls = el("div", { class: "nova-video-controls" });
+      var prevBtn = el("div", { class: "nova-video-btn" }, "◀");
+      var playBtn = el("div", { class: "nova-video-btn play" }, "⏸");
+      var nextBtn = el("div", { class: "nova-video-btn" }, "▶");
+      controls.appendChild(prevBtn);
+      controls.appendChild(playBtn);
+      controls.appendChild(nextBtn);
+      player.appendChild(controls);
+
+      resPinnedVideo.appendChild(player);
+
+      var state = { index: 0, playing: true, stopped: false, fallbackTimer: null };
+      pinnedVideoState = state;
+
+      function estimateDuration(text) {
+        var words = text.trim().split(/\s+/).length;
+        return Math.max(3200, Math.min(9000, words * 340));
+      }
+
+      function updateSegs() {
+        segs.forEach(function (seg, i) {
+          if (i < state.index) seg.className = "nova-video-seg done";
+          else if (i === state.index) seg.className = "nova-video-seg current" + (!state.playing ? " paused" : "");
+          else seg.className = "nova-video-seg";
+        });
+      }
+
+      function playCurrent() {
+        var text = lines[state.index];
+        var duration = estimateDuration(text);
+        var advanced = false;
+        function safeAdvance() {
+          if (advanced || state.stopped || !state.playing) return;
+          advanced = true;
+          advance();
+        }
+
+        if (window.speechSynthesis && window.SpeechSynthesisUtterance) {
+          var utter = new SpeechSynthesisUtterance(stripForSpeech(text));
+          utter.lang = "fr-FR";
+          utter.rate = 0.98;
+          utter.onend = safeAdvance;
+          utter.onerror = safeAdvance;
+          window.speechSynthesis.speak(utter);
+        }
+        state.fallbackTimer = setTimeout(safeAdvance, duration + 900);
+      }
+
+      function goTo(i) {
+        if (state.stopped) return;
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+        if (state.fallbackTimer) clearTimeout(state.fallbackTimer);
+        if (i < 0) i = 0;
+        if (i >= lines.length) i = lines.length - 1;
+        state.index = i;
+        playBtn.textContent = state.playing ? "⏸" : "▶";
+        updateSegs();
+
+        textEl.classList.remove("show");
+        setTimeout(function () {
+          if (state.stopped || state.index !== i) return;
+          textEl.textContent = lines[i];
+          textEl.classList.add("show");
+        }, 200);
+
+        if (state.playing) playCurrent();
+      }
+
+      function advance() {
+        if (state.stopped) return;
+        if (state.index >= lines.length - 1) {
+          state.playing = false;
+          updateSegs();
+          playBtn.textContent = "🔁";
+          return;
+        }
+        goTo(state.index + 1);
+      }
+
+      prevBtn.addEventListener("click", function () {
+        state.playing = true;
+        goTo(state.index - 1);
+      });
+      nextBtn.addEventListener("click", function () {
+        state.playing = true;
+        goTo(state.index + 1);
+      });
+      playBtn.addEventListener("click", function () {
+        if (state.index >= lines.length - 1 && !state.playing) {
+          state.playing = true;
+          goTo(0);
+          return;
+        }
+        state.playing = !state.playing;
+        playBtn.textContent = state.playing ? "⏸" : "▶";
+        if (state.playing) {
+          playCurrent();
+        } else {
+          if (window.speechSynthesis) window.speechSynthesis.cancel();
+          if (state.fallbackTimer) clearTimeout(state.fallbackTimer);
+        }
+        updateSegs();
+      });
+
+      goTo(0);
     }
 
     if (resAddBtn) {
