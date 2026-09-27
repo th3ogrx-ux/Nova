@@ -148,6 +148,7 @@
         <div class="nav-item" id="nav-equipe" data-view="equipe"><span class="dot"></span>Équipe</div>
         <div class="nav-item" id="nav-boxmail" data-view="boxmail"><span class="dot"></span>BoxMail<span class="nova-boxmail-badge" id="boxmail-nav-badge" style="display:none;"></span></div>
         <div class="nav-item" id="nav-resources" data-view="resources"><span class="dot"></span>Ressources</div>
+        <div class="nav-item" id="nav-calendrier" data-view="calendrier"><span class="dot"></span>Calendrier</div>
         <div class="nav-item" data-view="classement" style="display:none;"><span class="dot"></span>Classement</div>
         <div class="nav-item admin-item" id="nav-admin" data-view="admin" style="display:none;"><span class="dot"></span>Gérer l'équipe</div>
         <div class="nav-item chef-only" id="nav-administratif" data-view="administratif"><span class="dot"></span>Administratif</div>
@@ -466,6 +467,25 @@
           </div>
         </div>
 
+        <div class="view" id="view-calendrier">
+          <div class="dash-toolbar">
+            <h1 class="metal-title">Calendrier</h1>
+            <button class="btn primary btn-sm" id="btn-add-event">+ Ajouter un point</button>
+          </div>
+
+          <div class="glass-card panel-section" style="margin-bottom:20px;">
+            <div class="calendar-nav">
+              <button class="icon-btn" id="cal-prev-month" type="button">←</button>
+              <div class="calendar-month-label" id="cal-month-label"></div>
+              <button class="icon-btn" id="cal-next-month" type="button">→</button>
+            </div>
+            <div class="calendar-grid" id="calendar-grid"></div>
+          </div>
+
+          <h3 id="cal-selected-day-label" style="margin:0 0 10px;font-size:14px;font-weight:500;color:var(--text-mid);"></h3>
+          <div id="calendar-day-events"></div>
+        </div>
+
         <div class="view" id="view-classement">
           <div class="dash-toolbar">
             <h1 class="metal-title">Classement</h1>
@@ -672,6 +692,34 @@
   </div>
 </div>
 
+<!-- MODAL: ajouter un point au calendrier -->
+<div class="modal-overlay" id="modal-add-event">
+  <div class="glass-card modal-box">
+    <h2>Nouveau point</h2>
+    <div class="field">
+      <label class="field-label">Titre</label>
+      <input type="text" id="event-title" placeholder="Ex : Point d'avancement équipe">
+    </div>
+    <div class="field">
+      <label class="field-label">Date</label>
+      <input type="date" id="event-date">
+    </div>
+    <div class="field">
+      <label class="field-label">Heure <span style="text-transform:none;opacity:.7;">(optionnel)</span></label>
+      <input type="time" id="event-time">
+    </div>
+    <div class="field">
+      <label class="field-label">Description <span style="text-transform:none;opacity:.7;">(optionnel)</span></label>
+      <textarea id="event-description" rows="3" placeholder="Détails..."></textarea>
+    </div>
+    <div class="error-msg" id="event-error"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="btn-cancel-event">Annuler</button>
+      <button class="btn primary" id="btn-confirm-event">Ajouter</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: ajouter un client -->
 <div class="modal-overlay" id="modal-add-client">
   <div class="glass-card modal-box">
@@ -799,6 +847,7 @@
 <script src="/results-widget.js"></script>
 <script src="/contracts-widget.js"></script>
 <script src="/push-widget.js"></script>
+<script src="/calendar-widget.js"></script>
 
 </body>
 </html>
