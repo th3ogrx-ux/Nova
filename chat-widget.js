@@ -52,7 +52,7 @@
     return e;
   }
 
-  var CSS = "\n.nova-member-row-v2{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid rgba(199,194,219,.10)}\n.nova-member-row-v2:hover{background:rgba(255,255,255,.04)}\n.nova-member-avatar{width:40px;height:40px;border-radius:50%;flex-shrink:0;object-fit:cover;background:linear-gradient(135deg,#BF5AF2,#300A66);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;}\n.nova-member-text{min-width:0;flex:1;}\n.nova-member-name{font-family:'Poppins',sans-serif;font-weight:600;font-size:14.5px;margin-bottom:2px;}\n.nova-member-preview{font-size:12.5px;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}\n.res-card{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);cursor:pointer;font-size:16px;font-weight:700;word-break:break-word}\n.res-card:hover{background:rgba(255,255,255,.09)}\n.res-item{padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.05);font-size:14px;word-break:break-word}\n.res-item a{color:#E0B3FF}\n.res-card{position:relative}\n.res-del{position:absolute;top:6px;right:8px;font-size:14px;opacity:.6;line-height:1}\n.res-del:hover{opacity:1;color:#ef4444}\n.res-item{position:relative;padding-right:34px}\n.res-item .res-del{top:8px;right:10px}\n.res-item.res-item-chef{padding-left:30px;}\n.res-item .res-edit{top:8px;left:10px;}\n.res-card-wide{aspect-ratio:auto!important;width:100%;height:120px;font-size:20px;}\n.res-card-empty{opacity:.55;font-weight:500;font-size:15px;border-style:dashed;}\n.res-card.dragging{opacity:.55;transform:scale(1.05);z-index:5;box-shadow:0 12px 30px #000a;touch-action:none;}\n.res-edit{position:absolute;top:6px;left:8px;font-size:13px;opacity:.6;}\n.res-edit:hover{opacity:1;}\n.nav-item.unread-nav{font-weight:700;}\n.settings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;}\n.settings-tile{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:14px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);cursor:pointer;font-size:14px;font-weight:600;}\n.settings-tile:hover{background:rgba(255,255,255,.09);}\n.settings-tile-icon{font-size:28px;}\n.settings-tile-label{word-break:break-word;}\n.settings-tile-danger{border-color:#d9534f4d;color:#e39490;}\n.settings-tile-danger:hover{background:#d9534f14;}\n#screen-login{align-items:center;justify-content:center;padding:24px;}\n.nova-notif-row{display:flex;align-items:flex-start;gap:12px;}\n.nova-notif-icon{width:32px;height:32px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#BF5AF2,#300A66);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;overflow:hidden;}\n.nova-notif-icon img{width:100%;height:100%;object-fit:cover;}\n.nova-notif-body{flex:1;min-width:0;padding-right:20px;}\n.nova-video-player{border-radius:20px;overflow:hidden;background:radial-gradient(ellipse at 30% 20%,#300a6640,transparent 60%),radial-gradient(ellipse at 80% 80%,#bf5af233,transparent 55%),#0c0518;border:1px solid rgba(199,194,219,.16);box-shadow:0 20px 60px #00000073;}\n.nova-video-progress{display:flex;gap:5px;padding:14px 16px 0;}\n.nova-video-seg{flex:1;height:3px;border-radius:3px;background:rgba(255,255,255,.14);}\n.nova-video-seg.done{background:linear-gradient(90deg,var(--warm-1),var(--warm-2));}\n.nova-video-seg.current{background:linear-gradient(90deg,var(--warm-1),var(--warm-2));animation:nova-video-pulse 1.4s ease-in-out infinite;}\n.nova-video-seg.current.paused{animation:none;opacity:.7;}\n@keyframes nova-video-pulse{0%,100%{opacity:1;}50%{opacity:.42;}}\n.nova-video-stage{min-height:220px;display:flex;align-items:center;justify-content:center;text-align:center;padding:36px 30px;}\n.nova-video-text{font-size:17px;line-height:1.55;font-weight:500;color:var(--metal-2);opacity:0;transform:translateY(8px);transition:opacity .45s ease,transform .45s ease;max-width:520px;}\n.nova-video-text.show{opacity:1;transform:translateY(0);}\n.nova-video-controls{display:flex;align-items:center;justify-content:center;gap:14px;padding:16px 16px 20px;}\n.nova-video-btn{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(199,194,219,.2);color:var(--metal-2);font-size:14px;background:rgba(255,255,255,.04);transition:background .2s ease;}\n.nova-video-btn:hover{background:rgba(255,255,255,.1);}\n.nova-video-btn.play{width:46px;height:46px;font-size:17px;background:linear-gradient(120deg,var(--warm-1),var(--warm-2));color:#04010a;border:none;}\n";
+  var CSS = "\n.nova-member-row-v2{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid rgba(199,194,219,.10)}\n.nova-member-row-v2:hover{background:rgba(255,255,255,.04)}\n.nova-member-avatar{width:40px;height:40px;border-radius:50%;flex-shrink:0;object-fit:cover;background:linear-gradient(135deg,#BF5AF2,#300A66);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;}\n.nova-member-text{min-width:0;flex:1;}\n.nova-member-name{font-family:'Poppins',sans-serif;font-weight:600;font-size:14.5px;margin-bottom:2px;}\n.nova-member-preview{font-size:12.5px;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}\n.res-card{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);cursor:pointer;font-size:16px;font-weight:700;word-break:break-word}\n.res-card:hover{background:rgba(255,255,255,.09)}\n.res-item{padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.05);font-size:14px;word-break:break-word}\n.res-item a{color:#E0B3FF}\n.res-card{position:relative}\n.res-del{position:absolute;top:6px;right:8px;font-size:14px;opacity:.6;line-height:1}\n.res-del:hover{opacity:1;color:#ef4444}\n.res-item{position:relative;padding-right:34px}\n.res-item .res-del{top:8px;right:10px}\n.res-item.res-item-chef{padding-left:30px;}\n.res-item .res-edit{top:8px;left:10px;}\n.res-card-wide{aspect-ratio:auto!important;width:100%;height:120px;font-size:20px;}\n.res-card-empty{opacity:.55;font-weight:500;font-size:15px;border-style:dashed;}\n.res-card.dragging{opacity:.55;transform:scale(1.05);z-index:5;box-shadow:0 12px 30px #000a;touch-action:none;}\n.res-edit{position:absolute;top:6px;left:8px;font-size:13px;opacity:.6;}\n.res-edit:hover{opacity:1;}\n.nav-item.unread-nav{font-weight:700;}\n.settings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;}\n.settings-tile{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:14px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);cursor:pointer;font-size:14px;font-weight:600;}\n.settings-tile:hover{background:rgba(255,255,255,.09);}\n.settings-tile-icon{font-size:28px;}\n.settings-tile-label{word-break:break-word;}\n.settings-tile-danger{border-color:#d9534f4d;color:#e39490;}\n.settings-tile-danger:hover{background:#d9534f14;}\n#screen-login{align-items:center;justify-content:center;padding:24px;}\n.nova-notif-row{display:flex;align-items:flex-start;gap:12px;}\n.nova-notif-icon{width:32px;height:32px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#BF5AF2,#300A66);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;overflow:hidden;}\n.nova-notif-icon img{width:100%;height:100%;object-fit:cover;}\n.nova-notif-body{flex:1;min-width:0;padding-right:20px;}\n.nova-video-player{border-radius:20px;overflow:hidden;background:radial-gradient(ellipse at 30% 20%,#300a6640,transparent 60%),radial-gradient(ellipse at 80% 80%,#bf5af233,transparent 55%),#0c0518;border:1px solid rgba(199,194,219,.16);box-shadow:0 20px 60px #00000073;}\n.nova-video-progress{display:flex;gap:5px;padding:14px 16px 0;}\n.nova-video-seg{flex:1;height:3px;border-radius:3px;background:rgba(255,255,255,.14);}\n.nova-video-seg.done{background:linear-gradient(90deg,var(--warm-1),var(--warm-2));}\n.nova-video-seg.current{background:linear-gradient(90deg,var(--warm-1),var(--warm-2));animation:nova-video-pulse 1.4s ease-in-out infinite;}\n.nova-video-seg.current.paused{animation:none;opacity:.7;}\n@keyframes nova-video-pulse{0%,100%{opacity:1;}50%{opacity:.42;}}\n.nova-video-stage{min-height:220px;display:flex;align-items:center;justify-content:center;text-align:center;padding:36px 30px;}\n.nova-video-text{font-family:'Playfair Display',Georgia,serif;font-size:22px;line-height:1.6;font-weight:600;letter-spacing:.01em;background:linear-gradient(180deg,var(--metal-2) 0%,var(--warm-2) 55%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;opacity:0;transform:translateY(8px);transition:opacity .45s ease,transform .45s ease;max-width:560px;}\n.nova-video-text.show{opacity:1;transform:translateY(0);}\n.nova-video-controls{display:flex;align-items:center;justify-content:center;gap:14px;padding:16px 16px 20px;}\n.nova-video-btn{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(199,194,219,.2);color:var(--metal-2);font-size:14px;background:rgba(255,255,255,.04);transition:background .2s ease;}\n.nova-video-btn:hover{background:rgba(255,255,255,.1);}\n.nova-video-btn.play{width:46px;height:46px;font-size:17px;background:linear-gradient(120deg,var(--warm-1),var(--warm-2));color:#04010a;border:none;}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -685,7 +685,6 @@
       if (window.speechSynthesis) window.speechSynthesis.cancel();
       if (pinnedVideoState) {
         pinnedVideoState.stopped = true;
-        if (pinnedVideoState.fallbackTimer) clearTimeout(pinnedVideoState.fallbackTimer);
         pinnedVideoState = null;
       }
     }
@@ -726,51 +725,45 @@
 
       resPinnedVideo.appendChild(player);
 
-      var state = { index: 0, playing: true, stopped: false, fallbackTimer: null };
+      var state = { index: 0, stopped: false, paused: false };
+      var utterToken = 0;
       pinnedVideoState = state;
-
-      function estimateDuration(text) {
-        var words = text.trim().split(/\s+/).length;
-        return Math.max(3200, Math.min(9000, words * 340));
-      }
 
       function updateSegs() {
         segs.forEach(function (seg, i) {
           if (i < state.index) seg.className = "nova-video-seg done";
-          else if (i === state.index) seg.className = "nova-video-seg current" + (!state.playing ? " paused" : "");
+          else if (i === state.index) seg.className = "nova-video-seg current" + (state.paused ? " paused" : "");
           else seg.className = "nova-video-seg";
         });
       }
 
-      function playCurrent() {
-        var text = lines[state.index];
-        var duration = estimateDuration(text);
-        var advanced = false;
-        function safeAdvance() {
-          if (advanced || state.stopped || !state.playing) return;
-          advanced = true;
-          advance();
-        }
+      function speakCurrent() {
+        utterToken++;
+        var myToken = utterToken;
+        if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+        window.speechSynthesis.cancel();
+        state.paused = false;
+        playBtn.textContent = "⏸";
+        updateSegs();
 
-        if (window.speechSynthesis && window.SpeechSynthesisUtterance) {
-          var utter = new SpeechSynthesisUtterance(stripForSpeech(text));
-          utter.lang = "fr-FR";
-          utter.rate = 0.98;
-          utter.onend = safeAdvance;
-          utter.onerror = safeAdvance;
-          window.speechSynthesis.speak(utter);
-        }
-        state.fallbackTimer = setTimeout(safeAdvance, duration + 900);
+        var utter = new SpeechSynthesisUtterance(stripForSpeech(lines[state.index]));
+        utter.lang = "fr-FR";
+        utter.rate = 0.98;
+        utter.onend = function () {
+          if (state.stopped || myToken !== utterToken) return;
+          state.paused = true;
+          playBtn.textContent = "🔁";
+          updateSegs();
+        };
+        utter.onerror = utter.onend;
+        window.speechSynthesis.speak(utter);
       }
 
       function goTo(i) {
         if (state.stopped) return;
-        if (window.speechSynthesis) window.speechSynthesis.cancel();
-        if (state.fallbackTimer) clearTimeout(state.fallbackTimer);
         if (i < 0) i = 0;
         if (i >= lines.length) i = lines.length - 1;
         state.index = i;
-        playBtn.textContent = state.playing ? "⏸" : "▶";
         updateSegs();
 
         textEl.classList.remove("show");
@@ -780,41 +773,25 @@
           textEl.classList.add("show");
         }, 200);
 
-        if (state.playing) playCurrent();
+        speakCurrent();
       }
 
-      function advance() {
-        if (state.stopped) return;
-        if (state.index >= lines.length - 1) {
-          state.playing = false;
-          updateSegs();
-          playBtn.textContent = "🔁";
-          return;
-        }
-        goTo(state.index + 1);
-      }
-
-      prevBtn.addEventListener("click", function () {
-        state.playing = true;
-        goTo(state.index - 1);
-      });
-      nextBtn.addEventListener("click", function () {
-        state.playing = true;
-        goTo(state.index + 1);
-      });
+      prevBtn.addEventListener("click", function () { goTo(state.index - 1); });
+      nextBtn.addEventListener("click", function () { goTo(state.index + 1); });
       playBtn.addEventListener("click", function () {
-        if (state.index >= lines.length - 1 && !state.playing) {
-          state.playing = true;
-          goTo(0);
+        if (!window.speechSynthesis) return;
+        if (playBtn.textContent === "🔁") {
+          speakCurrent();
           return;
         }
-        state.playing = !state.playing;
-        playBtn.textContent = state.playing ? "⏸" : "▶";
-        if (state.playing) {
-          playCurrent();
+        if (state.paused) {
+          window.speechSynthesis.resume();
+          state.paused = false;
+          playBtn.textContent = "⏸";
         } else {
-          if (window.speechSynthesis) window.speechSynthesis.cancel();
-          if (state.fallbackTimer) clearTimeout(state.fallbackTimer);
+          window.speechSynthesis.pause();
+          state.paused = true;
+          playBtn.textContent = "▶";
         }
         updateSegs();
       });
