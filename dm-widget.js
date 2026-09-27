@@ -252,6 +252,25 @@
             countEl.textContent = c.total + "/" + c.replied + "/" + c.sold;
           }
         });
+
+        function statsFor(row) {
+          var nameEl = row.querySelector(".activity-row-name");
+          var key = (nameEl ? nameEl.textContent : "").trim().toLowerCase();
+          return funnelCounts[key] || { total: 0, replied: 0, sold: 0 };
+        }
+
+        var currentOrder = Array.prototype.slice.call(rows);
+        var sorted = currentOrder.slice().sort(function (a, b) {
+          var ac = statsFor(a), bc = statsFor(b);
+          if (bc.sold !== ac.sold) return bc.sold - ac.sold;
+          if (bc.replied !== ac.replied) return bc.replied - ac.replied;
+          return bc.total - ac.total;
+        });
+
+        var orderChanged = sorted.some(function (row, i) { return row !== currentOrder[i]; });
+        if (orderChanged) {
+          sorted.forEach(function (row) { activityListEl.appendChild(row); });
+        }
       });
     }
 
