@@ -388,25 +388,36 @@
             <button class="btn primary btn-sm" id="btn-add-prospect">+ Ajouter un prospect</button>
           </div>
 
-          <div class="glass-card activity-panel">
-            <div class="activity-head">
-              <div class="panel-title">Activité de l'équipe</div>
-              <div class="period-tabs" id="activity-period-tabs">
-                <div class="period-tab" data-period="day">Aujourd'hui</div>
-                <div class="period-tab active" data-period="week">Cette semaine</div>
-                <div class="period-tab" data-period="month">Ce mois</div>
-                <div class="period-tab" data-period="all">Tout</div>
+          <div class="period-tabs" id="dms-mode-tabs">
+            <div class="period-tab active" data-mode="activity">Activité</div>
+            <div class="period-tab" data-mode="classement">Classement</div>
+          </div>
+
+          <div id="dms-activity-panel">
+            <div class="glass-card activity-panel">
+              <div class="activity-head">
+                <div class="panel-title">Activité de l'équipe</div>
+                <div class="period-tabs" id="activity-period-tabs">
+                  <div class="period-tab" data-period="day">Aujourd'hui</div>
+                  <div class="period-tab active" data-period="week">Cette semaine</div>
+                  <div class="period-tab" data-period="month">Ce mois</div>
+                  <div class="period-tab" data-period="all">Tout</div>
+                </div>
               </div>
+              <div id="activity-list"></div>
             </div>
-            <div id="activity-list"></div>
+
+            <div class="filter-row">
+              <select id="dm-filter-setter"><option value="all">Tous les setters</option></select>
+              <select id="dm-filter-secteur"><option value="all">Tous les secteurs</option></select>
+            </div>
+
+            <div id="dm-journal"></div>
           </div>
 
-          <div class="filter-row">
-            <select id="dm-filter-setter"><option value="all">Tous les setters</option></select>
-            <select id="dm-filter-secteur"><option value="all">Tous les secteurs</option></select>
+          <div id="dms-classement-panel" style="display:none;">
+            <div id="classement-list"></div>
           </div>
-
-          <div id="dm-journal"></div>
         </div>
         <div class="view" id="view-boxmail">
           <div class="dash-toolbar">
