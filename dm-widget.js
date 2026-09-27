@@ -38,7 +38,7 @@
     not_interested: "Pas intéressé"
   };
 
-  var CSS = "\n.status-tag-dm.st-interested{color:#c4b5fd;border-color:#a78bfa59;background:#a78bfa14;}\n.status-tag-dm.st-sold{color:#f0b866;border-color:#d4841a59;background:#d4841a14;}\n.nova-funnel-bar{display:flex;align-items:stretch;width:56px;height:7px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.08);flex-shrink:0;margin-left:8px;}\n.nova-funnel-seg{height:100%;}\n.nova-funnel-seg.meeting{background:var(--ok);}\n.nova-funnel-seg.interested{background:#a78bfa;}\n.nova-funnel-seg.sold{background:var(--warm-1);}\n";
+  var CSS = "\n.status-tag-dm.st-interested{color:#c4b5fd;border-color:#a78bfa59;background:#a78bfa14;}\n.status-tag-dm.st-sold{color:#f0b866;border-color:#d4841a59;background:#d4841a14;}\n.nova-funnel-bar{display:flex;align-items:stretch;width:56px;height:7px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.08);flex-shrink:0;margin-left:8px;}\n.nova-funnel-seg{height:100%;}\n.nova-funnel-seg.interested{background:#a78bfa;}\n.nova-funnel-seg.sold{background:var(--warm-1);}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -58,6 +58,36 @@
     var funnelMax = 1;
 
     if (!dmJournalEl && !activityListEl) return;
+
+    var statusSelect = document.getElementById("prospect-status");
+    var statusChecks = document.querySelectorAll(".prospect-status-check");
+    var modalProspect = document.getElementById("modal-prospect");
+
+    function syncChecksFromSelect() {
+      if (!statusSelect) return;
+      var val = statusSelect.value;
+      statusChecks.forEach(function (cb) {
+        cb.checked = cb.getAttribute("data-status-value") === val;
+      });
+    }
+
+    statusChecks.forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        if (!statusSelect) return;
+        if (cb.checked) {
+          statusChecks.forEach(function (other) { if (other !== cb) other.checked = false; });
+          statusSelect.value = cb.getAttribute("data-status-value");
+        } else {
+          statusSelect.value = "sent";
+        }
+      });
+    });
+
+    if (modalProspect) {
+      new MutationObserver(function () {
+        if (modalProspect.classList.contains("open")) syncChecksFromSelect();
+      }).observe(modalProspect, { attributes: true, attributeFilter: ["class"] });
+    }
 
     function decorateDmJournal() {
       if (!dmJournalEl) return;
@@ -96,11 +126,11 @@
       rows.forEach(function (r) {
         var pseudo = idToPseudo[r.setter_id];
         if (!pseudo) return;
-        if (r.status !== "meeting" && r.status !== "interested" && r.status !== "sold") return;
+        if (r.status !== "interested" && r.status !== "sold") return;
         var key = pseudo.trim().toLowerCase();
-        if (!counts[key]) counts[key] = { meeting: 0, interested: 0, sold: 0 };
+        if (!counts[key]) counts[key] = { interested: 0, sold: 0 };
         counts[key][r.status]++;
-        var total = counts[key].meeting + counts[key].interested + counts[key].sold;
+        var total = counts[key].interested + counts[key].sold;
         if (total > max) max = total;
       });
       funnelCounts = counts;
@@ -108,13 +138,13 @@
     }
 
     function buildFunnelBar(pseudo) {
-      var c = funnelCounts[(pseudo || "").trim().toLowerCase()] || { meeting: 0, interested: 0, sold: 0 };
+      var c = funnelCounts[(pseudo || "").trim().toLowerCase()] || { interested: 0, sold: 0 };
       var wrap = el("div", {
         class: "nova-funnel-bar",
-        title: "RDV : " + c.meeting + " · Intéressé : " + c.interested + " · Vendu : " + c.sold
+        title: "Intéressé : " + c.interested + " · Vendu : " + c.sold
       });
       var scale = 56 / funnelMax;
-      ["meeting", "interested", "sold"].forEach(function (key) {
+      ["interested", "sold"].forEach(function (key) {
         var w = Math.round(c[key] * scale);
         if (w > 0) wrap.appendChild(el("div", { class: "nova-funnel-seg " + key, style: "width:" + w + "px;" }));
       });

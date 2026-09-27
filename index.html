@@ -601,7 +601,7 @@
     </div>
     <div class="field">
       <label class="field-label">Statut</label>
-      <select id="prospect-status">
+      <select id="prospect-status" style="display:none;">
         <option value="sent">DM envoyé</option>
         <option value="replied">Réponse reçue</option>
         <option value="meeting">RDV pris</option>
@@ -609,6 +609,17 @@
         <option value="sold">Vendu</option>
         <option value="not_interested">Pas intéressé</option>
       </select>
+      <div id="prospect-status-checks" style="display:flex;gap:16px;flex-wrap:wrap;padding-top:4px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
+          <input type="checkbox" class="prospect-status-check" data-status-value="sold"> Vendu
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
+          <input type="checkbox" class="prospect-status-check" data-status-value="interested"> Intéressé
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
+          <input type="checkbox" class="prospect-status-check" data-status-value="not_interested"> Pas intéressé
+        </label>
+      </div>
     </div>
     <div class="error-msg" id="prospect-error"></div>
     <div class="modal-actions">
