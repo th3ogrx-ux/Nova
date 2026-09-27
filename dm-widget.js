@@ -38,7 +38,7 @@
     not_interested: "Pas intéressé"
   };
 
-  var CSS = "\n.status-tag-dm.st-interested{color:#c4b5fd;border-color:#a78bfa59;background:#a78bfa14;}\n.status-tag-dm.st-sold{color:#f0b866;border-color:#d4841a59;background:#d4841a14;}\n.nova-funnel-bar{display:flex;align-items:stretch;width:56px;height:7px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.08);flex-shrink:0;margin-left:8px;}\n.nova-funnel-seg{height:100%;}\n.nova-funnel-seg.interested{background:#a78bfa;}\n.nova-funnel-seg.sold{background:var(--warm-1);}\n";
+  var CSS = "\n.status-tag-dm.st-interested{color:#c4b5fd;border-color:#a78bfa59;background:#a78bfa14;}\n.status-tag-dm.st-sold{color:#f0b866;border-color:#d4841a59;background:#d4841a14;}\n.nova-funnel-bar{display:flex;align-items:stretch;width:60px;height:7px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.08);flex-shrink:0;margin-left:8px;}\n.nova-funnel-seg{height:100%;}\n.nova-funnel-seg.sent{background:var(--cool-1);}\n.nova-funnel-seg.interested{background:#a78bfa;}\n.nova-funnel-seg.sold{background:var(--warm-1);}\n.nova-funnel-seg.not_interested{background:var(--danger);}\n.nova-funnel-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(184,188,194,.12);font-size:12px;opacity:.75;}\n.nova-funnel-legend-item{display:flex;align-items:center;gap:6px;}\n.nova-funnel-legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0;}\n.nova-funnel-legend-dot.sent{background:var(--cool-1);}\n.nova-funnel-legend-dot.interested{background:#a78bfa;}\n.nova-funnel-legend-dot.sold{background:var(--warm-1);}\n.nova-funnel-legend-dot.not_interested{background:var(--danger);}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -54,8 +54,7 @@
     var activityListEl = document.getElementById("activity-list");
     var dmObserver = null;
     var activityObserver = null;
-    var funnelCounts = {}; // pseudo (lowercase) -> {meeting, interested, sold}
-    var funnelMax = 1;
+    var funnelCounts = {}; // pseudo (lowercase) -> {sent, interested, sold, not_interested, total}
 
     if (!dmJournalEl && !activityListEl) return;
 
@@ -63,12 +62,21 @@
     var statusChecks = document.querySelectorAll(".prospect-status-check");
     var modalProspect = document.getElementById("modal-prospect");
 
+    var statusChecksWrap = document.getElementById("prospect-status-checks");
+    var prospectModalTitle = document.getElementById("prospect-modal-title");
+
     function syncChecksFromSelect() {
       if (!statusSelect) return;
       var val = statusSelect.value;
       statusChecks.forEach(function (cb) {
         cb.checked = cb.getAttribute("data-status-value") === val;
       });
+    }
+
+    function syncModalMode() {
+      var isEdit = !!(prospectModalTitle && prospectModalTitle.textContent.indexOf("Modifier") !== -1);
+      if (statusChecksWrap) statusChecksWrap.style.display = isEdit ? "flex" : "none";
+      syncChecksFromSelect();
     }
 
     statusChecks.forEach(function (cb) {
@@ -85,7 +93,7 @@
 
     if (modalProspect) {
       new MutationObserver(function () {
-        if (modalProspect.classList.contains("open")) syncChecksFromSelect();
+        if (modalProspect.classList.contains("open")) syncModalMode();
       }).observe(modalProspect, { attributes: true, attributeFilter: ["class"] });
     }
 
@@ -122,37 +130,53 @@
 
     function buildCounts(rows, idToPseudo) {
       var counts = {};
-      var max = 1;
       rows.forEach(function (r) {
         var pseudo = idToPseudo[r.setter_id];
         if (!pseudo) return;
-        if (r.status !== "interested" && r.status !== "sold") return;
         var key = pseudo.trim().toLowerCase();
-        if (!counts[key]) counts[key] = { interested: 0, sold: 0 };
-        counts[key][r.status]++;
-        var total = counts[key].interested + counts[key].sold;
-        if (total > max) max = total;
+        if (!counts[key]) counts[key] = { sent: 0, interested: 0, sold: 0, not_interested: 0, total: 0 };
+        var bucket = (r.status === "interested" || r.status === "sold" || r.status === "not_interested") ? r.status : "sent";
+        counts[key][bucket]++;
+        counts[key].total++;
       });
       funnelCounts = counts;
-      funnelMax = max;
     }
 
     function buildFunnelBar(pseudo) {
-      var c = funnelCounts[(pseudo || "").trim().toLowerCase()] || { interested: 0, sold: 0 };
-      var wrap = el("div", {
-        class: "nova-funnel-bar",
-        title: "Intéressé : " + c.interested + " · Vendu : " + c.sold
-      });
-      var scale = 56 / funnelMax;
-      ["interested", "sold"].forEach(function (key) {
-        var w = Math.round(c[key] * scale);
-        if (w > 0) wrap.appendChild(el("div", { class: "nova-funnel-seg " + key, style: "width:" + w + "px;" }));
+      var c = funnelCounts[(pseudo || "").trim().toLowerCase()];
+      var wrap = el("div", { class: "nova-funnel-bar" });
+      if (!c || !c.total) return wrap;
+      wrap.setAttribute("title", "DM envoyé : " + c.sent + " · Intéressé : " + c.interested + " · Vendu : " + c.sold + " · Pas intéressé : " + c.not_interested);
+      ["sent", "interested", "sold", "not_interested"].forEach(function (key) {
+        if (c[key] > 0) {
+          var pct = (c[key] / c.total) * 100;
+          wrap.appendChild(el("div", { class: "nova-funnel-seg " + key, style: "width:" + pct + "%;" }));
+        }
       });
       return wrap;
     }
 
+    function ensureLegend() {
+      if (!activityListEl || !activityListEl.parentElement) return;
+      if (document.getElementById("nova-funnel-legend")) return;
+      var legend = el("div", { id: "nova-funnel-legend", class: "nova-funnel-legend" });
+      [
+        { key: "sent", label: "DM envoyé" },
+        { key: "interested", label: "Intéressé" },
+        { key: "sold", label: "Vendu" },
+        { key: "not_interested", label: "Pas intéressé" }
+      ].forEach(function (it) {
+        var item = el("div", { class: "nova-funnel-legend-item" });
+        item.appendChild(el("span", { class: "nova-funnel-legend-dot " + it.key }));
+        item.appendChild(document.createTextNode(it.label));
+        legend.appendChild(item);
+      });
+      activityListEl.parentElement.appendChild(legend);
+    }
+
     function decorateActivityList() {
       if (!activityListEl) return;
+      ensureLegend();
       loadFunnelCounts().then(function () {
         var rows = activityListEl.querySelectorAll(".activity-row");
         rows.forEach(function (row) {
