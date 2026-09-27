@@ -3,7 +3,7 @@
 
   var SUPABASE_URL = "https://mfdqxzccmzumxiichdqw.supabase.co";
   var SUPABASE_KEY = "sb_publishable_Qes5VQ0OcaAEVh_kMjej6A_HJ6yxY3T";
-  var RADAR_FN_URL = SUPABASE_URL + "/functions/v1/radar-search";
+  var RADAR_FN_URL = SUPABASE_URL + "/functions/v1/radar-search-";
 
   function loadSupabase(cb) {
     if (window.supabase && window.supabase.createClient) return cb();
