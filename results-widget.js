@@ -282,7 +282,31 @@
     function setupResultsSubmenu() {
       if (!navResultsMain || !navResultsSublist) return;
 
-      navResultsMain.addEventListener("click", function () {
+      function restoreView(viewName) {
+        document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
+        var navEl = document.querySelector('.nav-item[data-view="' + viewName + '"]');
+        if (navEl) navEl.classList.add("active");
+        document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+        var v = document.getElementById("view-" + viewName);
+        if (v) v.classList.add("active");
+      }
+
+      var initialActiveNav = document.querySelector(".nav-item.active[data-view]");
+      var lastView = initialActiveNav ? initialActiveNav.getAttribute("data-view") : "accueil";
+
+      document.querySelectorAll(".nav-item[data-view]").forEach(function (navEl) {
+        if (navEl === navResultsMain) return;
+        navEl.addEventListener("click", function () {
+          lastView = navEl.getAttribute("data-view");
+        });
+      });
+
+      navResultsMain.addEventListener("click", function (e) {
+        e.stopPropagation();
+        // Le bundle compilé ouvre automatiquement la page Résultats sur ce
+        // clic ; on annule cette navigation pour ne faire QUE déplier le
+        // sous-menu, la navigation réelle se fait via un sous-élément.
+        restoreView(lastView);
         var isOpen = navResultsSublist.classList.toggle("open");
         if (navResultsCaret) navResultsCaret.classList.toggle("open", isOpen);
       });
