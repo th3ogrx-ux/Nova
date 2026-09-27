@@ -171,7 +171,10 @@
         <div class="nav-item" id="nav-equipe" data-view="equipe"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14c2.6.3 4.5 2.5 4.5 6"/></svg></span>Équipe</div>
         <div class="nav-item" id="nav-boxmail" data-view="boxmail"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span>BoxMail<span class="nova-boxmail-badge" id="boxmail-nav-badge" style="display:none;"></span></div>
         <div class="nav-item" id="nav-resources" data-view="resources"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5C4 3.7 4.7 3 5.5 3H12v18H5.5c-.8 0-1.5-.7-1.5-1.5v-15z"/><path d="M20 4.5c0-.8-.7-1.5-1.5-1.5H12v18h6.5c.8 0 1.5-.7 1.5-1.5v-15z"/></svg></span>Ressources</div>
-        <div class="nav-item" id="nav-agent-ia" data-view="agent-ia"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"/></svg></span>Agent IA</div>
+        <div class="nav-item" id="nav-agent-ia" data-view="agent-ia" data-accordion="1"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"/></svg></span>Agent IA<span class="nav-caret" id="nav-agent-ia-caret">▾</span></div>
+        <div class="nav-sublist" id="nav-agent-ia-sublist">
+          <div class="nav-subitem" id="nav-radar" data-subview="radar">Zenoa Radar</div>
+        </div>
         <div class="nav-item" id="nav-calendrier" data-view="calendrier"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg></span>Calendrier</div>
         <div class="nav-item chef-only" id="nav-partenariat" data-view="partenariat"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 15l6-6"/><path d="M10 6l1.5-1.5a3.5 3.5 0 0 1 5 5L15 11"/><path d="M14 18l-1.5 1.5a3.5 3.5 0 0 1-5-5L9 13"/></svg></span>Partenariat</div>
         <div class="nav-item" data-view="classement" style="display:none;"><span class="dot"></span>Classement</div>
@@ -498,10 +501,31 @@
           </div>
         </div>
 
-        <div class="view" id="view-agent-ia">
+        <div class="view" id="view-radar">
           <div class="dash-toolbar">
-            <h1 class="metal-title">Agent IA</h1>
+            <h1 class="metal-title">Zenoa Radar</h1>
           </div>
+
+          <div class="glass-card panel-section" style="margin-bottom:20px;">
+            <form id="radar-search-form" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
+              <div class="field" style="flex:1;min-width:160px;">
+                <label class="field-label">Ville</label>
+                <input id="radar-city" placeholder="Paris" autocomplete="off" required>
+              </div>
+              <div class="field" style="flex:1;min-width:160px;">
+                <label class="field-label">Catégorie</label>
+                <input id="radar-category" placeholder="Restaurant, coiffeur..." autocomplete="off" required>
+              </div>
+              <button type="submit" class="btn primary" id="radar-search-btn">Rechercher</button>
+            </form>
+            <div class="error-msg" id="radar-error"></div>
+          </div>
+
+          <div class="dash-toolbar" id="radar-results-toolbar" style="display:none;">
+            <h3 id="radar-results-count" style="margin:0;font-size:14px;font-weight:500;color:var(--text-mid);"></h3>
+            <button class="btn btn-sm" id="radar-export-csv">Exporter en CSV</button>
+          </div>
+          <div id="radar-results"></div>
         </div>
 
         <div class="view" id="view-calendrier">
@@ -893,6 +917,7 @@
 <script src="/push-widget.js"></script>
 <script src="/calendar-widget.js"></script>
 <script src="/partnership-widget.js"></script>
+<script src="/radar-widget.js"></script>
 
 </body>
 </html>

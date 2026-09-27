@@ -72,6 +72,8 @@
     var navAdministratifSub = document.getElementById("nav-administratif");
     var navResources = document.getElementById("nav-resources");
     var navAgentIa = document.getElementById("nav-agent-ia");
+    var navAgentIaSublist = document.getElementById("nav-agent-ia-sublist");
+    var navAgentIaCaret = document.getElementById("nav-agent-ia-caret");
     var resGrid = document.getElementById("res-grid");
     var resPinnedWrap = document.getElementById("res-pinned-wrap");
     var resSetterTourWrap = document.getElementById("res-setter-tour-wrap");
@@ -536,13 +538,15 @@
         stopPinnedVideo();
       });
     }
-    if (navAgentIa) {
-      navAgentIa.addEventListener("click", function () {
-        document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
-        navAgentIa.classList.add("active");
-        document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
-        var v = document.getElementById("view-agent-ia");
-        if (v) v.classList.add("active");
+    if (navAgentIa && navAgentIaSublist) {
+      navAgentIa.addEventListener("click", function (e) {
+        e.stopPropagation();
+        // Comme Résultats/Gestion : un clic sur "Agent IA" ne fait que
+        // déplier son sous-menu, la vraie navigation passe par un sous-élément.
+        window.ZenoaNav.restoreView(window.ZenoaNav.getLastView());
+        window.ZenoaNav.reopenSidebar();
+        var isOpen = navAgentIaSublist.classList.toggle("open");
+        if (navAgentIaCaret) navAgentIaCaret.classList.toggle("open", isOpen);
       });
     }
 
