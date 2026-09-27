@@ -778,7 +778,7 @@
       var ids = Array.prototype.map.call(buttons, function (b) { return b.getAttribute("data-uid"); });
       console.log("[NOVA activité] boutons trouvés :", buttons.length, ids);
       if (!ids.length) return;
-      supabase.from("profiles").select("id,last_seen_at,custom_role").in("id", ids).then(function (res) {
+      supabase.from("profiles").select("id,email,last_seen_at,custom_role").in("id", ids).then(function (res) {
         console.log("[NOVA activité] résultat requête :", res);
         if (!res || res.error) return;
         var map = {};
@@ -798,16 +798,9 @@
           }
           line.textContent = activityLabel(p.last_seen_at);
 
-          var roleLine = info.querySelector(".nova-role-line");
-          if (p.custom_role) {
-            if (!roleLine) {
-              roleLine = el("div", { class: "nova-role-line" });
-              roleLine.style.cssText = "font-size:12px;opacity:.75;margin-top:2px;font-style:italic;";
-              info.appendChild(roleLine);
-            }
-            roleLine.textContent = "Rôle : " + p.custom_role;
-          } else if (roleLine) {
-            roleLine.remove();
+          var meta = info.querySelector(".team-row-meta");
+          if (meta) {
+            meta.textContent = (p.email || "") + " · " + (p.custom_role || "Rôle non défini");
           }
         });
       });
