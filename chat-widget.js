@@ -29,16 +29,7 @@
     return e;
   }
 
-  function timeAgo(ts) {
-    if (!ts) return "jamais";
-    var diff = (Date.now() - new Date(ts).getTime()) / 1000;
-    if (diff < 60) return "à l'instant";
-    if (diff < 3600) return "il y a " + Math.floor(diff / 60) + " min";
-    if (diff < 86400) return "il y a " + Math.floor(diff / 3600) + " h";
-    return "il y a " + Math.floor(diff / 86400) + " j";
-  }
-
-  var CSS = "\n.nova-msg{max-width:78%;padding:7px 11px;border-radius:10px;font-size:13px;line-height:1.35;word-break:break-word}\n.nova-msg.me{align-self:flex-end;background:#6d28d9;color:#fff}\n.nova-msg.other{align-self:flex-start;background:rgba(255,255,255,.08);color:inherit}\n.nova-msg-sender{font-size:10px;opacity:.6;margin-bottom:2px}\n.nova-msg-vu{align-self:flex-end;font-size:10px;opacity:.55;cursor:pointer;margin-top:-2px}\n.nova-member-row{padding:12px 16px;font-size:13px;cursor:pointer;border-bottom:1px solid rgba(184,188,194,.10)}\n.nova-member-row.unread{font-weight:700}\n.nova-member-row:hover{background:rgba(255,255,255,.04)}\n.nova-member-row-v2{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid rgba(184,188,194,.10)}\n.nova-member-row-v2:hover{background:rgba(255,255,255,.04)}\n.nova-member-avatar{width:40px;height:40px;border-radius:50%;flex-shrink:0;object-fit:cover;background:linear-gradient(135deg,#6d28d9,#3A9FD9);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;}\n.nova-member-text{min-width:0;flex:1;}\n.nova-member-name{font-family:'Poppins',sans-serif;font-weight:600;font-size:14.5px;margin-bottom:2px;}\n.nova-member-preview{font-size:12.5px;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}\n.nova-member-preview.unread{font-weight:800;opacity:1;font-size:13.5px;color:#fff;}\n#chat-tab-group.unread,#chat-tab-indiv.unread{font-weight:700}\n.nova-activity-row{display:flex;justify-content:space-between;padding:8px 4px;font-size:13px;border-bottom:1px solid rgba(184,188,194,.08)}\n.nova-activity-row span:last-child{opacity:.6}\n.res-card{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(184,188,194,.14);cursor:pointer;font-size:16px;font-weight:700;word-break:break-word}\n.res-card:hover{background:rgba(255,255,255,.09)}\n.res-item{padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.05);font-size:14px;word-break:break-word}\n.res-item a{color:#a78bfa}\n.res-card{position:relative}\n.res-del{position:absolute;top:6px;right:8px;font-size:14px;opacity:.6;line-height:1}\n.res-del:hover{opacity:1;color:#ef4444}\n.res-item{position:relative;padding-right:34px}\n.res-item .res-del{top:8px;right:10px}\n.res-card-wide{aspect-ratio:auto!important;width:100%;height:120px;font-size:20px;}\n.res-card-empty{opacity:.55;font-weight:500;font-size:15px;border-style:dashed;}\n.res-card.dragging{opacity:.55;transform:scale(1.05);z-index:5;box-shadow:0 12px 30px #000a;touch-action:none;}\n.res-edit{position:absolute;top:6px;left:8px;font-size:13px;opacity:.6;}\n.res-edit:hover{opacity:1;}\n";
+  var CSS = "\n.nova-member-row-v2{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid rgba(184,188,194,.10)}\n.nova-member-row-v2:hover{background:rgba(255,255,255,.04)}\n.nova-member-avatar{width:40px;height:40px;border-radius:50%;flex-shrink:0;object-fit:cover;background:linear-gradient(135deg,#6d28d9,#3A9FD9);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;}\n.nova-member-text{min-width:0;flex:1;}\n.nova-member-name{font-family:'Poppins',sans-serif;font-weight:600;font-size:14.5px;margin-bottom:2px;}\n.nova-member-preview{font-size:12.5px;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}\n.res-card{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(184,188,194,.14);cursor:pointer;font-size:16px;font-weight:700;word-break:break-word}\n.res-card:hover{background:rgba(255,255,255,.09)}\n.res-item{padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.05);font-size:14px;word-break:break-word}\n.res-item a{color:#a78bfa}\n.res-card{position:relative}\n.res-del{position:absolute;top:6px;right:8px;font-size:14px;opacity:.6;line-height:1}\n.res-del:hover{opacity:1;color:#ef4444}\n.res-item{position:relative;padding-right:34px}\n.res-item .res-del{top:8px;right:10px}\n.res-card-wide{aspect-ratio:auto!important;width:100%;height:120px;font-size:20px;}\n.res-card-empty{opacity:.55;font-weight:500;font-size:15px;border-style:dashed;}\n.res-card.dragging{opacity:.55;transform:scale(1.05);z-index:5;box-shadow:0 12px 30px #000a;touch-action:none;}\n.res-edit{position:absolute;top:6px;left:8px;font-size:13px;opacity:.6;}\n.res-edit:hover{opacity:1;}\n.nav-item.unread-nav{font-weight:700;}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -50,26 +41,9 @@
     var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, clientOpts);
 
     var me = null;
-    var members = [];
     var profilesCache = {};
-    var avatarCache = {};
-    var chefId = null;
-    var currentConv = "group";
-    var msgChannel = null;
-    var readChannel = null;
-    var lastRenderedMsgId = null;
 
-    var navChat = document.getElementById("nav-chat");
     var navAdmin = document.getElementById("nav-admin");
-    var tabGroup = document.getElementById("chat-tab-group");
-    var tabIndiv = document.getElementById("chat-tab-indiv");
-    var backRow = document.getElementById("chat-back-row");
-    var memberListEl = document.getElementById("chat-member-list");
-    var threadEl = document.getElementById("chat-thread");
-    var headerEl = document.getElementById("chat-header");
-    var msgsEl = document.getElementById("chat-messages");
-    var formEl = document.getElementById("chat-form");
-    var inputEl = document.getElementById("chat-input");
     var navResources = document.getElementById("nav-resources");
     var resGrid = document.getElementById("res-grid");
     var resPinnedWrap = document.getElementById("res-pinned-wrap");
@@ -164,35 +138,88 @@
       });
     }
 
+    // ---------- Notifications (mail BoxMail, prospects DM, signalements) ----------
+
+    function fetchBoxmailNotifs() {
+      return supabase.from("boxmails").select("id,sender_id,content,created_at")
+        .eq("recipient_id", me.id).order("created_at", { ascending: false }).limit(20)
+        .then(function (res) {
+          return ((res && res.data) || []).map(function (r) {
+            return { created_at: r.created_at, text: "Nouveau mail de " + (profilesCache[r.sender_id] || "quelqu'un"), view: "boxmail" };
+          });
+        });
+    }
+
+    function fetchProspectNotifs() {
+      if (!me || me.role !== "chef") return Promise.resolve([]);
+      return supabase.from("prospects").select("id,contact,setter_id,created_at")
+        .neq("setter_id", me.id).order("created_at", { ascending: false }).limit(20)
+        .then(function (res) {
+          return ((res && res.data) || []).map(function (r) {
+            return { created_at: r.created_at, text: (profilesCache[r.setter_id] || "Quelqu'un") + " a ajouté un prospect : " + r.contact, view: "dms" };
+          });
+        });
+    }
+
+    function fetchReportNotifs() {
+      if (!me || me.role !== "chef") return Promise.resolve([]);
+      return supabase.from("issue_reports").select("id,content,created_at,sender_id")
+        .order("created_at", { ascending: false }).limit(20)
+        .then(function (res) {
+          return ((res && res.data) || []).map(function (r) {
+            return { created_at: r.created_at, text: "Signalement de " + (profilesCache[r.sender_id] || "quelqu'un") + " : " + r.content, view: null };
+          });
+        });
+    }
+
+    function loadNotifications() {
+      return Promise.all([fetchBoxmailNotifs(), fetchProspectNotifs(), fetchReportNotifs()]).then(function (lists) {
+        var all = lists[0].concat(lists[1]).concat(lists[2]);
+        all.sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+        return all.slice(0, 30);
+      });
+    }
+
     function refreshBellBadge() {
-      if (!bellBadge || me.role !== "chef") return;
-      supabase.from("issue_reports").select("id", { count: "exact", head: true }).is("read_at", null).then(function (res) {
-        bellBadge.style.display = (res && res.count > 0) ? "block" : "none";
+      if (!bellBadge || !me) return;
+      loadNotifications().then(function (items) {
+        var seenAt = me.notifications_seen_at ? new Date(me.notifications_seen_at).getTime() : 0;
+        var unread = items.filter(function (it) { return new Date(it.created_at).getTime() > seenAt; }).length;
+        if (unread > 0) {
+          bellBadge.textContent = unread > 99 ? "99+" : String(unread);
+          bellBadge.style.display = "block";
+        } else {
+          bellBadge.style.display = "none";
+        }
       });
     }
 
     function renderReportsList() {
-      if (!reportsListItems) return;
-      supabase.from("issue_reports").select("id,content,created_at,read_at,sender_id").order("created_at", { ascending: false }).then(function (res) {
-        if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-        var rows = (res && res.data) || [];
+      if (!reportsListItems || !me) return;
+      loadNotifications().then(function (items) {
         reportsListItems.innerHTML = "";
-        if (!rows.length) {
-          reportsListItems.appendChild(el("div", { class: "empty-note" }, "Aucun signalement."));
+        if (!items.length) {
+          reportsListItems.appendChild(el("div", { class: "empty-note" }, "Aucune notification."));
         }
-        rows.forEach(function (r) {
-          var box = el("div", { class: "res-item" });
-          var name = profilesCache[r.sender_id] || "Membre";
-          box.appendChild(el("div", { style: "font-size:11px;opacity:.55;margin-bottom:4px;" }, name + " · " + new Date(r.created_at).toLocaleString("fr-FR")));
-          box.appendChild(document.createTextNode(r.content));
+        items.forEach(function (it) {
+          var box = el("div", { class: "res-item", style: it.view ? "cursor:pointer;" : "" });
+          box.appendChild(el("div", { style: "font-size:11px;opacity:.55;margin-bottom:4px;" }, new Date(it.created_at).toLocaleString("fr-FR")));
+          box.appendChild(document.createTextNode(it.text));
+          if (it.view) {
+            box.addEventListener("click", function () {
+              modalReportsList.classList.remove("open");
+              var navEl = document.querySelector('.nav-item[data-view="' + it.view + '"]');
+              if (navEl) navEl.click();
+            });
+          }
           reportsListItems.appendChild(box);
         });
-        var unreadIds = rows.filter(function (r) { return !r.read_at; }).map(function (r) { return r.id; });
-        if (unreadIds.length) {
-          supabase.from("issue_reports").update({ read_at: new Date().toISOString() }).in("id", unreadIds).then(function () {
-            refreshBellBadge();
-          });
-        }
+
+        var nowIso = new Date().toISOString();
+        supabase.from("profiles").update({ notifications_seen_at: nowIso }).eq("id", me.id).then(function () {
+          me.notifications_seen_at = nowIso;
+          refreshBellBadge();
+        });
       });
     }
 
@@ -247,7 +274,7 @@
 
     if (bellBtn) {
       bellBtn.addEventListener("click", function () {
-        if (!me || me.role !== "chef") return;
+        if (!me) return;
         renderReportsList();
         modalReportsList.classList.add("open");
       });
@@ -283,23 +310,13 @@
       }
     }, true);
 
-    if (!navChat || !msgsEl) return;
-
-    function switchView(viewName, navEl) {
-      document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
-      navEl.classList.add("active");
-      document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
-      var v = document.getElementById("view-" + viewName);
-      if (v) v.classList.add("active");
-    }
-
-    navChat.addEventListener("click", function () {
-      switchView("chat", navChat);
-      navChat.classList.remove("unread-nav");
-    });
     if (navResources) {
       navResources.addEventListener("click", function () {
-        switchView("resources", navResources);
+        document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
+        navResources.classList.add("active");
+        document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+        var v = document.getElementById("view-resources");
+        if (v) v.classList.add("active");
         backToGrid();
       });
     }
@@ -310,227 +327,8 @@
       });
     }
 
-    function showThread() {
-      backRow.style.display = "none";
-      memberListEl.style.display = "none";
-      threadEl.style.display = "flex";
-    }
-    function showMemberList() {
-      backRow.style.display = "none";
-      memberListEl.style.display = "block";
-      threadEl.style.display = "none";
-    }
-
-    tabGroup.addEventListener("click", function () {
-      tabGroup.classList.add("active"); tabIndiv.classList.remove("active");
-      showThread();
-      openConv("group", "Groupe");
-    });
-    tabIndiv.addEventListener("click", function () {
-      tabIndiv.classList.add("active"); tabGroup.classList.remove("active");
-      if (me.role !== "chef") {
-        backRow.style.display = "none";
-        showThread();
-        openConv(me.id, members[0] ? members[0].pseudo : "Chef");
-      } else {
-        renderMemberList();
-      }
-    });
-    backRow.addEventListener("click", function () {
-      renderMemberList();
-    });
-
     function initials(name) {
       return (name || "?").trim().slice(0, 2).toUpperCase();
-    }
-
-    function fmtTime(ts) {
-      return new Date(ts).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-    }
-
-    function getConvSummary(convId, otherId) {
-      return supabase.from("messages").select("content,sender_id,read_at,created_at").eq("conversation_id", convId)
-        .order("created_at", { ascending: false }).limit(1).then(function (res) {
-          var row = res && res.data && res.data[0];
-          if (!row) return { preview: "Aucun message", unread: false, lastAt: null };
-          var preview = row.content.length > 38 ? row.content.slice(0, 38) + "…" : row.content;
-          var unread = row.sender_id === otherId && !row.read_at;
-          return { preview: preview, unread: unread, lastAt: row.created_at };
-        });
-    }
-
-    function renderMemberList() {
-      showMemberList();
-      memberListEl.innerHTML = "";
-      Promise.all(members.map(function (m) {
-        var convId = me.role === "chef" ? m.id : me.id;
-        var otherId = me.role === "chef" ? m.id : chefId;
-        return getConvSummary(convId, otherId).then(function (summary) {
-          return { member: m, summary: summary };
-        });
-      })).then(function (entries) {
-        entries.sort(function (a, b) {
-          var ta = a.summary.lastAt ? new Date(a.summary.lastAt).getTime() : 0;
-          var tb = b.summary.lastAt ? new Date(b.summary.lastAt).getTime() : 0;
-          return tb - ta;
-        });
-        entries.forEach(function (entry) {
-          var m = entry.member, summary = entry.summary;
-          var row = el("div", { class: "nova-member-row-v2" });
-          var avatar = m.photo_url
-            ? el("img", { class: "nova-member-avatar", src: m.photo_url })
-            : el("div", { class: "nova-member-avatar" }, initials(m.pseudo));
-          var textWrap = el("div", { class: "nova-member-text" });
-          textWrap.appendChild(el("div", { class: "nova-member-name" }, m.pseudo));
-          textWrap.appendChild(el("div", { class: "nova-member-preview" + (summary.unread ? " unread" : "") }, summary.preview));
-          row.appendChild(avatar);
-          row.appendChild(textWrap);
-          row.addEventListener("click", function () {
-            backRow.style.display = "block";
-            threadEl.style.display = "flex";
-            memberListEl.style.display = "none";
-            openConv(m.id, m.pseudo);
-          });
-          memberListEl.appendChild(row);
-        });
-      });
-    }
-
-    function avatarFor(userId) {
-      var url = userId === me.id ? me.photo_url : (avatarCache[userId] || null);
-      return url
-        ? el("img", { class: "nova-msg-avatar", src: url })
-        : el("div", { class: "nova-msg-avatar" }, initials(profilesCache[userId] || "?"));
-    }
-
-    function renderMsg(m) {
-      var mine = m.sender_id === me.id;
-      var row = el("div", { class: "nova-msg-row" + (mine ? " me" : "") });
-      row.appendChild(avatarFor(m.sender_id));
-      var col = el("div", { class: "nova-msg-col" });
-      var wrap = el("div", { class: "nova-msg " + (mine ? "me" : "other") });
-      if (!mine && currentConv === "group") {
-        wrap.appendChild(el("div", { class: "nova-msg-sender" }, profilesCache[m.sender_id] || "..."));
-      }
-      wrap.appendChild(document.createTextNode(m.content));
-      col.appendChild(wrap);
-      col.appendChild(el("div", { class: "nova-msg-time" }, fmtTime(m.created_at)));
-      row.appendChild(col);
-      msgsEl.appendChild(row);
-      lastRenderedMsgId = m.id;
-      return row;
-    }
-
-    function renderVuFor(message) {
-      var old = document.getElementById("nova-vu-line");
-      if (old) old.remove();
-      if (!message || message.sender_id !== me.id) return;
-      var lastRow = msgsEl.lastElementChild;
-      var col = lastRow && lastRow.querySelector(".nova-msg-col");
-      if (!col) return;
-
-      if (currentConv === "group") {
-        supabase.from("message_reads").select("user_id,read_at").eq("message_id", message.id).then(function (res) {
-          var rows = ((res && res.data) || []).filter(function (r) { return r.user_id !== me.id; });
-          if (!rows.length) return;
-          var line = el("div", { id: "nova-vu-line", class: "nova-msg-vu" }, "Lu");
-          line.addEventListener("click", function () {
-            var names = rows.map(function (r) { return (profilesCache[r.user_id] || "?") + " à " + fmtTime(r.read_at); }).join(", ");
-            line.textContent = "Lu par : " + names;
-          });
-          col.appendChild(line);
-        });
-      } else {
-        if (message.read_at) {
-          col.appendChild(el("div", { id: "nova-vu-line", class: "nova-msg-vu" }, "Lu à " + fmtTime(message.read_at)));
-        }
-      }
-    }
-
-    function markReadForConv(convId, rows) {
-      var others = rows.filter(function (r) { return r.sender_id !== me.id; });
-      if (!others.length) return;
-      if (convId === "group") {
-        var payload = others.map(function (r) { return { message_id: r.id, user_id: me.id }; });
-        supabase.from("message_reads").upsert(payload, { onConflict: "message_id,user_id" }).then(function () {});
-      } else {
-        var ids = others.filter(function (r) { return !r.read_at; }).map(function (r) { return r.id; });
-        if (ids.length) supabase.from("messages").update({ read_at: new Date().toISOString() }).in("id", ids).then(function () {});
-      }
-    }
-
-    function openConv(convId, label) {
-      currentConv = convId;
-      headerEl.textContent = label;
-      msgsEl.innerHTML = "";
-      if (msgChannel) supabase.removeChannel(msgChannel);
-      if (readChannel) supabase.removeChannel(readChannel);
-
-      supabase.from("messages").select("*").eq("conversation_id", convId).order("created_at", { ascending: true }).limit(200)
-        .then(function (res) {
-          var rows = (res && res.data) || [];
-          rows.forEach(renderMsg);
-          msgsEl.scrollTop = msgsEl.scrollHeight;
-          if (rows.length) renderVuFor(rows[rows.length - 1]);
-          markReadForConv(convId, rows);
-        });
-
-      msgChannel = supabase.channel("nova-msgs-" + convId)
-        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: "conversation_id=eq." + convId }, function (payload) {
-          renderMsg(payload.new);
-          msgsEl.scrollTop = msgsEl.scrollHeight;
-          renderVuFor(payload.new);
-          markReadForConv(convId, [payload.new]);
-        })
-        .subscribe();
-
-      readChannel = supabase.channel("nova-reads-" + convId)
-        .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_reads" }, function () {
-          if (lastRenderedMsgId) {
-            supabase.from("messages").select("*").eq("id", lastRenderedMsgId).single().then(function (r) {
-              if (r && r.data) renderVuFor(r.data);
-            });
-          }
-        })
-        .subscribe();
-    }
-
-    formEl.addEventListener("submit", function (e) {
-      e.preventDefault();
-      var content = inputEl.value.trim();
-      if (!content || !me) return;
-      inputEl.value = "";
-      supabase.from("messages").insert({ conversation_id: currentConv, sender_id: me.id, content: content }).then(function () {});
-    });
-
-    function checkUnreadDM(memberId) {
-      var convId = me.role === "chef" ? memberId : me.id;
-      var otherId = me.role === "chef" ? memberId : chefId;
-      return supabase.from("messages").select("id", { count: "exact", head: true })
-        .eq("conversation_id", convId).eq("sender_id", otherId).is("read_at", null)
-        .then(function (res) { return (res && res.count) > 0; });
-    }
-
-    function checkUnreadGroup() {
-      return supabase.from("messages").select("id").eq("conversation_id", "group").neq("sender_id", me.id).then(function (allRes) {
-        var allIds = ((allRes && allRes.data) || []).map(function (r) { return r.id; });
-        if (!allIds.length) return false;
-        return supabase.from("message_reads").select("message_id").eq("user_id", me.id).in("message_id", allIds).then(function (readRes) {
-          var readIds = ((readRes && readRes.data) || []).map(function (r) { return r.message_id; });
-          return allIds.length > readIds.length;
-        });
-      });
-    }
-
-    function refreshUnreadBadge() {
-      checkUnreadGroup().then(function (unread) {
-        if (unread && currentConv !== "group") {
-          tabGroup.classList.add("unread");
-          navChat.classList.add("unread-nav");
-        } else {
-          tabGroup.classList.remove("unread");
-        }
-      });
     }
 
     function linkify(text) {
@@ -670,13 +468,10 @@
     }
 
     function renderResourceGrid() {
-      if (!resGrid) { console.log("[NOVA ressources] resGrid introuvable dans le DOM"); return; }
-      console.log("[NOVA ressources] chargement, role =", me && me.role, "user =", me && me.id);
+      if (!resGrid) return;
       supabase.from("resource_categories").select("id,title,is_pinned").order("is_pinned", { ascending: false }).order("sort_order").order("created_at").then(function (res) {
-        console.log("[NOVA ressources] résultat requête :", res);
         if (res && res.error) { console.error("[NOVA ressources]", res.error); alert("Erreur ressources : " + res.error.message); return; }
         var rows = (res && res.data) || [];
-        console.log("[NOVA ressources] nombre de cartes reçues :", rows.length);
         var pinned = rows.find(function (c) { return c.is_pinned; });
         var normal = rows.filter(function (c) { return !c.is_pinned; });
         renderPinned(pinned);
@@ -773,13 +568,11 @@
     var teamObserver = null;
 
     function decorateTeamList() {
-      if (!teamListEl || me.role !== "chef") { console.log("[NOVA activité] arrêt : role =", me && me.role); return; }
+      if (!teamListEl || !me || me.role !== "chef") return;
       var buttons = teamListEl.querySelectorAll("button[data-uid]");
       var ids = Array.prototype.map.call(buttons, function (b) { return b.getAttribute("data-uid"); });
-      console.log("[NOVA activité] boutons trouvés :", buttons.length, ids);
       if (!ids.length) return;
       supabase.from("profiles").select("id,email,last_seen_at,custom_role").in("id", ids).then(function (res) {
-        console.log("[NOVA activité] résultat requête :", res);
         if (!res || res.error) return;
         var map = {};
         res.data.forEach(function (p) { map[p.id] = p; });
@@ -816,7 +609,7 @@
     }
 
     function boot(userId) {
-      supabase.from("profiles").select("id,role,pseudo,custom_role").eq("id", userId).single().then(function (res) {
+      supabase.from("profiles").select("id,role,pseudo,custom_role,notifications_seen_at").eq("id", userId).single().then(function (res) {
         if (!res || !res.data) return;
         me = res.data;
         profilesCache[me.id] = me.pseudo;
@@ -829,25 +622,23 @@
         }, 60000);
 
         var loadMembers = me.role === "chef"
-          ? supabase.from("profiles").select("id,pseudo,role,photo_url").eq("role", "setter").eq("is_active", true).order("pseudo")
-          : supabase.from("profiles").select("id,pseudo,role,photo_url").eq("role", "chef").limit(1);
+          ? supabase.from("profiles").select("id,pseudo").eq("role", "setter").eq("is_active", true).order("pseudo")
+          : supabase.from("profiles").select("id,pseudo").eq("role", "chef").limit(1);
 
         loadMembers.then(function (res2) {
-          members = (res2 && res2.data) || [];
-          members.forEach(function (m) { profilesCache[m.id] = m.pseudo; });
-          if (me.role !== "chef" && members[0]) chefId = members[0].id;
-          if (me.role === "chef") chefId = me.id;
-          if (me.role !== "chef" && members[0]) tabIndiv.textContent = members[0].pseudo;
+          ((res2 && res2.data) || []).forEach(function (m) { profilesCache[m.id] = m.pseudo; });
 
-          openConv("group", "Groupe");
-          refreshUnreadBadge();
           watchTeamList();
           refreshBellBadge();
+
+          supabase.channel("nova-notifs-" + me.id)
+            .on("postgres_changes", { event: "INSERT", schema: "public", table: "boxmails", filter: "recipient_id=eq." + me.id }, refreshBellBadge)
+            .subscribe();
+
           if (me.role === "chef") {
-            supabase.channel("nova-issue-reports")
-              .on("postgres_changes", { event: "INSERT", schema: "public", table: "issue_reports" }, function () {
-                refreshBellBadge();
-              })
+            supabase.channel("nova-notifs-chef")
+              .on("postgres_changes", { event: "INSERT", schema: "public", table: "issue_reports" }, refreshBellBadge)
+              .on("postgres_changes", { event: "INSERT", schema: "public", table: "prospects" }, refreshBellBadge)
               .subscribe();
           }
 

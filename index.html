@@ -110,8 +110,8 @@
     <div class="topbar">
       <div class="hamburger" id="hamburger-btn"><span></span><span></span><span></span></div>
       <div class="brand metal-title brand-word">NOVA</div>
-      <button type="button" id="bell-btn" class="icon-btn" style="margin-left:auto;position:relative;" title="Signalements">
-        🔔<span id="bell-badge" style="display:none;position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:#ef4444;"></span>
+      <button type="button" id="bell-btn" class="icon-btn" style="margin-left:auto;position:relative;" title="Notifications">
+        🔔<span id="bell-badge" style="display:none;position:absolute;bottom:-4px;right:-4px;min-width:16px;height:16px;padding:0 3px;border-radius:8px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;align-items:center;justify-content:center;line-height:16px;text-align:center;"></span>
       </button>
     </div>
 
@@ -146,7 +146,6 @@
         <div class="nav-item" data-view="suivi" style="display:none;"><span class="dot"></span>Suivi business</div>
         <div class="nav-item" data-view="dms"><span class="dot"></span>Journal de DMs</div>
         <div class="nav-item chef-only" data-view="stats"><span class="dot"></span>Analyse / Stats</div>
-        <div class="nav-item" id="nav-chat" data-view="chat"><span class="dot"></span>Chat</div>
         <div class="nav-item" id="nav-boxmail" data-view="boxmail"><span class="dot"></span>BoxMail<span class="nova-boxmail-badge" id="boxmail-nav-badge" style="display:none;"></span></div>
         <div class="nav-item" id="nav-resources" data-view="resources"><span class="dot"></span>Ressources</div>
         <div class="nav-item" data-view="classement" style="display:none;"><span class="dot"></span>Classement</div>
@@ -383,28 +382,6 @@
           </div>
 
         </div>
-        <div class="view" id="view-chat">
-          <div class="dash-toolbar">
-            <h1 class="metal-title">Chat</h1>
-            <div class="period-tabs" id="chat-mode-tabs">
-              <div class="period-tab active" data-mode="group" id="chat-tab-group">Groupe</div>
-              <div class="period-tab" data-mode="individuel" id="chat-tab-indiv">Individuel</div>
-            </div>
-          </div>
-          <div class="glass-card" style="height:66vh;overflow:hidden;display:flex;flex-direction:column;">
-            <div id="chat-back-row" style="display:none;padding:10px 16px;border-bottom:1px solid rgba(184,188,194,.14);cursor:pointer;font-size:13px;opacity:.75;">&larr; Retour à la liste</div>
-            <div id="chat-member-list" style="display:none;flex:1;overflow-y:auto;"></div>
-            <div id="chat-thread" style="flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;">
-              <div id="chat-header" style="padding:12px 18px;font-weight:600;border-bottom:1px solid rgba(184,188,194,.14);">Groupe</div>
-              <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;"></div>
-              <form id="chat-form" style="display:flex;border-top:1px solid rgba(184,188,194,.14);">
-                <input id="chat-input" placeholder="Message..." autocomplete="off" style="flex:1;background:transparent;border:none;color:var(--metal-2);padding:14px 16px;font-size:14px;outline:none;font-family:inherit;">
-                <button type="submit" class="btn primary" style="border-radius:0;">Envoyer</button>
-              </form>
-            </div>
-          </div>
-        </div>
-
         <div class="view" id="view-boxmail">
           <div class="dash-toolbar">
             <h1 class="metal-title">BoxMail</h1>
@@ -511,7 +488,7 @@
 <!-- MODAL: liste des signalements (chef) -->
 <div class="modal-overlay" id="modal-reports-list">
   <div class="glass-card modal-box" style="max-width:460px;max-height:80vh;overflow-y:auto;">
-    <h2>Signalements</h2>
+    <h2>Notifications</h2>
     <div id="reports-list-items" style="display:flex;flex-direction:column;gap:10px;margin:14px 0;"></div>
     <div class="modal-actions">
       <button class="btn ghost" id="btn-close-reports">Fermer</button>
