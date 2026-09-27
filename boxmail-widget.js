@@ -219,7 +219,7 @@
     });
 
     function loadDirectory() {
-      return supabase.from("profiles").select("id,pseudo").then(function (res) {
+      return supabase.from("profiles").select("id,pseudo").eq("is_active", true).then(function (res) {
         var rows = (res && res.data) || [];
         pseudoSuggestions.innerHTML = "";
         rows.forEach(function (p) {
