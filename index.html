@@ -145,6 +145,8 @@
         <div class="nav-item chef-only active" data-view="results"><span class="dot"></span>Résultats</div>
         <div class="nav-item" data-view="suivi" style="display:none;"><span class="dot"></span>Suivi business</div>
         <div class="nav-item" data-view="dms"><span class="dot"></span>Journal de DMs</div>
+        <div class="nav-item" id="nav-equipe" data-view="equipe"><span class="dot"></span>Équipe</div>
+        <div class="nav-item" id="nav-rewards" data-view="rewards"><span class="dot"></span>Récompenses</div>
         <div class="nav-item chef-only" data-view="stats"><span class="dot"></span>Analyse / Stats</div>
         <div class="nav-item" id="nav-boxmail" data-view="boxmail"><span class="dot"></span>BoxMail<span class="nova-boxmail-badge" id="boxmail-nav-badge" style="display:none;"></span></div>
         <div class="nav-item" id="nav-resources" data-view="resources"><span class="dot"></span>Ressources</div>
@@ -319,6 +321,20 @@
         <div class="view" id="view-suivi">
           <div class="placeholder-block"><span class="metal-title">Suivi business</span>À venir.</div>
         </div>
+        <div class="view" id="view-equipe">
+          <div class="dash-toolbar">
+            <h1 class="metal-title">Équipe</h1>
+          </div>
+          <div class="team-list" id="equipe-list"></div>
+        </div>
+
+        <div class="view" id="view-rewards">
+          <div class="dash-toolbar">
+            <h1 class="metal-title">Récompenses</h1>
+          </div>
+          <div id="rewards-quests"></div>
+        </div>
+
         <div class="view" id="view-dms">
           <div class="dm-toolbar">
             <h1 class="metal-title">Journal de DMs</h1>
@@ -513,6 +529,10 @@
               <div class="settings-tile-icon">🏷</div>
               <div class="settings-tile-label">Rôles de l'équipe</div>
             </div>
+            <div class="settings-tile" id="settings-badges" style="display:none;">
+              <div class="settings-tile-icon">🏆</div>
+              <div class="settings-tile-label">Badges</div>
+            </div>
             <div class="settings-tile settings-tile-danger" id="settings-logout">
               <div class="settings-tile-icon">⏻</div>
               <div class="settings-tile-label">Se déconnecter</div>
@@ -561,6 +581,18 @@
     <div id="roles-list-items" style="display:flex;flex-direction:column;gap:6px;margin:14px 0;"></div>
     <div class="modal-actions">
       <button class="btn ghost" id="btn-close-roles">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: mes badges -->
+<div class="modal-overlay" id="modal-badges">
+  <div class="glass-card modal-box" style="max-width:460px;max-height:80vh;overflow-y:auto;">
+    <h2>Mes badges</h2>
+    <p style="margin:0 0 12px;font-size:13px;opacity:.7;">Choisis le badge à afficher à côté de ton pseudo (les badges verrouillés se débloquent en avançant dans le journal de DMs).</p>
+    <div class="badges-picker-grid" id="badges-picker-grid"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="btn-close-badges">Fermer</button>
     </div>
   </div>
 </div>
@@ -650,10 +682,12 @@
 
 <div id="toast"></div>
 
+<script src="/badges-widget.js"></script>
 <script src="/chat-widget.js"></script>
 <script src="/boxmail-widget.js"></script>
 <script src="/dm-widget.js"></script>
 <script src="/home-widget.js"></script>
+<script src="/equipe-widget.js"></script>
 
 </body>
 </html>

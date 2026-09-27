@@ -600,29 +600,44 @@
       var buttons = teamListEl.querySelectorAll("button[data-uid]");
       var ids = Array.prototype.map.call(buttons, function (b) { return b.getAttribute("data-uid"); });
       if (!ids.length) return;
-      supabase.from("profiles").select("id,email,last_seen_at,custom_role").in("id", ids).then(function (res) {
+      supabase.from("profiles").select("id,email,last_seen_at,custom_role,selected_badge_id").in("id", ids).then(function (res) {
         if (!res || res.error) return;
         var map = {};
         res.data.forEach(function (p) { map[p.id] = p; });
-        Array.prototype.forEach.call(buttons, function (btn) {
-          var uid = btn.getAttribute("data-uid");
-          var row = btn.closest(".team-row");
-          if (!row) return;
-          var info = row.querySelector(".team-row-info");
-          if (!info) return;
-          var p = map[uid] || {};
-          var line = info.querySelector(".nova-activity-line");
-          if (!line) {
-            line = el("div", { class: "nova-activity-line" });
-            line.style.cssText = "font-size:12px;opacity:.55;margin-top:2px;";
-            info.appendChild(line);
-          }
-          line.textContent = activityLabel(p.last_seen_at);
+        var statsPromise = (window.ZenoaBadges ? window.ZenoaBadges.fetchAllStats(supabase) : Promise.resolve({}));
+        statsPromise.then(function (statsById) {
+          Array.prototype.forEach.call(buttons, function (btn) {
+            var uid = btn.getAttribute("data-uid");
+            var row = btn.closest(".team-row");
+            if (!row) return;
+            var info = row.querySelector(".team-row-info");
+            if (!info) return;
+            var p = map[uid] || {};
+            var line = info.querySelector(".nova-activity-line");
+            if (!line) {
+              line = el("div", { class: "nova-activity-line" });
+              line.style.cssText = "font-size:12px;opacity:.55;margin-top:2px;";
+              info.appendChild(line);
+            }
+            line.textContent = activityLabel(p.last_seen_at);
 
-          var meta = info.querySelector(".team-row-meta");
-          if (meta) {
-            meta.textContent = (p.email || "") + " · " + (p.custom_role || "Rôle non défini");
-          }
+            var meta = info.querySelector(".team-row-meta");
+            if (meta) {
+              meta.textContent = (p.email || "") + " · " + (p.custom_role || "Rôle non défini");
+            }
+
+            var nameEl = info.querySelector(".team-row-name");
+            if (nameEl && window.ZenoaBadges) {
+              var oldTag = nameEl.querySelector(".nova-badge-tag");
+              if (oldTag) oldTag.remove();
+              var stats = statsById[uid] || { dm: 0, replied: 0, sold: 0 };
+              var badge = window.ZenoaBadges.pickActiveBadge(stats, p.selected_badge_id);
+              if (badge) {
+                var tag = el("span", { class: "nova-badge-tag", title: badge.label }, badge.icon);
+                nameEl.appendChild(tag);
+              }
+            }
+          });
         });
       });
     }
