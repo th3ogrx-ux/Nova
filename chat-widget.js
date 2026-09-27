@@ -97,6 +97,10 @@
     var modalReportsList = document.getElementById("modal-reports-list");
     var reportsListItems = document.getElementById("reports-list-items");
     var btnCloseReports = document.getElementById("btn-close-reports");
+    var settingsManageRoles = document.getElementById("settings-manage-roles");
+    var modalRoles = document.getElementById("modal-roles");
+    var rolesListItems = document.getElementById("roles-list-items");
+    var btnCloseRoles = document.getElementById("btn-close-roles");
 
     if (settingsBtn && modalSettings) {
       settingsBtn.addEventListener("click", function () {
@@ -192,6 +196,55 @@
       });
     }
 
+    function applyMyCustomRole(customRole) {
+      var infoWrap = document.querySelector(".sidebar-profile-info");
+      if (!infoWrap) return;
+      var line = document.getElementById("my-custom-role-display");
+      if (!customRole) { if (line) line.remove(); return; }
+      if (!line) {
+        line = el("div", { id: "my-custom-role-display" });
+        line.style.cssText = "font-size:11px;opacity:.65;margin-top:2px;font-style:italic;";
+        infoWrap.appendChild(line);
+      }
+      line.textContent = customRole;
+    }
+
+    function renderRolesList() {
+      if (!rolesListItems || !me) return;
+      rolesListItems.innerHTML = "";
+      supabase.from("profiles").select("id,pseudo,custom_role,photo_url").eq("is_active", true).order("pseudo").then(function (res) {
+        if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+        var rows = (res && res.data) || [];
+        if (!rows.length) {
+          rolesListItems.appendChild(el("div", { class: "empty-note" }, "Aucun membre actif."));
+          return;
+        }
+        rows.forEach(function (p) {
+          var row = el("div", { class: "nova-member-row-v2", style: "cursor:pointer;" });
+          var avatar = p.photo_url
+            ? el("img", { class: "nova-member-avatar", src: p.photo_url })
+            : el("div", { class: "nova-member-avatar" }, initials(p.pseudo));
+          var textWrap = el("div", { class: "nova-member-text" });
+          textWrap.appendChild(el("div", { class: "nova-member-name" }, p.pseudo));
+          textWrap.appendChild(el("div", { class: "nova-member-preview" }, p.custom_role || "Aucun rôle défini"));
+          row.appendChild(avatar);
+          row.appendChild(textWrap);
+          row.addEventListener("click", function () {
+            var newRole = window.prompt("Rôle de " + p.pseudo + " :", p.custom_role || "");
+            if (newRole === null) return;
+            newRole = newRole.trim();
+            supabase.from("profiles").update({ custom_role: newRole || null }).eq("id", p.id).then(function (res2) {
+              if (res2 && res2.error) { alert("Erreur : " + res2.error.message); return; }
+              if (p.id === me.id) { me.custom_role = newRole || null; applyMyCustomRole(me.custom_role); }
+              renderRolesList();
+              decorateTeamList();
+            });
+          });
+          rolesListItems.appendChild(row);
+        });
+      });
+    }
+
     if (bellBtn) {
       bellBtn.addEventListener("click", function () {
         if (!me || me.role !== "chef") return;
@@ -202,6 +255,19 @@
     if (btnCloseReports) {
       btnCloseReports.addEventListener("click", function () {
         modalReportsList.classList.remove("open");
+      });
+    }
+
+    if (settingsManageRoles && modalRoles) {
+      settingsManageRoles.addEventListener("click", function () {
+        modalSettings.classList.remove("open");
+        renderRolesList();
+        modalRoles.classList.add("open");
+      });
+    }
+    if (btnCloseRoles) {
+      btnCloseRoles.addEventListener("click", function () {
+        modalRoles.classList.remove("open");
       });
     }
 
@@ -712,24 +778,37 @@
       var ids = Array.prototype.map.call(buttons, function (b) { return b.getAttribute("data-uid"); });
       console.log("[NOVA activité] boutons trouvés :", buttons.length, ids);
       if (!ids.length) return;
-      supabase.from("profiles").select("id,last_seen_at").in("id", ids).then(function (res) {
+      supabase.from("profiles").select("id,last_seen_at,custom_role").in("id", ids).then(function (res) {
         console.log("[NOVA activité] résultat requête :", res);
         if (!res || res.error) return;
         var map = {};
-        res.data.forEach(function (p) { map[p.id] = p.last_seen_at; });
+        res.data.forEach(function (p) { map[p.id] = p; });
         Array.prototype.forEach.call(buttons, function (btn) {
           var uid = btn.getAttribute("data-uid");
           var row = btn.closest(".team-row");
           if (!row) return;
           var info = row.querySelector(".team-row-info");
           if (!info) return;
+          var p = map[uid] || {};
           var line = info.querySelector(".nova-activity-line");
           if (!line) {
             line = el("div", { class: "nova-activity-line" });
             line.style.cssText = "font-size:12px;opacity:.55;margin-top:2px;";
             info.appendChild(line);
           }
-          line.textContent = activityLabel(map[uid]);
+          line.textContent = activityLabel(p.last_seen_at);
+
+          var roleLine = info.querySelector(".nova-role-line");
+          if (p.custom_role) {
+            if (!roleLine) {
+              roleLine = el("div", { class: "nova-role-line" });
+              roleLine.style.cssText = "font-size:12px;opacity:.75;margin-top:2px;font-style:italic;";
+              info.appendChild(roleLine);
+            }
+            roleLine.textContent = "Rôle : " + p.custom_role;
+          } else if (roleLine) {
+            roleLine.remove();
+          }
         });
       });
     }
@@ -744,10 +823,12 @@
     }
 
     function boot(userId) {
-      supabase.from("profiles").select("id,role,pseudo").eq("id", userId).single().then(function (res) {
+      supabase.from("profiles").select("id,role,pseudo,custom_role").eq("id", userId).single().then(function (res) {
         if (!res || !res.data) return;
         me = res.data;
         profilesCache[me.id] = me.pseudo;
+        applyMyCustomRole(me.custom_role);
+        if (settingsManageRoles) settingsManageRoles.style.display = me.role === "chef" ? "block" : "none";
 
         supabase.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("id", me.id).then(function () {});
         setInterval(function () {
