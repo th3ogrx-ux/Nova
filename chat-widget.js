@@ -91,6 +91,10 @@
         var activeNav = document.querySelector(".nav-item.active");
         previousViewBeforeSettings = activeNav ? activeNav.getAttribute("data-view") : "results";
         switchToView("settings");
+        var sidebar = document.getElementById("sidebar");
+        var sidebarOverlay = document.getElementById("sidebar-overlay");
+        if (sidebar) sidebar.classList.remove("open");
+        if (sidebarOverlay) sidebarOverlay.classList.remove("open");
       });
     }
     if (btnBackSettings) {
@@ -233,17 +237,31 @@
       });
     }
 
+    var myRoleDisplayEl = document.getElementById("my-role-display");
+    var currentDesiredRoleText = null;
+    var roleObserverStarted = false;
+
     function applyMyCustomRole(customRole) {
-      var infoWrap = document.querySelector(".sidebar-profile-info");
-      if (!infoWrap) return;
-      var line = document.getElementById("my-custom-role-display");
-      if (!customRole) { if (line) line.remove(); return; }
-      if (!line) {
-        line = el("div", { id: "my-custom-role-display" });
-        line.style.cssText = "font-size:11px;opacity:.65;margin-top:2px;font-style:italic;";
-        infoWrap.appendChild(line);
+      var oldLine = document.getElementById("my-custom-role-display");
+      if (oldLine) oldLine.remove();
+      if (!myRoleDisplayEl || !me || me.role === "chef") { currentDesiredRoleText = null; return; }
+      currentDesiredRoleText = customRole || "Rôle non défini";
+      myRoleDisplayEl.textContent = currentDesiredRoleText;
+      if (!roleObserverStarted) {
+        roleObserverStarted = true;
+        new MutationObserver(function () {
+          if (currentDesiredRoleText && myRoleDisplayEl.textContent !== currentDesiredRoleText) {
+            myRoleDisplayEl.textContent = currentDesiredRoleText;
+          }
+        }).observe(myRoleDisplayEl, { childList: true, characterData: true, subtree: true });
       }
-      line.textContent = customRole;
+    }
+
+    var rolePillCreate = document.getElementById("role-pill-create");
+    if (rolePillCreate) {
+      new MutationObserver(function () {
+        if (rolePillCreate.textContent === "Setter") rolePillCreate.textContent = "Rôle non défini";
+      }).observe(rolePillCreate, { childList: true, characterData: true, subtree: true });
     }
 
     function renderRolesList() {
@@ -311,6 +329,7 @@
     // ça passe désormais uniquement par la modale Paramètres.
     document.addEventListener("click", function (e) {
       var t = e.target;
+      if (t.id === "my-avatar-input" || (t.closest && t.closest("#my-avatar-input"))) return;
       var hitsAvatar = t.closest && t.closest("#my-avatar");
       var hitsName = t.closest && t.closest("#my-name-display");
       if (hitsAvatar || hitsName) {
