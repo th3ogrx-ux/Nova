@@ -418,10 +418,10 @@
                   <input type="checkbox" id="boxmail-broadcast"> Envoyer à toute l'équipe
                 </label>
               </div>
-              <div class="field" id="boxmail-to-field">
+              <div class="field" id="boxmail-to-field" style="position:relative;">
                 <label class="field-label">Destinataire (pseudo)</label>
-                <input type="text" id="boxmail-to" list="boxmail-pseudo-suggestions" placeholder="Pseudo du destinataire" autocomplete="off">
-                <datalist id="boxmail-pseudo-suggestions"></datalist>
+                <input type="text" id="boxmail-to" placeholder="Tape le pseudo du destinataire" autocomplete="off">
+                <div id="boxmail-to-dropdown" style="display:none;"></div>
               </div>
               <div class="field">
                 <label class="field-label">Message</label>

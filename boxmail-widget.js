@@ -60,7 +60,7 @@
     return (name || "?").trim().slice(0, 2).toUpperCase();
   }
 
-  var CSS = "\n.nova-boxmail-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;margin-left:8px;vertical-align:middle;line-height:18px;}\n.nav-item.unread-nav{font-weight:700;}\n#boxmail-tab-inbox.unread,#boxmail-tab-send.unread{font-weight:700;}\n.nova-boxmail-row{display:flex;align-items:center;gap:12px;padding:13px 4px;cursor:pointer;border-bottom:1px solid rgba(199,194,219,.10);}\n.nova-boxmail-row:hover{background:rgba(255,255,255,.04);}\n.nova-boxmail-avatar{width:38px;height:38px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#BF5AF2,#300A66);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;}\n.nova-boxmail-text{min-width:0;flex:1;}\n.nova-boxmail-sender{font-family:'Poppins',sans-serif;font-weight:500;font-size:14px;margin-bottom:2px;}\n.nova-boxmail-sender.unread{font-weight:800;}\n.nova-boxmail-preview{font-size:12.5px;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}\n.nova-boxmail-preview.unread{font-weight:700;opacity:1;}\n.nova-boxmail-time{font-size:11px;opacity:.5;flex-shrink:0;}\n.nova-boxmail-empty{opacity:.55;font-size:14px;padding:18px 4px;}\n";
+  var CSS = "\n.nova-boxmail-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;margin-left:8px;vertical-align:middle;line-height:18px;}\n.nav-item.unread-nav{font-weight:700;}\n#boxmail-tab-inbox.unread,#boxmail-tab-send.unread{font-weight:700;}\n.nova-boxmail-row{display:flex;align-items:center;gap:12px;padding:13px 4px;cursor:pointer;border-bottom:1px solid rgba(199,194,219,.10);}\n.nova-boxmail-row:hover{background:rgba(255,255,255,.04);}\n.nova-boxmail-avatar{width:38px;height:38px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#BF5AF2,#300A66);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;}\n.nova-boxmail-text{min-width:0;flex:1;}\n.nova-boxmail-sender{font-family:'Poppins',sans-serif;font-weight:500;font-size:14px;margin-bottom:2px;}\n.nova-boxmail-sender.unread{font-weight:800;}\n.nova-boxmail-preview{font-size:12.5px;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}\n.nova-boxmail-preview.unread{font-weight:700;opacity:1;}\n.nova-boxmail-time{font-size:11px;opacity:.5;flex-shrink:0;}\n.nova-boxmail-empty{opacity:.55;font-size:14px;padding:18px 4px;}\n#boxmail-to-dropdown{position:absolute;top:100%;left:0;right:0;margin-top:4px;max-height:260px;overflow-y:auto;background:var(--bg-panel);border:1px solid rgba(199,194,219,.18);border-radius:10px;box-shadow:0 12px 30px #00000080;z-index:20;}\n#boxmail-to-dropdown .nova-member-row-v2{border-bottom:1px solid rgba(199,194,219,.08);}\n#boxmail-to-dropdown .nova-member-row-v2:last-child{border-bottom:none;}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -89,7 +89,7 @@
     var detailContent = document.getElementById("boxmail-detail-content");
     var validateBtn = document.getElementById("boxmail-validate-btn");
     var toInput = document.getElementById("boxmail-to");
-    var pseudoSuggestions = document.getElementById("boxmail-pseudo-suggestions");
+    var toDropdown = document.getElementById("boxmail-to-dropdown");
     var contentInput = document.getElementById("boxmail-content");
     var sendBtn = document.getElementById("boxmail-send-btn");
     var sendError = document.getElementById("boxmail-send-error");
@@ -345,16 +345,54 @@
     });
 
     function loadDirectory() {
-      return supabase.from("profiles").select("id,pseudo").eq("is_active", true).then(function (res) {
+      return supabase.from("profiles").select("id,pseudo,photo_url,custom_role,role").eq("is_active", true).then(function (res) {
         var rows = (res && res.data) || [];
-        pseudoSuggestions.innerHTML = "";
         rows.forEach(function (p) {
           profilesCache[p.id] = p.pseudo;
           if (p.id === me.id) return;
           pseudoIndex[(p.pseudo || "").toLowerCase()] = p;
-          pseudoSuggestions.appendChild(el("option", { value: p.pseudo }));
         });
       });
+    }
+
+    function hideToDropdown() {
+      if (toDropdown) toDropdown.style.display = "none";
+    }
+
+    function renderToDropdown() {
+      if (!toDropdown) return;
+      var q = (toInput.value || "").trim().toLowerCase();
+      var matches = Object.keys(pseudoIndex).map(function (k) { return pseudoIndex[k]; })
+        .filter(function (p) { return !q || (p.pseudo || "").toLowerCase().indexOf(q) !== -1; })
+        .sort(function (a, b) { return (a.pseudo || "").localeCompare(b.pseudo || ""); });
+
+      toDropdown.innerHTML = "";
+      if (!matches.length) { hideToDropdown(); return; }
+
+      matches.forEach(function (p) {
+        var row = el("div", { class: "nova-member-row-v2" });
+        var avatar = p.photo_url
+          ? el("img", { class: "nova-member-avatar", src: p.photo_url })
+          : el("div", { class: "nova-member-avatar" }, initials(p.pseudo));
+        row.appendChild(avatar);
+        var textWrap = el("div", { class: "nova-member-text" });
+        textWrap.appendChild(el("div", { class: "nova-member-name" }, p.pseudo));
+        textWrap.appendChild(el("div", { class: "nova-member-preview" }, p.role === "chef" ? "Chef" : (p.custom_role || "Rôle non défini")));
+        row.appendChild(textWrap);
+        row.addEventListener("mousedown", function (e) {
+          e.preventDefault();
+          toInput.value = p.pseudo;
+          hideToDropdown();
+        });
+        toDropdown.appendChild(row);
+      });
+      toDropdown.style.display = "block";
+    }
+
+    if (toInput) {
+      toInput.addEventListener("focus", renderToDropdown);
+      toInput.addEventListener("input", renderToDropdown);
+      toInput.addEventListener("blur", function () { setTimeout(hideToDropdown, 150); });
     }
 
     var booted = false;
