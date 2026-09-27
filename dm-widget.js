@@ -274,6 +274,10 @@
 
         watchDmJournal();
         watchActivityList();
+
+        var dayTab = document.querySelector('#activity-period-tabs .period-tab[data-period="day"]');
+        if (dayTab) dayTab.click();
+
         decorateDmJournal();
         decorateActivityList();
 
