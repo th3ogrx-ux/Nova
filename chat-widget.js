@@ -69,6 +69,7 @@
     var navResources = document.getElementById("nav-resources");
     var resGrid = document.getElementById("res-grid");
     var resPinnedWrap = document.getElementById("res-pinned-wrap");
+    var resSetterTourWrap = document.getElementById("res-setter-tour-wrap");
     var resDetail = document.getElementById("res-detail");
     var resAddBtn = document.getElementById("res-add-btn");
     var resBack = document.getElementById("res-back");
@@ -619,14 +620,41 @@
       }
     }
 
+    function renderSetterTour(cat) {
+      if (!resSetterTourWrap) return;
+      resSetterTourWrap.innerHTML = "";
+      if (cat) {
+        var card = el("div", { class: "res-card res-card-wide" }, cat.title);
+        card.addEventListener("click", function () { if (!resSuppressClick) openCategory(cat); });
+        if (me.role === "chef") {
+          card.appendChild(makeDeleteBtn(cat, renderResourceGrid));
+          card.appendChild(makeEditBtn(cat, renderResourceGrid));
+        }
+        resSetterTourWrap.appendChild(card);
+      } else if (me.role === "chef") {
+        var placeholder = el("div", { class: "res-card res-card-wide res-card-empty" }, "+ Créer la présentation Setter");
+        placeholder.addEventListener("click", function () {
+          var title = window.prompt("Titre de la présentation :", "Présentation — Partie Setter");
+          if (!title || !title.trim()) return;
+          supabase.from("resource_categories").insert({ title: title.trim(), created_by: me.id, is_setter_tour: true }).then(function (res) {
+            if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+            renderResourceGrid();
+          });
+        });
+        resSetterTourWrap.appendChild(placeholder);
+      }
+    }
+
     function renderResourceGrid() {
       if (!resGrid) return;
-      supabase.from("resource_categories").select("id,title,is_pinned").order("is_pinned", { ascending: false }).order("sort_order").order("created_at").then(function (res) {
+      supabase.from("resource_categories").select("id,title,is_pinned,is_setter_tour").order("is_pinned", { ascending: false }).order("sort_order").order("created_at").then(function (res) {
         if (res && res.error) { console.error("[NOVA ressources]", res.error); alert("Erreur ressources : " + res.error.message); return; }
         var rows = (res && res.data) || [];
         var pinned = rows.find(function (c) { return c.is_pinned; });
-        var normal = rows.filter(function (c) { return !c.is_pinned; });
+        var setterTour = rows.find(function (c) { return c.is_setter_tour; });
+        var normal = rows.filter(function (c) { return !c.is_pinned && !c.is_setter_tour; });
         renderPinned(pinned);
+        renderSetterTour(setterTour);
         resGrid.innerHTML = "";
         normal.forEach(function (c) {
           var card = el("div", { class: "res-card", "data-cat-id": c.id }, c.title);
@@ -649,18 +677,18 @@
       resItemsEl.innerHTML = "";
       stopPinnedVideo();
 
-      var isPinned = !!cat.is_pinned;
-      resPinnedVideo.style.display = isPinned ? "block" : "none";
-      resManageToggle.style.display = isPinned && me.role === "chef" ? "block" : "none";
+      var isVideo = !!(cat.is_pinned || cat.is_setter_tour);
+      resPinnedVideo.style.display = isVideo ? "block" : "none";
+      resManageToggle.style.display = isVideo && me.role === "chef" ? "block" : "none";
       resManageToggle.textContent = "✎ Gérer le contenu";
-      resItemsEl.style.display = isPinned ? "none" : "flex";
-      resItemForm.style.display = !isPinned && me.role === "chef" ? "flex" : "none";
+      resItemsEl.style.display = isVideo ? "none" : "flex";
+      resItemForm.style.display = !isVideo && me.role === "chef" ? "flex" : "none";
 
       supabase.from("resource_items").select("id,content,sort_order").eq("category_id", cat.id)
         .order("sort_order").order("created_at").then(function (res) {
         var rows = (res && res.data) || [];
 
-        if (isPinned) {
+        if (isVideo) {
           renderPinnedVideoPlayer(rows.map(function (r) { return r.content; }));
         }
 
