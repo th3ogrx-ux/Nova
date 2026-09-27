@@ -61,7 +61,7 @@
     not_interested: "Pas intéressé"
   };
 
-  var CSS = "\n.status-tag-dm.st-interested{color:#e6ccff;border-color:#e0b3ff59;background:#e0b3ff14;}\n.status-tag-dm.st-sold{color:#f2c572;border-color:#d4af3759;background:#d4af3714;}\n.nova-funnel-bar{display:flex;align-items:stretch;flex:1;min-width:40px;height:7px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.08);margin-left:8px;}\n.nova-funnel-seg{height:100%;}\n.nova-funnel-seg.sent{background:var(--cool-1);}\n.nova-funnel-seg.replied{background:var(--ok);}\n.nova-funnel-seg.sold{background:#d4af37;}\n.nova-funnel-seg.not_interested{background:var(--danger);}\n.nova-funnel-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(199,194,219,.12);font-size:12px;opacity:.75;}\n.nova-funnel-legend-item{display:flex;align-items:center;gap:6px;}\n.nova-funnel-legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0;}\n.nova-funnel-legend-dot.sent{background:var(--cool-1);}\n.nova-funnel-legend-dot.replied{background:var(--ok);}\n.nova-funnel-legend-dot.sold{background:#d4af37;}\n.nova-funnel-legend-dot.not_interested{background:var(--danger);}\n.activity-row-count{width:auto;min-width:56px;white-space:nowrap;font-size:12px;}\n.nova-activity-namewrap{width:100px;flex-shrink:0;min-width:0;display:flex;flex-direction:column;justify-content:center;}\n.nova-activity-namewrap .activity-row-name{width:auto;}\n.nova-activity-role{font-size:10.5px;opacity:.6;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}\n.nova-classement-row{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.12);margin-bottom:8px;text-align:left;}\n.nova-classement-rank{font-weight:700;font-size:15px;width:32px;flex-shrink:0;opacity:.8;text-align:left;}\n.nova-classement-body{min-width:0;text-align:left;}\n.nova-classement-name{font-weight:600;font-size:14.5px;margin-bottom:2px;}\n.nova-classement-stats{font-size:12.5px;opacity:.65;}\n";
+  var CSS = "\n.status-tag-dm.st-interested{color:#e6ccff;border-color:#e0b3ff59;background:#e0b3ff14;}\n.status-tag-dm.st-sold{color:#f2c572;border-color:#d4af3759;background:#d4af3714;}\n.nova-funnel-bar{display:flex;align-items:stretch;flex:1;min-width:40px;height:7px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.08);margin-left:8px;}\n.nova-funnel-seg{height:100%;}\n.nova-funnel-seg.sent{background:var(--cool-1);}\n.nova-funnel-seg.replied{background:var(--ok);}\n.nova-funnel-seg.sold{background:#d4af37;}\n.nova-funnel-seg.not_interested{background:var(--danger);}\n.nova-funnel-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(199,194,219,.12);font-size:12px;opacity:.75;}\n.nova-funnel-legend-item{display:flex;align-items:center;gap:6px;}\n.nova-funnel-legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0;}\n.nova-funnel-legend-dot.sent{background:var(--cool-1);}\n.nova-funnel-legend-dot.replied{background:var(--ok);}\n.nova-funnel-legend-dot.sold{background:#d4af37;}\n.nova-funnel-legend-dot.not_interested{background:var(--danger);}\n.activity-row-count{width:auto;min-width:56px;white-space:nowrap;font-size:12px;}\n.nova-activity-namewrap{width:100px;flex-shrink:0;min-width:0;display:flex;flex-direction:column;justify-content:center;}\n.nova-activity-namewrap .activity-row-name{width:auto;}\n.nova-activity-role{font-size:10.5px;opacity:.6;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -78,10 +78,6 @@
     var funnelCounts = {}; // pseudo (lowercase) -> {sent, replied, sold, not_interested, total}
     var rolesByPseudo = {}; // pseudo (lowercase) -> custom_role
     var profileByPseudo = {}; // pseudo (lowercase) -> {id, pseudo, photo_url, role}
-    var dmsModeTabs = document.getElementById("dms-mode-tabs");
-    var dmsActivityPanel = document.getElementById("dms-activity-panel");
-    var dmsClassementPanel = document.getElementById("dms-classement-panel");
-    var classementListEl = document.getElementById("classement-list");
 
     if (!dmJournalEl && !activityListEl) return;
 
@@ -147,7 +143,7 @@
     function loadFunnelCounts() {
       return supabase.from("prospects").select("setter_id,status").then(function (res) {
         var rows = (res && res.data) || [];
-        return supabase.from("profiles").select("id,pseudo,custom_role,photo_url,role").eq("is_active", true).then(function (res2) {
+        return supabase.from("profiles").select("id,pseudo,custom_role,role").eq("is_active", true).then(function (res2) {
           var idToPseudo = {};
           rolesByPseudo = {};
           profileByPseudo = {};
@@ -268,58 +264,6 @@
       activityObserver.observe(activityListEl, { childList: true });
     }
 
-    function renderClassement() {
-      if (!classementListEl) return;
-      loadFunnelCounts().then(function () {
-        var entries = Object.keys(profileByPseudo)
-          .filter(function (key) { return profileByPseudo[key].role !== "chef"; })
-          .map(function (key) {
-            var p = profileByPseudo[key];
-            var c = funnelCounts[key] || { total: 0, replied: 0, sold: 0 };
-            return { profile: p, counts: c };
-          });
-
-        entries.sort(function (a, b) {
-          if (b.counts.sold !== a.counts.sold) return b.counts.sold - a.counts.sold;
-          if (b.counts.replied !== a.counts.replied) return b.counts.replied - a.counts.replied;
-          return b.counts.total - a.counts.total;
-        });
-
-        classementListEl.innerHTML = "";
-        if (!entries.length) {
-          classementListEl.appendChild(el("div", { class: "empty-note" }, "Aucun setter pour le moment."));
-          return;
-        }
-        entries.forEach(function (entry, i) {
-          var p = entry.profile, c = entry.counts;
-          var row = el("div", { class: "nova-classement-row" });
-          row.appendChild(el("div", { class: "nova-classement-rank" }, "#" + (i + 1)));
-          var avatar = p.photo_url
-            ? el("img", { class: "nova-member-avatar", src: p.photo_url })
-            : el("div", { class: "nova-member-avatar" }, (p.pseudo || "?").trim().slice(0, 2).toUpperCase());
-          row.appendChild(avatar);
-          var body = el("div", { class: "nova-classement-body" });
-          body.appendChild(el("div", { class: "nova-classement-name" }, p.pseudo || "?"));
-          body.appendChild(el("div", { class: "nova-classement-stats" }, c.total + " DM · " + c.replied + " réponses · " + c.sold + " ventes"));
-          row.appendChild(body);
-          classementListEl.appendChild(row);
-        });
-      });
-    }
-
-    if (dmsModeTabs) {
-      dmsModeTabs.addEventListener("click", function (e) {
-        var tab = e.target.closest(".period-tab");
-        if (!tab) return;
-        dmsModeTabs.querySelectorAll(".period-tab").forEach(function (t) { t.classList.remove("active"); });
-        tab.classList.add("active");
-        var mode = tab.getAttribute("data-mode");
-        if (dmsActivityPanel) dmsActivityPanel.style.display = mode === "activity" ? "block" : "none";
-        if (dmsClassementPanel) dmsClassementPanel.style.display = mode === "classement" ? "block" : "none";
-        if (mode === "classement") renderClassement();
-      });
-    }
-
     var booted = false;
     function boot(userId) {
       if (booted) return;
@@ -337,7 +281,6 @@
           .on("postgres_changes", { event: "*", schema: "public", table: "prospects" }, function () {
             decorateDmJournal();
             decorateActivityList();
-            if (dmsClassementPanel && dmsClassementPanel.style.display !== "none") renderClassement();
           })
           .subscribe();
       });

@@ -173,7 +173,7 @@
 
     function renderInbox() {
       inboxList.innerHTML = "";
-      supabase.from("boxmails").select("id,sender_id,content,created_at,read_at")
+      supabase.from("boxmails").select("id,sender_id,content,created_at,read_at,contract_id")
         .eq("recipient_id", me.id).is("validated_at", null)
         .order("created_at", { ascending: false })
         .then(function (res) {
@@ -187,10 +187,11 @@
             var unread = !r.read_at;
             var senderName = profilesCache[r.sender_id] || "Membre";
             var row = el("div", { class: "nova-boxmail-row" });
-            row.appendChild(el("div", { class: "nova-boxmail-avatar" }, initials(senderName)));
+            if (r.contract_id) row.appendChild(el("div", { class: "nova-boxmail-avatar" }, "📄"));
+            else row.appendChild(el("div", { class: "nova-boxmail-avatar" }, initials(senderName)));
             var textWrap = el("div", { class: "nova-boxmail-text" });
             textWrap.appendChild(el("div", { class: "nova-boxmail-sender" + (unread ? " unread" : "") }, senderName));
-            var preview = r.content.length > 60 ? r.content.slice(0, 60) + "…" : r.content;
+            var preview = r.contract_id ? "Contrat équipe" : (r.content.length > 60 ? r.content.slice(0, 60) + "…" : r.content);
             textWrap.appendChild(el("div", { class: "nova-boxmail-preview" + (unread ? " unread" : "") }, preview));
             row.appendChild(textWrap);
             row.appendChild(el("div", { class: "nova-boxmail-time" }, fmtDateTime(r.created_at)));
@@ -200,12 +201,92 @@
         });
     }
 
+    var contractActionsEl = null;
+    function clearContractActions() {
+      if (contractActionsEl) { contractActionsEl.remove(); contractActionsEl = null; }
+    }
+
+    function renderContractInDetail(contract, mailRow) {
+      detailContent.textContent = contract.content;
+      clearContractActions();
+      contractActionsEl = el("div", { style: "margin-top:18px;display:flex;flex-direction:column;gap:12px;" });
+
+      if (contract.status === "sent" && contract.setter_id === me.id) {
+        var nameInput = el("input", { type: "text", placeholder: "Ton nom complet", value: me.pseudo || "" });
+        nameInput.style.cssText = "width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(199,194,219,.2);background:transparent;color:var(--metal-2);font-family:inherit;font-size:14px;box-sizing:border-box;";
+        var checkLabel = el("label", { style: "display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;" });
+        var check = el("input", { type: "checkbox" });
+        checkLabel.appendChild(check);
+        checkLabel.appendChild(document.createTextNode("Je certifie avoir lu et j'accepte les termes de ce contrat."));
+        var errEl = el("div", { class: "error-msg" });
+        var signBtn = el("button", { class: "btn primary btn-sm" }, "Signer le contrat");
+        signBtn.addEventListener("click", function () {
+          errEl.textContent = "";
+          var name = nameInput.value.trim();
+          if (!name) { errEl.textContent = "Indique ton nom pour signer."; return; }
+          if (!check.checked) { errEl.textContent = "Coche la case pour accepter les termes."; return; }
+          signBtn.disabled = true;
+          supabase.from("team_contracts").update({ status: "signed", signature_name: name, signed_at: new Date().toISOString() }).eq("id", contract.id).then(function (res2) {
+            signBtn.disabled = false;
+            if (res2 && res2.error) { errEl.textContent = "Erreur : " + res2.error.message; return; }
+            contract.status = "signed";
+            contract.signature_name = name;
+            contract.signed_at = new Date().toISOString();
+            renderContractInDetail(contract, mailRow);
+          });
+        });
+        contractActionsEl.appendChild(nameInput);
+        contractActionsEl.appendChild(checkLabel);
+        contractActionsEl.appendChild(errEl);
+        contractActionsEl.appendChild(signBtn);
+      } else if (contract.status === "signed" && contract.setter_id === me.id) {
+        contractActionsEl.appendChild(el("div", { class: "info-msg" }, "✓ Signé par " + contract.signature_name + " le " + fmtDateTime(contract.signed_at) + "."));
+        var returnBtn = el("button", { class: "btn primary btn-sm" }, "Renvoyer à Théo");
+        returnBtn.addEventListener("click", function () {
+          returnBtn.disabled = true;
+          supabase.from("team_contracts").update({ status: "returned", returned_at: new Date().toISOString() }).eq("id", contract.id).then(function (res2) {
+            if (res2 && res2.error) { alert("Erreur : " + res2.error.message); returnBtn.disabled = false; return; }
+            supabase.from("boxmails").insert({
+              sender_id: me.id,
+              recipient_id: contract.created_by,
+              content: "Contrat signé et retourné par " + (me.pseudo || "un setter") + ".",
+              contract_id: contract.id
+            }).then(function () {
+              supabase.from("boxmails").update({ validated_at: new Date().toISOString() }).eq("id", mailRow.id).then(function () {
+                currentDetailId = null;
+                showList();
+                renderInbox();
+                refreshBadge();
+              });
+            });
+          });
+        });
+        contractActionsEl.appendChild(returnBtn);
+      } else if (contract.status === "returned") {
+        contractActionsEl.appendChild(el("div", { class: "info-msg" }, "✓ Contrat signé par " + (contract.signature_name || "") + " et retourné le " + fmtDateTime(contract.returned_at) + "."));
+      }
+
+      detailContent.parentElement.appendChild(contractActionsEl);
+    }
+
     function openDetail(r) {
       currentDetailId = r.id;
       showDetail();
+      clearContractActions();
       var senderName = profilesCache[r.sender_id] || "Membre";
       detailMeta.textContent = "De " + senderName + " · " + fmtDateTime(r.created_at);
-      detailContent.textContent = r.content;
+
+      if (r.contract_id) {
+        validateBtn.style.display = "none";
+        detailContent.textContent = "Chargement du contrat...";
+        supabase.from("team_contracts").select("*").eq("id", r.contract_id).single().then(function (res) {
+          if (!res || !res.data) { detailContent.textContent = "Ce contrat a été supprimé."; return; }
+          renderContractInDetail(res.data, r);
+        });
+      } else {
+        validateBtn.style.display = "";
+        detailContent.textContent = r.content;
+      }
 
       if (!r.read_at) {
         supabase.from("boxmails").update({ read_at: new Date().toISOString() }).eq("id", r.id).then(function () {

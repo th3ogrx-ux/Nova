@@ -76,33 +76,24 @@
 
     function renderEquipe() {
       equipeList.innerHTML = "";
-      supabase.from("profiles").select("id,pseudo,photo_url,custom_role,role,selected_badge_id,is_active")
+      supabase.from("profiles").select("id,pseudo,photo_url,custom_role,role,is_active")
         .eq("is_active", true).order("pseudo").then(function (res) {
           if (res && res.error) { equipeList.appendChild(el("div", { class: "empty-note" }, "Erreur : " + res.error.message)); return; }
           var rows = (res && res.data) || [];
           if (!rows.length) { equipeList.appendChild(el("div", { class: "empty-note" }, "Aucun membre.")); return; }
-          window.ZenoaBadges.fetchAllStats(supabase).then(function (statsById) {
-            rows.forEach(function (p) {
-              var row = el("div", { class: "team-row glass-card" });
-              var avatar = el("div", { class: "avatar", style: "cursor:default;" });
-              if (p.photo_url) avatar.appendChild(el("img", { src: p.photo_url }));
-              else avatar.appendChild(el("span", {}, initials(p.pseudo)));
-              row.appendChild(avatar);
+          rows.forEach(function (p) {
+            var row = el("div", { class: "team-row glass-card" });
+            var avatar = el("div", { class: "avatar", style: "cursor:default;" });
+            if (p.photo_url) avatar.appendChild(el("img", { src: p.photo_url }));
+            else avatar.appendChild(el("span", {}, initials(p.pseudo)));
+            row.appendChild(avatar);
 
-              var info = el("div", { class: "team-row-info" });
-              var nameLine = el("div", { class: "team-row-name" }, (p.pseudo || "Compte incomplet") + " ");
-              var stats = statsById[p.id] || { dm: 0, replied: 0, sold: 0 };
-              var badge = window.ZenoaBadges.pickActiveBadge(stats, p.selected_badge_id);
-              if (badge) {
-                var tag = el("span", { class: "nova-badge-tag", title: badge.label }, badge.icon);
-                nameLine.appendChild(tag);
-              }
-              info.appendChild(nameLine);
-              info.appendChild(el("div", { class: "team-row-meta" }, (p.role === "chef" ? "Chef" : (p.custom_role || "Rôle non défini"))));
-              row.appendChild(info);
+            var info = el("div", { class: "team-row-info" });
+            info.appendChild(el("div", { class: "team-row-name" }, p.pseudo || "Compte incomplet"));
+            info.appendChild(el("div", { class: "team-row-meta" }, (p.role === "chef" ? "Chef" : (p.custom_role || "Rôle non défini"))));
+            row.appendChild(info);
 
-              equipeList.appendChild(row);
-            });
+            equipeList.appendChild(row);
           });
         });
     }

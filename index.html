@@ -146,11 +146,11 @@
         <div class="nav-item" data-view="suivi" style="display:none;"><span class="dot"></span>Suivi business</div>
         <div class="nav-item" data-view="dms"><span class="dot"></span>Journal de DMs</div>
         <div class="nav-item" id="nav-equipe" data-view="equipe"><span class="dot"></span>Équipe</div>
-        <div class="nav-item" id="nav-rewards" data-view="rewards"><span class="dot"></span>Récompenses</div>
         <div class="nav-item" id="nav-boxmail" data-view="boxmail"><span class="dot"></span>BoxMail<span class="nova-boxmail-badge" id="boxmail-nav-badge" style="display:none;"></span></div>
         <div class="nav-item" id="nav-resources" data-view="resources"><span class="dot"></span>Ressources</div>
         <div class="nav-item" data-view="classement" style="display:none;"><span class="dot"></span>Classement</div>
         <div class="nav-item admin-item" id="nav-admin" data-view="admin" style="display:none;"><span class="dot"></span>Gérer l'équipe</div>
+        <div class="nav-item chef-only" id="nav-administratif" data-view="administratif"><span class="dot"></span>Administratif</div>
       </div>
       <div class="glow-divider" style="margin:0 18px; width:auto;"></div>
       <div class="sidebar-profile">
@@ -375,49 +375,31 @@
           <div class="team-list" id="equipe-list"></div>
         </div>
 
-        <div class="view" id="view-rewards">
-          <div class="dash-toolbar">
-            <h1 class="metal-title">Récompenses</h1>
-          </div>
-          <div id="rewards-quests"></div>
-        </div>
-
         <div class="view" id="view-dms">
           <div class="dm-toolbar">
             <h1 class="metal-title">Journal de DMs</h1>
             <button class="btn primary btn-sm" id="btn-add-prospect">+ Ajouter un prospect</button>
           </div>
 
-          <div class="period-tabs" id="dms-mode-tabs">
-            <div class="period-tab active" data-mode="activity">Activité</div>
-            <div class="period-tab" data-mode="classement">Classement</div>
-          </div>
-
-          <div id="dms-activity-panel">
-            <div class="glass-card activity-panel">
-              <div class="activity-head">
-                <div class="panel-title">Activité de l'équipe</div>
-                <div class="period-tabs" id="activity-period-tabs">
-                  <div class="period-tab" data-period="day">Aujourd'hui</div>
-                  <div class="period-tab active" data-period="week">Cette semaine</div>
-                  <div class="period-tab" data-period="month">Ce mois</div>
-                  <div class="period-tab" data-period="all">Tout</div>
-                </div>
+          <div class="glass-card activity-panel">
+            <div class="activity-head">
+              <div class="panel-title">Activité de l'équipe</div>
+              <div class="period-tabs" id="activity-period-tabs">
+                <div class="period-tab" data-period="day">Aujourd'hui</div>
+                <div class="period-tab active" data-period="week">Cette semaine</div>
+                <div class="period-tab" data-period="month">Ce mois</div>
+                <div class="period-tab" data-period="all">Tout</div>
               </div>
-              <div id="activity-list"></div>
             </div>
-
-            <div class="filter-row">
-              <select id="dm-filter-setter"><option value="all">Tous les setters</option></select>
-              <select id="dm-filter-secteur"><option value="all">Tous les secteurs</option></select>
-            </div>
-
-            <div id="dm-journal"></div>
+            <div id="activity-list"></div>
           </div>
 
-          <div id="dms-classement-panel" style="display:none;">
-            <div id="classement-list"></div>
+          <div class="filter-row">
+            <select id="dm-filter-setter"><option value="all">Tous les setters</option></select>
+            <select id="dm-filter-secteur"><option value="all">Tous les secteurs</option></select>
           </div>
+
+          <div id="dm-journal"></div>
         </div>
         <div class="view" id="view-boxmail">
           <div class="dash-toolbar">
@@ -506,6 +488,42 @@
           <div class="team-list" id="team-list"></div>
         </div>
 
+        <div class="view" id="view-administratif">
+          <div class="dash-toolbar" id="admin-folders-panel">
+            <h1 class="metal-title">Administratif</h1>
+          </div>
+          <div class="settings-grid" id="admin-folders-panel-grid">
+            <div class="settings-tile" id="admin-folder-contracts">
+              <div class="settings-tile-icon">📄</div>
+              <div class="settings-tile-label">Contrats équipe</div>
+            </div>
+          </div>
+
+          <div id="admin-contracts-panel" style="display:none;">
+            <div class="view-head">
+              <div class="back-btn" id="btn-back-admin-folders">←</div>
+              <h1 class="metal-title" style="display:block;">Contrats équipe</h1>
+            </div>
+            <div class="dash-toolbar">
+              <span></span>
+              <button class="btn primary btn-sm" id="btn-generate-contract">+ Générer un contrat équipe</button>
+            </div>
+            <div id="contracts-list"></div>
+
+            <div id="contract-detail" style="display:none;">
+              <div class="back-btn" id="btn-back-contracts-list">←</div>
+              <div class="glass-card panel-section" style="margin-top:12px;">
+                <div id="contract-detail-meta" style="font-size:12px;opacity:.6;margin-bottom:10px;"></div>
+                <div id="contract-detail-content" style="white-space:pre-wrap;line-height:1.6;"></div>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+                <button class="btn primary btn-sm" id="btn-send-contract" style="display:none;">Envoyer dans la BoxMail</button>
+                <button class="btn btn-sm danger" id="btn-delete-contract">Supprimer ce contrat</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="view" id="view-settings">
           <div class="view-head">
             <div class="back-btn" id="btn-back-settings">←</div>
@@ -527,10 +545,6 @@
             <div class="settings-tile" id="settings-manage-roles" style="display:none;">
               <div class="settings-tile-icon">🏷</div>
               <div class="settings-tile-label">Rôles de l'équipe</div>
-            </div>
-            <div class="settings-tile" id="settings-badges" style="display:none;">
-              <div class="settings-tile-icon">🏆</div>
-              <div class="settings-tile-label">Badges</div>
             </div>
             <div class="settings-tile settings-tile-danger" id="settings-logout">
               <div class="settings-tile-icon">⏻</div>
@@ -584,14 +598,59 @@
   </div>
 </div>
 
-<!-- MODAL: mes badges -->
-<div class="modal-overlay" id="modal-badges">
-  <div class="glass-card modal-box" style="max-width:460px;max-height:80vh;overflow-y:auto;">
-    <h2>Mes badges</h2>
-    <p style="margin:0 0 12px;font-size:13px;opacity:.7;">Choisis le badge à afficher à côté de ton pseudo (les badges verrouillés se débloquent en avançant dans le journal de DMs).</p>
-    <div class="badges-picker-grid" id="badges-picker-grid"></div>
+<!-- MODAL: générer un contrat équipe -->
+<div class="modal-overlay" id="modal-generate-contract">
+  <div class="glass-card modal-box" style="max-width:480px;max-height:85vh;overflow-y:auto;">
+    <h2>Générer un contrat équipe</h2>
+    <div class="field">
+      <label class="field-label">Pseudo du setter</label>
+      <input type="text" id="contract-pseudo" list="contract-pseudo-suggestions" placeholder="Choisis un membre" autocomplete="off">
+      <datalist id="contract-pseudo-suggestions"></datalist>
+    </div>
+    <div class="field">
+      <label class="field-label">Poste occupé</label>
+      <input type="text" id="contract-position" placeholder="Ex : Setter closer">
+    </div>
+    <div class="field">
+      <label class="field-label">Pourcentage à la vente (%)</label>
+      <input type="number" id="contract-percentage" min="0" max="100" step="0.5" placeholder="Ex : 10">
+    </div>
+    <div class="field">
+      <label class="field-label">Durée du contrat</label>
+      <input type="text" id="contract-duration" list="contract-duration-suggestions" placeholder="Ex : 6 mois, 1 an, durée indéterminée">
+      <datalist id="contract-duration-suggestions">
+        <option value="1 mois"></option>
+        <option value="3 mois"></option>
+        <option value="6 mois"></option>
+        <option value="1 an"></option>
+        <option value="Durée indéterminée"></option>
+      </datalist>
+    </div>
+    <div class="field">
+      <label class="field-label">Date de début</label>
+      <input type="date" id="contract-start-date">
+    </div>
+    <div class="field">
+      <label class="field-label">Période d'essai <span style="text-transform:none;opacity:.7;">(optionnel)</span></label>
+      <input type="text" id="contract-trial" placeholder="Ex : 2 semaines">
+    </div>
+    <div class="field">
+      <label class="field-label">Préavis en cas de résiliation <span style="text-transform:none;opacity:.7;">(optionnel)</span></label>
+      <input type="text" id="contract-notice" placeholder="Ex : 15 jours">
+    </div>
+    <div class="field">
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;">
+        <input type="checkbox" id="contract-confidentiality"> Clause de confidentialité
+      </label>
+    </div>
+    <div class="field">
+      <label class="field-label">Notes complémentaires <span style="text-transform:none;opacity:.7;">(optionnel)</span></label>
+      <textarea id="contract-notes" rows="3" placeholder="Toute autre clause ou précision..."></textarea>
+    </div>
+    <div class="error-msg" id="contract-error"></div>
     <div class="modal-actions">
-      <button class="btn ghost" id="btn-close-badges">Fermer</button>
+      <button class="btn ghost" id="btn-cancel-contract">Annuler</button>
+      <button class="btn primary" id="btn-confirm-contract">Générer</button>
     </div>
   </div>
 </div>
@@ -715,13 +774,13 @@
 
 <div id="toast"></div>
 
-<script src="/badges-widget.js"></script>
 <script src="/chat-widget.js"></script>
 <script src="/boxmail-widget.js"></script>
 <script src="/dm-widget.js"></script>
 <script src="/home-widget.js"></script>
 <script src="/equipe-widget.js"></script>
 <script src="/results-widget.js"></script>
+<script src="/contracts-widget.js"></script>
 
 </body>
 </html>
