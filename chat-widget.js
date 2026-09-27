@@ -67,6 +67,7 @@
 
     var navAdmin = document.getElementById("nav-admin");
     var navResources = document.getElementById("nav-resources");
+    var navAgentIa = document.getElementById("nav-agent-ia");
     var resGrid = document.getElementById("res-grid");
     var resPinnedWrap = document.getElementById("res-pinned-wrap");
     var resSetterTourWrap = document.getElementById("res-setter-tour-wrap");
@@ -456,6 +457,15 @@
       navAdmin.addEventListener("click", function () {
         watchTeamList();
         setTimeout(decorateTeamList, 300);
+      });
+    }
+    if (navAgentIa) {
+      navAgentIa.addEventListener("click", function () {
+        document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
+        navAgentIa.classList.add("active");
+        document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+        var v = document.getElementById("view-agent-ia");
+        if (v) v.classList.add("active");
       });
     }
 
