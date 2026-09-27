@@ -207,6 +207,22 @@
         });
     }
 
+    function fetchCalendarNotifs() {
+      if (!me) return Promise.resolve([]);
+      return supabase.from("calendar_events").select("id,title,created_by,created_at")
+        .neq("created_by", me.id).order("created_at", { ascending: false }).limit(20)
+        .then(function (res) {
+          return ((res && res.data) || []).map(function (r) {
+            return {
+              created_at: r.created_at,
+              text: (profilesCache[r.created_by] || "Quelqu'un") + " a ajouté un point au calendrier : " + r.title,
+              view: "calendrier",
+              icon: { type: "avatar", src: avatarCache[r.created_by], initials: initials(profilesCache[r.created_by]) }
+            };
+          });
+        });
+    }
+
     function fetchReportNotifs() {
       if (!me || me.role !== "chef") return Promise.resolve([]);
       return supabase.from("issue_reports").select("id,content,created_at,sender_id")
@@ -224,8 +240,8 @@
     }
 
     function loadNotifications() {
-      return Promise.all([fetchBoxmailNotifs(), fetchProspectNotifs(), fetchReportNotifs()]).then(function (lists) {
-        var all = lists[0].concat(lists[1]).concat(lists[2]);
+      return Promise.all([fetchBoxmailNotifs(), fetchProspectNotifs(), fetchCalendarNotifs(), fetchReportNotifs()]).then(function (lists) {
+        var all = lists[0].concat(lists[1]).concat(lists[2]).concat(lists[3]);
         all.sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); });
         return all.slice(0, 30);
       });
@@ -746,6 +762,7 @@
 
           supabase.channel("nova-notifs-" + me.id)
             .on("postgres_changes", { event: "INSERT", schema: "public", table: "boxmails", filter: "recipient_id=eq." + me.id }, refreshBellBadge)
+            .on("postgres_changes", { event: "INSERT", schema: "public", table: "calendar_events" }, refreshBellBadge)
             .subscribe();
 
           if (me.role === "chef") {
