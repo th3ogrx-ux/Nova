@@ -6,10 +6,25 @@
 
   function loadSupabase(cb) {
     if (window.supabase && window.supabase.createClient) return cb();
+    if (window.__zenoaSupabaseLoadCbs) { window.__zenoaSupabaseLoadCbs.push(cb); return; }
+    window.__zenoaSupabaseLoadCbs = [cb];
     var s = document.createElement("script");
     s.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
-    s.onload = cb;
+    s.onload = function () {
+      var cbs = window.__zenoaSupabaseLoadCbs || [];
+      window.__zenoaSupabaseLoadCbs = null;
+      cbs.forEach(function (fn) { fn(); });
+    };
     document.head.appendChild(s);
+  }
+
+  function getSupabaseClient() {
+    if (!window.__zenoaSupabase) {
+      var existingKey = findExistingStorageKey();
+      var clientOpts = existingKey ? { auth: { storageKey: existingKey } } : {};
+      window.__zenoaSupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, clientOpts);
+    }
+    return window.__zenoaSupabase;
   }
 
   function findExistingStorageKey() {
@@ -33,9 +48,7 @@
     style.textContent = CSS;
     document.head.appendChild(style);
 
-    var existingKey = findExistingStorageKey();
-    var clientOpts = existingKey ? { auth: { storageKey: existingKey } } : {};
-    var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, clientOpts);
+    var supabase = getSupabaseClient();
 
     var me = null;
     var homeGrid = document.getElementById("home-grid");
