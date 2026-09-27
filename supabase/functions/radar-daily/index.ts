@@ -114,14 +114,19 @@ async function scrapeEmail(websiteUrl: string): Promise<string | null> {
   }
 }
 
-async function geocodeCity(city: string): Promise<string | null> {
+async function geocodeCity(city: string): Promise<{ placeId: string | null; error: string | null }> {
   const url = "https://api.geoapify.com/v1/geocode/search?text=" + encodeURIComponent(city) +
     "&type=city&lang=fr&limit=1&apiKey=" + GEOAPIFY_API_KEY;
   const res = await fetch(url);
-  if (!res.ok) return null;
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    return { placeId: null, error: "HTTP " + res.status + " " + body.slice(0, 300) };
+  }
   const data = await res.json();
   const feature = (data.features || [])[0];
-  return (feature && feature.properties && feature.properties.place_id) || null;
+  const placeId = (feature && feature.properties && feature.properties.place_id) || null;
+  if (!placeId) return { placeId: null, error: "pas de place_id dans la réponse : " + JSON.stringify(data).slice(0, 300) };
+  return { placeId, error: null };
 }
 
 Deno.serve(async (req) => {
@@ -156,6 +161,7 @@ Deno.serve(async (req) => {
     let placesFailures = 0;
     let zeroFeatureCount = 0;
     let lastPlacesError: string | null = null;
+    let lastGeocodeError: string | null = null;
 
     while (inserted.length < DAILY_TARGET && attempts < MAX_ATTEMPTS) {
       attempts++;
@@ -165,7 +171,9 @@ Deno.serve(async (req) => {
       const city = CITIES[Math.floor(Math.random() * CITIES.length)];
 
       if (!(city in geocodeCache)) {
-        geocodeCache[city] = await geocodeCity(city);
+        const g = await geocodeCity(city);
+        geocodeCache[city] = g.placeId;
+        if (g.error) lastGeocodeError = city + ": " + g.error;
       }
       const placeId = geocodeCache[city];
       if (!placeId) { geocodeFailures++; continue; }
@@ -218,7 +226,8 @@ Deno.serve(async (req) => {
       geocodeFailures: geocodeFailures,
       placesFailures: placesFailures,
       zeroFeatureCount: zeroFeatureCount,
-      lastPlacesError: lastPlacesError
+      lastPlacesError: lastPlacesError,
+      lastGeocodeError: lastGeocodeError
     }), {
       status: 200,
       headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
