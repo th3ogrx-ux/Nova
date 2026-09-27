@@ -138,6 +138,13 @@ Deno.serve(async (req) => {
     });
   }
 
+  if (!GEOAPIFY_API_KEY) {
+    return new Response(JSON.stringify({ error: "GEOAPIFY_API_KEY manquante côté secrets Supabase" }), {
+      status: 500,
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
+    });
+  }
+
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const geocodeCache: Record<string, string | null> = {};
@@ -145,6 +152,10 @@ Deno.serve(async (req) => {
     let attempts = 0;
     let tradeOrder = shuffle(TRADES);
     let tradeIndex = 0;
+    let geocodeFailures = 0;
+    let placesFailures = 0;
+    let zeroFeatureCount = 0;
+    let lastPlacesError: string | null = null;
 
     while (inserted.length < DAILY_TARGET && attempts < MAX_ATTEMPTS) {
       attempts++;
@@ -157,15 +168,19 @@ Deno.serve(async (req) => {
         geocodeCache[city] = await geocodeCity(city);
       }
       const placeId = geocodeCache[city];
-      if (!placeId) continue;
+      if (!placeId) { geocodeFailures++; continue; }
 
       const placesUrl = "https://api.geoapify.com/v2/places?categories=" + encodeURIComponent(trade.category) +
         "&filter=place:" + encodeURIComponent(placeId) + "&limit=25&lang=fr&apiKey=" + GEOAPIFY_API_KEY;
       const placesRes = await fetch(placesUrl);
-      if (!placesRes.ok) continue;
+      if (!placesRes.ok) {
+        placesFailures++;
+        lastPlacesError = await placesRes.text().catch(() => placesRes.status.toString());
+        continue;
+      }
       const placesData = await placesRes.json();
       const features = placesData.features || [];
-      if (!features.length) continue;
+      if (!features.length) { zeroFeatureCount++; continue; }
 
       const candidatePlaceIds = features.map((f: any) => f.properties && f.properties.place_id).filter(Boolean);
       const existingRes = await supabase.from("radar_leads").select("place_id").in("place_id", candidatePlaceIds);
@@ -197,7 +212,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ inserted: inserted.length, attempts: attempts }), {
+    return new Response(JSON.stringify({
+      inserted: inserted.length,
+      attempts: attempts,
+      geocodeFailures: geocodeFailures,
+      placesFailures: placesFailures,
+      zeroFeatureCount: zeroFeatureCount,
+      lastPlacesError: lastPlacesError
+    }), {
       status: 200,
       headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
     });
