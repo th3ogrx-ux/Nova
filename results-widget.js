@@ -21,7 +21,15 @@
   function getSupabaseClient() {
     if (!window.__zenoaSupabase) {
       var existingKey = findExistingStorageKey();
-      var clientOpts = existingKey ? { auth: { storageKey: existingKey } } : {};
+      var clientOpts = {
+        auth: {
+          flowType: "implicit",
+          autoRefreshToken: false,
+          persistSession: true,
+          detectSessionInUrl: false
+        }
+      };
+      if (existingKey) clientOpts.auth.storageKey = existingKey;
       window.__zenoaSupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, clientOpts);
     }
     return window.__zenoaSupabase;
