@@ -114,6 +114,14 @@ async function scrapeEmail(websiteUrl: string): Promise<string | null> {
   }
 }
 
+function parisDateStr(): string {
+  // "sent_date" doit correspondre à la date vue par l'équipe (heure de
+  // Paris), pas à la date par défaut de Postgres (UTC) — sinon un tirage
+  // qui tombe entre 22h et minuit UTC (déjà le lendemain à Paris) se
+  // range sous la mauvaise date et disparaît de "Prospects du jour".
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date());
+}
+
 async function geocodeCity(city: string): Promise<{ placeId: string | null; error: string | null }> {
   const url = "https://api.geoapify.com/v1/geocode/search?text=" + encodeURIComponent(city) +
     "&type=city&lang=fr&limit=1&apiKey=" + GEOAPIFY_API_KEY;
@@ -210,7 +218,8 @@ Deno.serve(async (req) => {
           website,
           email,
           category_label: trade.label,
-          city: city
+          city: city,
+          sent_date: parisDateStr()
         };
       }));
 
