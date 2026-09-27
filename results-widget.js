@@ -71,6 +71,9 @@
 
     var me = null;
     var modeTabs = document.getElementById("results-mode-tabs");
+    var navResultsMain = document.getElementById("nav-results");
+    var navResultsCaret = document.getElementById("nav-results-caret");
+    var navResultsSublist = document.getElementById("nav-results-sublist");
     var totalPanel = document.getElementById("results-total-panel");
     var oneshotPanel = document.getElementById("results-oneshot-panel");
     var recurringPanel = document.getElementById("results-recurring-panel");
@@ -276,6 +279,39 @@
       });
     }
 
+    function setupResultsSubmenu() {
+      if (!navResultsMain || !navResultsSublist) return;
+
+      navResultsMain.addEventListener("click", function () {
+        var isOpen = navResultsSublist.classList.toggle("open");
+        if (navResultsCaret) navResultsCaret.classList.toggle("open", isOpen);
+      });
+
+      function switchToResultsView() {
+        document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
+        navResultsMain.classList.add("active");
+        document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+        var v = document.getElementById("view-results");
+        if (v) v.classList.add("active");
+        var sidebar = document.getElementById("sidebar");
+        var sidebarOverlay = document.getElementById("sidebar-overlay");
+        if (sidebar) sidebar.classList.remove("open");
+        if (sidebarOverlay) sidebarOverlay.classList.remove("open");
+      }
+
+      navResultsSublist.querySelectorAll(".nav-subitem").forEach(function (item) {
+        item.addEventListener("click", function (e) {
+          e.stopPropagation();
+          switchToResultsView();
+          navResultsSublist.querySelectorAll(".nav-subitem").forEach(function (si) { si.classList.remove("active"); });
+          item.classList.add("active");
+          var mode = item.getAttribute("data-submode");
+          var tab = modeTabs.querySelector('.period-tab[data-mode="' + mode + '"]');
+          if (tab) tab.click();
+        });
+      });
+    }
+
     var booted = false;
     function boot(userId) {
       if (booted) return;
@@ -285,6 +321,7 @@
         me = res.data;
         if (me.role !== "chef") return;
         renderTotal();
+        setupResultsSubmenu();
 
         supabase.channel("nova-oneshot-sales")
           .on("postgres_changes", { event: "*", schema: "public", table: "one_shot_sales" }, function () {
