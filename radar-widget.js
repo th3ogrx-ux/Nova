@@ -3,7 +3,6 @@
 
   var SUPABASE_URL = "https://mfdqxzccmzumxiichdqw.supabase.co";
   var SUPABASE_KEY = "sb_publishable_Qes5VQ0OcaAEVh_kMjej6A_HJ6yxY3T";
-  var RADAR_FN_URL = SUPABASE_URL + "/functions/v1/radar-search-";
 
   function loadSupabase(cb) {
     if (window.supabase && window.supabase.createClient) return cb();
@@ -95,20 +94,10 @@
 
     var supabase = getSupabaseClient();
     var me = null;
-    var currentResults = [];
 
     var navAgentIa = document.getElementById("nav-agent-ia");
     var navAgentIaSublist = document.getElementById("nav-agent-ia-sublist");
     var navRadar = document.getElementById("nav-radar");
-    var radarForm = document.getElementById("radar-search-form");
-    var radarCity = document.getElementById("radar-city");
-    var radarCategory = document.getElementById("radar-category");
-    var radarSearchBtn = document.getElementById("radar-search-btn");
-    var radarError = document.getElementById("radar-error");
-    var radarResultsToolbar = document.getElementById("radar-results-toolbar");
-    var radarResultsCount = document.getElementById("radar-results-count");
-    var radarResults = document.getElementById("radar-results");
-    var radarExportBtn = document.getElementById("radar-export-csv");
     var radarDailyResults = document.getElementById("radar-daily-results");
     var radarDailyCount = document.getElementById("radar-daily-count");
     var radarDailyExportBtn = document.getElementById("radar-daily-export-csv");
@@ -153,12 +142,6 @@
       });
     }
 
-    function renderResults(results) {
-      radarResultsToolbar.style.display = results.length ? "flex" : "none";
-      if (results.length) radarResultsCount.textContent = results.length + " résultat" + (results.length > 1 ? "s" : "");
-      renderCards(radarResults, results, "Aucun résultat pour cette recherche.");
-    }
-
     function loadDailyLeads() {
       if (!radarDailyResults) return;
       supabase.from("radar_leads").select("*").eq("sent_date", todayStr())
@@ -168,62 +151,6 @@
           if (radarDailyExportBtn) radarDailyExportBtn.style.display = currentDailyResults.length ? "inline-flex" : "none";
           renderCards(radarDailyResults, currentDailyResults, "Aucun prospect généré aujourd'hui pour l'instant — repasse après midi.");
         });
-    }
-
-    if (radarForm) {
-      radarForm.addEventListener("submit", function (e) {
-        e.preventDefault();
-        radarError.textContent = "";
-        var city = (radarCity.value || "").trim();
-        var category = (radarCategory.value || "").trim();
-        if (!city || !category) { radarError.textContent = "Indique une ville et une catégorie."; return; }
-
-        radarSearchBtn.disabled = true;
-        radarSearchBtn.textContent = "Recherche...";
-        radarResultsToolbar.style.display = "none";
-        radarResults.innerHTML = "";
-
-        supabase.auth.getSession().then(function (res) {
-          var session = res && res.data && res.data.session;
-          var token = session && session.access_token;
-          if (!token) {
-            radarError.textContent = "Session expirée, reconnecte-toi.";
-            radarSearchBtn.disabled = false;
-            radarSearchBtn.textContent = "Rechercher";
-            return;
-          }
-          fetch(RADAR_FN_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + token,
-              "apikey": SUPABASE_KEY
-            },
-            body: JSON.stringify({ city: city, category: category })
-          }).then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
-            .then(function (out) {
-              radarSearchBtn.disabled = false;
-              radarSearchBtn.textContent = "Rechercher";
-              if (!out.ok || out.data.error) {
-                radarError.textContent = "Erreur : " + (out.data && out.data.error ? out.data.error : "recherche impossible");
-                return;
-              }
-              currentResults = out.data.results || [];
-              renderResults(currentResults);
-            }).catch(function () {
-              radarSearchBtn.disabled = false;
-              radarSearchBtn.textContent = "Rechercher";
-              radarError.textContent = "Erreur réseau, réessaie.";
-            });
-        });
-      });
-    }
-
-    if (radarExportBtn) {
-      radarExportBtn.addEventListener("click", function () {
-        if (!currentResults.length) return;
-        exportCsv(currentResults, "zenoa-radar-recherche.csv");
-      });
     }
 
     if (radarDailyExportBtn) {
