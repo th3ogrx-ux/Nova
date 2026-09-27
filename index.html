@@ -197,6 +197,52 @@
 
         <div class="view active" id="view-results">
 
+          <div class="dash-toolbar">
+            <h1 class="metal-title">Résultats</h1>
+            <div class="period-tabs" id="results-mode-tabs">
+              <div class="period-tab active" data-mode="total">Résultat total</div>
+              <div class="period-tab" data-mode="oneshot">Ventes one-shot</div>
+              <div class="period-tab" data-mode="recurring">Clients récurrents</div>
+            </div>
+          </div>
+
+          <!-- sous-onglet : résultat total -->
+          <div id="results-total-panel">
+            <div class="glass-card global-stat">
+              <div>
+                <div class="global-stat-label">Résultat total — agence</div>
+                <div class="global-stat-value" id="results-total-value">0 €</div>
+              </div>
+            </div>
+            <div class="glass-card chart-panel">
+              <div class="chart-svg-wrap" id="results-total-chart"></div>
+            </div>
+            <h3 style="margin:18px 0 10px;">Clients</h3>
+            <div id="results-total-clients"></div>
+          </div>
+
+          <!-- sous-onglet : ventes one-shot -->
+          <div id="results-oneshot-panel" style="display:none;">
+            <div class="glass-card global-stat">
+              <div>
+                <div class="global-stat-label">Total ventes one-shot</div>
+                <div class="global-stat-value" id="oneshot-total-value">0 €</div>
+              </div>
+            </div>
+            <div class="dash-toolbar">
+              <div class="period-tabs" id="oneshot-period-tabs">
+                <div class="period-tab" data-period="7">7 jours</div>
+                <div class="period-tab" data-period="30">30 jours</div>
+                <div class="period-tab active" data-period="365">1 an</div>
+              </div>
+              <button class="btn primary btn-sm" id="btn-add-oneshot">+ Ajouter client</button>
+            </div>
+            <div id="oneshot-list"></div>
+          </div>
+
+          <!-- sous-onglet : clients récurrents (existant) -->
+          <div id="results-recurring-panel" style="display:none;">
+
           <!-- dashboard global -->
           <div id="dash-global-panel">
             <div class="glass-card global-stat">
@@ -314,6 +360,8 @@
                 <span class="value" id="commission-result-value">0 €</span>
               </div>
             </div>
+
+          </div>
 
           </div>
 
@@ -613,6 +661,34 @@
   </div>
 </div>
 
+<!-- MODAL: ajouter une vente one-shot -->
+<div class="modal-overlay" id="modal-add-oneshot">
+  <div class="glass-card modal-box">
+    <h2>Nouvelle vente one-shot</h2>
+    <div class="field">
+      <label class="field-label">Nom du client</label>
+      <input type="text" id="oneshot-name" placeholder="Ex : Sarah">
+    </div>
+    <div class="field">
+      <label class="field-label">Ce que tu lui as apporté</label>
+      <input type="text" id="oneshot-description" placeholder="Ex : Audit + stratégie Ads">
+    </div>
+    <div class="field">
+      <label class="field-label">Montant (€)</label>
+      <input type="number" id="oneshot-amount" placeholder="0" min="0" step="0.01">
+    </div>
+    <div class="field">
+      <label class="field-label">Date</label>
+      <input type="date" id="oneshot-date">
+    </div>
+    <div class="error-msg" id="oneshot-error"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="btn-cancel-oneshot">Annuler</button>
+      <button class="btn primary" id="btn-confirm-oneshot">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: ajouter / éditer une saisie -->
 <div class="modal-overlay" id="modal-entry">
   <div class="glass-card modal-box">
@@ -688,6 +764,7 @@
 <script src="/dm-widget.js"></script>
 <script src="/home-widget.js"></script>
 <script src="/equipe-widget.js"></script>
+<script src="/results-widget.js"></script>
 
 </body>
 </html>
