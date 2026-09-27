@@ -286,6 +286,30 @@
         });
     }
 
+    function fetchRadarNotifs() {
+      if (!me) return Promise.resolve([]);
+      return supabase.from("radar_leads").select("sent_date,created_at")
+        .order("created_at", { ascending: false }).limit(100)
+        .then(function (res) {
+          var rows = (res && res.data) || [];
+          var byDate = {};
+          rows.forEach(function (r) {
+            if (!byDate[r.sent_date]) byDate[r.sent_date] = { count: 0, latest: r.created_at };
+            byDate[r.sent_date].count++;
+            if (new Date(r.created_at) > new Date(byDate[r.sent_date].latest)) byDate[r.sent_date].latest = r.created_at;
+          });
+          return Object.keys(byDate).slice(0, 5).map(function (date) {
+            var batch = byDate[date];
+            return {
+              created_at: batch.latest,
+              text: batch.count + " nouveau" + (batch.count > 1 ? "x" : "") + " prospect" + (batch.count > 1 ? "s" : "") + " disponible" + (batch.count > 1 ? "s" : "") + " dans Zenoa Radar",
+              view: "agent-ia",
+              icon: { type: "emoji", value: "📡" }
+            };
+          });
+        });
+    }
+
     function fetchReportNotifs() {
       if (!me || me.role !== "chef") return Promise.resolve([]);
       return supabase.from("issue_reports").select("id,content,created_at,sender_id")
@@ -303,8 +327,8 @@
     }
 
     function loadNotifications() {
-      return Promise.all([fetchBoxmailNotifs(), fetchProspectNotifs(), fetchCalendarNotifs(), fetchPartnershipNotifs(), fetchReportNotifs()]).then(function (lists) {
-        var all = lists[0].concat(lists[1]).concat(lists[2]).concat(lists[3]).concat(lists[4]);
+      return Promise.all([fetchBoxmailNotifs(), fetchProspectNotifs(), fetchCalendarNotifs(), fetchPartnershipNotifs(), fetchReportNotifs(), fetchRadarNotifs()]).then(function (lists) {
+        var all = lists[0].concat(lists[1]).concat(lists[2]).concat(lists[3]).concat(lists[4]).concat(lists[5]);
         all.sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); });
         return all.slice(0, 30);
       });

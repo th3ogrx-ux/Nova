@@ -65,6 +65,27 @@
     return s;
   }
 
+  function exportCsv(rows, filename) {
+    var header = [["Nom", "Adresse", "Téléphone", "Site web", "Email", "Métier", "Ville"]];
+    var body = rows.map(function (r) {
+      return [r.name || "", r.address || "", r.phone || "", r.website || "", r.email || "", r.category_label || "", r.city || ""];
+    });
+    var csv = header.concat(body).map(function (row) { return row.map(csvEscape).join(","); }).join("\n");
+    var blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    var url = URL.createObjectURL(blob);
+    var a = el("a", { href: url, download: filename });
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function pad2(n) { return n < 10 ? "0" + n : "" + n; }
+  function todayStr() {
+    var t = new Date();
+    return t.getFullYear() + "-" + pad2(t.getMonth() + 1) + "-" + pad2(t.getDate());
+  }
+
   var CSS = "\n.radar-card{display:flex;flex-direction:column;gap:6px;padding:16px 18px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);margin-bottom:10px;}\n.radar-card-name{font-weight:700;font-size:15.5px;}\n.radar-card-row{font-size:13px;color:var(--text-mid);display:flex;align-items:center;gap:7px;}\n.radar-card-row a{color:#E0B3FF;word-break:break-all;}\n.radar-empty{opacity:.55;font-size:14px;padding:20px 4px;}\n";
 
   function init() {
@@ -88,6 +109,10 @@
     var radarResultsCount = document.getElementById("radar-results-count");
     var radarResults = document.getElementById("radar-results");
     var radarExportBtn = document.getElementById("radar-export-csv");
+    var radarDailyResults = document.getElementById("radar-daily-results");
+    var radarDailyCount = document.getElementById("radar-daily-count");
+    var radarDailyExportBtn = document.getElementById("radar-daily-export-csv");
+    var currentDailyResults = [];
 
     if (navRadar) {
       navRadar.addEventListener("click", function () {
@@ -104,29 +129,45 @@
           window.ZenoaNav.closeSidebar();
           window.ZenoaNav.setLastView("radar");
         }
+        loadDailyLeads();
       });
     }
 
-    function renderResults(results) {
-      radarResults.innerHTML = "";
+    function renderCards(container, results, emptyText) {
+      container.innerHTML = "";
       if (!results.length) {
-        radarResults.appendChild(el("div", { class: "radar-empty" }, "Aucun résultat pour cette recherche."));
-        radarResultsToolbar.style.display = "none";
+        container.appendChild(el("div", { class: "radar-empty" }, emptyText));
         return;
       }
-      radarResultsToolbar.style.display = "flex";
-      radarResultsCount.textContent = results.length + " résultat" + (results.length > 1 ? "s" : "");
       results.forEach(function (r) {
         var card = el("div", { class: "radar-card" });
         card.appendChild(el("div", { class: "radar-card-name" }, escapeHtml(r.name)));
+        if (r.category_label) card.appendChild(el("div", { class: "radar-card-row" }, "🏷️ " + escapeHtml(r.category_label) + (r.city ? " — " + escapeHtml(r.city) : "")));
         if (r.address) card.appendChild(el("div", { class: "radar-card-row" }, "📍 " + escapeHtml(r.address)));
         if (r.phone) card.appendChild(el("div", { class: "radar-card-row" }, "📞 " + escapeHtml(r.phone)));
         if (r.website) {
           card.appendChild(el("div", { class: "radar-card-row" }, '🌐 <a href="' + escapeHtml(r.website) + '" target="_blank" rel="noopener">' + escapeHtml(r.website) + "</a>"));
         }
         card.appendChild(el("div", { class: "radar-card-row" }, "✉️ " + (r.email ? escapeHtml(r.email) : "Non trouvé")));
-        radarResults.appendChild(card);
+        container.appendChild(card);
       });
+    }
+
+    function renderResults(results) {
+      radarResultsToolbar.style.display = results.length ? "flex" : "none";
+      if (results.length) radarResultsCount.textContent = results.length + " résultat" + (results.length > 1 ? "s" : "");
+      renderCards(radarResults, results, "Aucun résultat pour cette recherche.");
+    }
+
+    function loadDailyLeads() {
+      if (!radarDailyResults) return;
+      supabase.from("radar_leads").select("*").eq("sent_date", todayStr())
+        .order("created_at", { ascending: false }).then(function (res) {
+          currentDailyResults = (res && res.data) || [];
+          radarDailyCount.textContent = currentDailyResults.length ? "(" + currentDailyResults.length + ")" : "";
+          if (radarDailyExportBtn) radarDailyExportBtn.style.display = currentDailyResults.length ? "inline-flex" : "none";
+          renderCards(radarDailyResults, currentDailyResults, "Aucun prospect généré aujourd'hui pour l'instant — repasse après midi.");
+        });
     }
 
     if (radarForm) {
@@ -181,18 +222,14 @@
     if (radarExportBtn) {
       radarExportBtn.addEventListener("click", function () {
         if (!currentResults.length) return;
-        var rows = [["Nom", "Adresse", "Téléphone", "Site web", "Email"]];
-        currentResults.forEach(function (r) {
-          rows.push([r.name || "", r.address || "", r.phone || "", r.website || "", r.email || ""]);
-        });
-        var csv = rows.map(function (row) { return row.map(csvEscape).join(","); }).join("\n");
-        var blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-        var url = URL.createObjectURL(blob);
-        var a = el("a", { href: url, download: "zenoa-radar-export.csv" });
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        exportCsv(currentResults, "zenoa-radar-recherche.csv");
+      });
+    }
+
+    if (radarDailyExportBtn) {
+      radarDailyExportBtn.addEventListener("click", function () {
+        if (!currentDailyResults.length) return;
+        exportCsv(currentDailyResults, "zenoa-radar-du-jour-" + todayStr() + ".csv");
       });
     }
 
@@ -203,6 +240,13 @@
       supabase.from("profiles").select("id,pseudo").eq("id", userId).single().then(function (res) {
         if (res && res.data) me = res.data;
       });
+      loadDailyLeads();
+      supabase.channel("nova-radar-leads")
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "radar_leads" }, function () {
+          var radarView = document.getElementById("view-radar");
+          if (radarView && radarView.classList.contains("active")) loadDailyLeads();
+        })
+        .subscribe();
     }
 
     supabase.auth.getSession().then(function (res) {

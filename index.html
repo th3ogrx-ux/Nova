@@ -506,6 +506,15 @@
             <h1 class="metal-title">Zenoa Radar</h1>
           </div>
 
+          <div class="dash-toolbar">
+            <h3 style="margin:0;font-size:15px;font-weight:600;">Prospects du jour <span id="radar-daily-count" style="font-weight:400;color:var(--text-dim);font-size:13px;"></span></h3>
+            <button class="btn btn-sm" id="radar-daily-export-csv" style="display:none;">Exporter en CSV</button>
+          </div>
+          <div id="radar-daily-results"></div>
+
+          <div class="glow-divider" style="margin:26px 0;"></div>
+
+          <h3 style="margin:0 0 12px;font-size:14px;font-weight:500;color:var(--text-mid);">Recherche manuelle</h3>
           <div class="glass-card panel-section" style="margin-bottom:20px;">
             <form id="radar-search-form" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
               <div class="field" style="flex:1;min-width:160px;">
