@@ -139,10 +139,11 @@
         var pseudo = idToPseudo[r.setter_id];
         if (!pseudo) return;
         var key = pseudo.trim().toLowerCase();
-        if (!counts[key]) counts[key] = { sent: 0, replied: 0, sold: 0, not_interested: 0, total: 0 };
-        var bucket = (r.status === "replied" || r.status === "sold" || r.status === "not_interested") ? r.status : "sent";
-        counts[key][bucket]++;
-        counts[key].total++;
+        if (!counts[key]) counts[key] = { total: 0, replied: 0, sold: 0, not_interested: 0 };
+        counts[key].total++; // chaque prospect compte toujours comme un DM envoyé
+        if (r.status === "replied") counts[key].replied++;
+        else if (r.status === "sold") counts[key].sold++;
+        else if (r.status === "not_interested") counts[key].not_interested++;
       });
       funnelCounts = counts;
     }
@@ -151,11 +152,12 @@
       var c = funnelCounts[(pseudo || "").trim().toLowerCase()];
       var wrap = el("div", { class: "nova-funnel-bar" });
       if (!c || !c.total) return wrap;
-      wrap.setAttribute("title", "DM envoyé : " + c.sent + " · Réponse reçue : " + c.replied + " · Vendu : " + c.sold + " · Pas intéressé : " + c.not_interested);
-      ["sent", "replied", "sold", "not_interested"].forEach(function (key) {
-        if (c[key] > 0) {
-          var pct = (c[key] / c.total) * 100;
-          wrap.appendChild(el("div", { class: "nova-funnel-seg " + key, style: "width:" + pct + "%;" }));
+      var remainder = c.total - c.replied - c.sold - c.not_interested;
+      wrap.setAttribute("title", "DM envoyé : " + c.total + " · Réponse reçue : " + c.replied + " · Vendu : " + c.sold + " · Pas intéressé : " + c.not_interested);
+      [["sent", remainder], ["replied", c.replied], ["sold", c.sold], ["not_interested", c.not_interested]].forEach(function (pair) {
+        if (pair[1] > 0) {
+          var pct = (pair[1] / c.total) * 100;
+          wrap.appendChild(el("div", { class: "nova-funnel-seg " + pair[0], style: "width:" + pct + "%;" }));
         }
       });
       return wrap;
@@ -214,8 +216,8 @@
 
           var countEl = row.querySelector(".activity-row-count");
           if (countEl) {
-            var c = funnelCounts[nameEl.textContent.trim().toLowerCase()] || { sent: 0, replied: 0, sold: 0 };
-            countEl.textContent = c.sent + "/" + c.replied + "/" + c.sold;
+            var c = funnelCounts[nameEl.textContent.trim().toLowerCase()] || { total: 0, replied: 0, sold: 0 };
+            countEl.textContent = c.total + "/" + c.replied + "/" + c.sold;
           }
         });
       });

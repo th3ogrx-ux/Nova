@@ -26,7 +26,7 @@
     return (n || 0).toLocaleString("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
   }
 
-  var CSS = "\n.home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;}\n.home-tile{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:18px;border-radius:18px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);cursor:pointer;}\n.home-tile:hover{background:rgba(255,255,255,.09);}\n.home-tile-label{font-size:14px;opacity:.7;font-weight:600;}\n.home-tile-value{font-size:32px;font-weight:700;background:linear-gradient(180deg,var(--metal-2) 0%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}\n";
+  var CSS = "\n.home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;}\n.home-tile{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:18px;border-radius:18px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);cursor:pointer;}\n.home-tile:hover{background:rgba(255,255,255,.09);}\n.home-tile-label{font-size:14px;opacity:.7;font-weight:600;}\n.home-tile-value{font-size:32px;font-weight:700;background:linear-gradient(180deg,var(--metal-2) 0%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}\n.home-tile-stack{gap:6px;}\n.home-tile-stat-row{display:flex;align-items:baseline;gap:8px;}\n.home-tile-stat-row span{font-size:22px;font-weight:700;background:linear-gradient(180deg,var(--metal-2) 0%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;min-width:28px;text-align:right;}\n.home-tile-stat-row small{font-size:12px;opacity:.65;}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -40,7 +40,9 @@
     var me = null;
     var homeGrid = document.getElementById("home-grid");
     var caValueEl = document.getElementById("home-ca-value");
-    var activityValueEl = document.getElementById("home-activity-value");
+    var activityDmEl = document.getElementById("home-activity-dm");
+    var activityRepliedEl = document.getElementById("home-activity-replied");
+    var activitySoldEl = document.getElementById("home-activity-sold");
     var boxmailValueEl = document.getElementById("home-boxmail-value");
 
     if (!homeGrid) return;
@@ -66,11 +68,17 @@
     }
 
     function loadActivity() {
-      if (!activityValueEl) return;
-      var since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
-      supabase.from("prospects").select("id", { count: "exact", head: true }).gte("created_at", since).then(function (res) {
-        var count = (res && res.count) || 0;
-        activityValueEl.textContent = count + (count > 1 ? " DMs" : " DM") ;
+      if (!activityDmEl) return;
+      supabase.from("prospects").select("status").then(function (res) {
+        var rows = (res && res.data) || [];
+        var replied = 0, sold = 0;
+        rows.forEach(function (r) {
+          if (r.status === "replied") replied++;
+          else if (r.status === "sold") sold++;
+        });
+        activityDmEl.textContent = rows.length;
+        activityRepliedEl.textContent = replied;
+        activitySoldEl.textContent = sold;
       });
     }
 

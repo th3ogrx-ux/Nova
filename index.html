@@ -180,9 +180,11 @@
               <div class="home-tile-label">CA total</div>
               <div class="home-tile-value" id="home-ca-value">—</div>
             </div>
-            <div class="home-tile" id="home-tile-activity" data-view="dms">
+            <div class="home-tile home-tile-stack" id="home-tile-activity" data-view="dms">
               <div class="home-tile-label">Activité de l'équipe</div>
-              <div class="home-tile-value" id="home-activity-value">—</div>
+              <div class="home-tile-stat-row"><span id="home-activity-dm">—</span><small>DM envoyés</small></div>
+              <div class="home-tile-stat-row"><span id="home-activity-replied">—</span><small>Réponses reçues</small></div>
+              <div class="home-tile-stat-row"><span id="home-activity-sold">—</span><small>Ventes</small></div>
             </div>
             <div class="home-tile" id="home-tile-boxmail" data-view="boxmail">
               <div class="home-tile-label">Ma boîte de réception</div>
@@ -413,7 +415,12 @@
 
           <div id="boxmail-send-panel" style="display:none;">
             <div class="glass-card panel-section">
-              <div class="field">
+              <div class="field" id="boxmail-broadcast-field" style="display:none;">
+                <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;">
+                  <input type="checkbox" id="boxmail-broadcast"> Envoyer à toute l'équipe
+                </label>
+              </div>
+              <div class="field" id="boxmail-to-field">
                 <label class="field-label">Destinataire (pseudo)</label>
                 <input type="text" id="boxmail-to" list="boxmail-pseudo-suggestions" placeholder="Pseudo du destinataire" autocomplete="off">
                 <datalist id="boxmail-pseudo-suggestions"></datalist>

@@ -73,6 +73,9 @@
     var sendBtn = document.getElementById("boxmail-send-btn");
     var sendError = document.getElementById("boxmail-send-error");
     var sendSuccess = document.getElementById("boxmail-send-success");
+    var broadcastField = document.getElementById("boxmail-broadcast-field");
+    var broadcastCheck = document.getElementById("boxmail-broadcast");
+    var toField = document.getElementById("boxmail-to-field");
 
     if (!navBoxmail || !inboxList) return;
 
@@ -117,6 +120,12 @@
       showList();
       renderInbox();
     });
+
+    if (broadcastCheck && toField) {
+      broadcastCheck.addEventListener("change", function () {
+        toField.style.display = broadcastCheck.checked ? "none" : "block";
+      });
+    }
 
     function refreshBadge() {
       if (!me) return;
@@ -201,10 +210,25 @@
     sendBtn.addEventListener("click", function () {
       sendError.textContent = "";
       sendSuccess.textContent = "";
-      var pseudo = (toInput.value || "").trim();
       var content = (contentInput.value || "").trim();
-      if (!pseudo) { sendError.textContent = "Indique le pseudo du destinataire."; return; }
       if (!content) { sendError.textContent = "Écris un message."; return; }
+
+      if (broadcastCheck && broadcastCheck.checked) {
+        var recipients = Object.keys(pseudoIndex).map(function (k) { return pseudoIndex[k]; });
+        if (!recipients.length) { sendError.textContent = "Aucun membre à qui envoyer."; return; }
+        var rows = recipients.map(function (p) { return { sender_id: me.id, recipient_id: p.id, content: content }; });
+        sendBtn.disabled = true;
+        supabase.from("boxmails").insert(rows).then(function (res) {
+          sendBtn.disabled = false;
+          if (res && res.error) { sendError.textContent = "Erreur : " + res.error.message; return; }
+          contentInput.value = "";
+          sendSuccess.textContent = "Mail envoyé à toute l'équipe (" + recipients.length + " membres).";
+        });
+        return;
+      }
+
+      var pseudo = (toInput.value || "").trim();
+      if (!pseudo) { sendError.textContent = "Indique le pseudo du destinataire."; return; }
       var target = pseudoIndex[pseudo.toLowerCase()];
       if (!target) { sendError.textContent = "Aucun membre avec ce pseudo."; return; }
       if (target.id === me.id) { sendError.textContent = "Tu ne peux pas t'envoyer un mail à toi-même."; return; }
@@ -232,10 +256,11 @@
     }
 
     function boot(userId) {
-      supabase.from("profiles").select("id,pseudo").eq("id", userId).single().then(function (res) {
+      supabase.from("profiles").select("id,pseudo,role").eq("id", userId).single().then(function (res) {
         if (!res || !res.data) return;
         me = res.data;
         profilesCache[me.id] = me.pseudo;
+        if (broadcastField) broadcastField.style.display = me.role === "chef" ? "block" : "none";
 
         loadDirectory().then(function () {
           refreshBadge();
