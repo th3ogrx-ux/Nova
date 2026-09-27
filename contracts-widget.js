@@ -64,6 +64,10 @@
     return parts[2] + "/" + parts[1] + "/" + parts[0];
   }
 
+  function initials(name) {
+    return (name || "?").trim().slice(0, 2).toUpperCase();
+  }
+
   window.ZenoaContracts = window.ZenoaContracts || {};
   var STATUS_LABELS = { draft: "Brouillon", sent: "Envoyé", signed: "Signé", returned: "Retourné" };
   var STATUS_COLORS = { draft: "#8a84a0", sent: "#bf5af2", signed: "#d4af37", returned: "#4FBF7A" };
@@ -130,6 +134,11 @@
     var btnSendContract = document.getElementById("btn-send-contract");
     var btnDeleteContract = document.getElementById("btn-delete-contract");
 
+    var adminFolderCodes = document.getElementById("admin-folder-codes");
+    var adminCodesPanel = document.getElementById("admin-codes-panel");
+    var btnBackAdminFoldersCodes = document.getElementById("btn-back-admin-folders-codes");
+    var codesListEl = document.getElementById("codes-list");
+
     var modalGenerateContract = document.getElementById("modal-generate-contract");
     var contractPseudo = document.getElementById("contract-pseudo");
     var contractPseudoSuggestions = document.getElementById("contract-pseudo-suggestions");
@@ -161,12 +170,14 @@
 
     function showFolders() {
       adminContractsPanel.style.display = "none";
+      if (adminCodesPanel) adminCodesPanel.style.display = "none";
       if (adminFoldersPanel) adminFoldersPanel.style.display = "flex";
       if (adminFoldersPanelGrid) adminFoldersPanelGrid.style.display = "grid";
     }
     function showContractsPanel() {
       if (adminFoldersPanel) adminFoldersPanel.style.display = "none";
       if (adminFoldersPanelGrid) adminFoldersPanelGrid.style.display = "none";
+      if (adminCodesPanel) adminCodesPanel.style.display = "none";
       adminContractsPanel.style.display = "block";
       showContractsList();
       renderContractsList();
@@ -178,6 +189,13 @@
     function showContractDetail() {
       contractsListEl.style.display = "none";
       contractDetailEl.style.display = "block";
+    }
+    function showCodesPanel() {
+      if (adminFoldersPanel) adminFoldersPanel.style.display = "none";
+      if (adminFoldersPanelGrid) adminFoldersPanelGrid.style.display = "none";
+      adminContractsPanel.style.display = "none";
+      if (adminCodesPanel) adminCodesPanel.style.display = "block";
+      renderCodesList();
     }
 
     navAdministratif.addEventListener("click", function () {
@@ -192,6 +210,31 @@
         showContractsList();
         renderContractsList();
       });
+    }
+    if (adminFolderCodes) adminFolderCodes.addEventListener("click", showCodesPanel);
+    if (btnBackAdminFoldersCodes) btnBackAdminFoldersCodes.addEventListener("click", showFolders);
+
+    function renderCodesList() {
+      if (!codesListEl) return;
+      codesListEl.innerHTML = "";
+      supabase.from("profiles").select("id,pseudo,photo_url,code").eq("is_active", true).order("pseudo")
+        .then(function (res) {
+          if (res && res.error) { codesListEl.appendChild(el("div", { class: "empty-note" }, "Erreur : " + res.error.message)); return; }
+          var rows = (res && res.data) || [];
+          if (!rows.length) { codesListEl.appendChild(el("div", { class: "empty-note" }, "Aucun membre actif.")); return; }
+          rows.forEach(function (p) {
+            var row = el("div", { class: "team-row glass-card" });
+            var avatar = el("div", { class: "avatar", style: "cursor:default;" });
+            if (p.photo_url) avatar.appendChild(el("img", { src: p.photo_url }));
+            else avatar.appendChild(el("span", {}, initials(p.pseudo)));
+            row.appendChild(avatar);
+            var info = el("div", { class: "team-row-info" });
+            info.appendChild(el("div", { class: "team-row-name" }, p.pseudo || "Compte incomplet"));
+            info.appendChild(el("div", { class: "team-row-meta" }, p.code ? ("Code : " + p.code) : "Aucun code enregistré"));
+            row.appendChild(info);
+            codesListEl.appendChild(row);
+          });
+        });
     }
 
     function loadSetters() {
