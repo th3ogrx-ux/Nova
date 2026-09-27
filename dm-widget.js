@@ -38,7 +38,7 @@
     not_interested: "Pas intéressé"
   };
 
-  var CSS = "\n.status-tag-dm.st-interested{color:#c4b5fd;border-color:#a78bfa59;background:#a78bfa14;}\n.status-tag-dm.st-sold{color:#f0b866;border-color:#d4841a59;background:#d4841a14;}\n.nova-funnel-bar{display:flex;align-items:stretch;flex:1;min-width:40px;height:7px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.08);margin-left:8px;}\n.nova-funnel-seg{height:100%;}\n.nova-funnel-seg.sent{background:var(--cool-1);}\n.nova-funnel-seg.replied{background:var(--ok);}\n.nova-funnel-seg.sold{background:var(--warm-1);}\n.nova-funnel-seg.not_interested{background:var(--danger);}\n.nova-funnel-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(184,188,194,.12);font-size:12px;opacity:.75;}\n.nova-funnel-legend-item{display:flex;align-items:center;gap:6px;}\n.nova-funnel-legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0;}\n.nova-funnel-legend-dot.sent{background:var(--cool-1);}\n.nova-funnel-legend-dot.replied{background:var(--ok);}\n.nova-funnel-legend-dot.sold{background:var(--warm-1);}\n.nova-funnel-legend-dot.not_interested{background:var(--danger);}\n";
+  var CSS = "\n.status-tag-dm.st-interested{color:#c4b5fd;border-color:#a78bfa59;background:#a78bfa14;}\n.status-tag-dm.st-sold{color:#f0b866;border-color:#d4841a59;background:#d4841a14;}\n.nova-funnel-bar{display:flex;align-items:stretch;flex:1;min-width:40px;height:7px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.08);margin-left:8px;}\n.nova-funnel-seg{height:100%;}\n.nova-funnel-seg.sent{background:var(--cool-1);}\n.nova-funnel-seg.replied{background:var(--ok);}\n.nova-funnel-seg.sold{background:var(--warm-1);}\n.nova-funnel-seg.not_interested{background:var(--danger);}\n.nova-funnel-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(184,188,194,.12);font-size:12px;opacity:.75;}\n.nova-funnel-legend-item{display:flex;align-items:center;gap:6px;}\n.nova-funnel-legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0;}\n.nova-funnel-legend-dot.sent{background:var(--cool-1);}\n.nova-funnel-legend-dot.replied{background:var(--ok);}\n.nova-funnel-legend-dot.sold{background:var(--warm-1);}\n.nova-funnel-legend-dot.not_interested{background:var(--danger);}\n.activity-row-count{width:auto;min-width:56px;white-space:nowrap;font-size:12px;}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -160,6 +160,8 @@
       if (!activityListEl || !activityListEl.parentElement) return;
       if (document.getElementById("nova-funnel-legend")) return;
       var legend = el("div", { id: "nova-funnel-legend", class: "nova-funnel-legend" });
+      var formatNote = el("div", { style: "width:100%;opacity:.6;" }, "Chiffres : DM envoyé / Réponse reçue / Vendu");
+      legend.appendChild(formatNote);
       [
         { key: "sent", label: "DM envoyé" },
         { key: "replied", label: "Réponse reçue" },
@@ -185,6 +187,15 @@
           var old = row.querySelector(".nova-funnel-bar");
           if (old) old.remove();
           nameEl.insertAdjacentElement("afterend", buildFunnelBar(nameEl.textContent));
+
+          var track = row.querySelector(".activity-row-track");
+          if (track) track.style.display = "none";
+
+          var countEl = row.querySelector(".activity-row-count");
+          if (countEl) {
+            var c = funnelCounts[nameEl.textContent.trim().toLowerCase()] || { sent: 0, replied: 0, sold: 0 };
+            countEl.textContent = c.sent + "/" + c.replied + "/" + c.sold;
+          }
         });
       });
     }
