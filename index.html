@@ -696,6 +696,12 @@
   </div>
 </div>
 
+<!-- Élément conservé uniquement pour éviter un crash JS : le bundle
+     compilé attache un addEventListener dessus au chargement, sans
+     vérifier qu'il existe, même si la vue "Analyse / Stats" a été
+     retirée. -->
+<button id="btn-back-to-stats" style="display:none;" aria-hidden="true" tabindex="-1"></button>
+
 <div id="toast"></div>
 
 <script src="/badges-widget.js"></script>

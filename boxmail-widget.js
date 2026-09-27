@@ -276,7 +276,10 @@
       });
     }
 
+    var booted = false;
     function boot(userId) {
+      if (booted) return;
+      booted = true;
       supabase.from("profiles").select("id,pseudo,role").eq("id", userId).single().then(function (res) {
         if (!res || !res.data) return;
         me = res.data;
@@ -304,7 +307,7 @@
       if (session && session.user) boot(session.user.id);
     });
     supabase.auth.onAuthStateChange(function (event, session) {
-      if (session && session.user && !me) boot(session.user.id);
+      if (session && session.user) boot(session.user.id);
     });
   }
 
