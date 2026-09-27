@@ -280,37 +280,15 @@
     }
 
     function setupResultsSubmenu() {
-      if (!navResultsMain || !navResultsSublist) return;
-
-      function restoreView(viewName) {
-        document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
-        var navEl = document.querySelector('.nav-item[data-view="' + viewName + '"]');
-        if (navEl) navEl.classList.add("active");
-        document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
-        var v = document.getElementById("view-" + viewName);
-        if (v) v.classList.add("active");
-      }
-
-      var initialActiveNav = document.querySelector(".nav-item.active[data-view]");
-      var lastView = initialActiveNav ? initialActiveNav.getAttribute("data-view") : "accueil";
-
-      document.querySelectorAll(".nav-item[data-view]").forEach(function (navEl) {
-        if (navEl === navResultsMain) return;
-        navEl.addEventListener("click", function () {
-          lastView = navEl.getAttribute("data-view");
-        });
-      });
+      if (!navResultsMain || !navResultsSublist || !window.ZenoaNav) return;
 
       navResultsMain.addEventListener("click", function (e) {
         e.stopPropagation();
         // Le bundle compilé ouvre automatiquement la page Résultats et ferme
         // le menu latéral sur ce clic ; on annule les deux pour ne faire QUE
         // déplier le sous-menu, la navigation réelle se fait via un sous-élément.
-        restoreView(lastView);
-        var sidebar = document.getElementById("sidebar");
-        var sidebarOverlay = document.getElementById("sidebar-overlay");
-        if (sidebar) sidebar.classList.add("open");
-        if (sidebarOverlay) sidebarOverlay.classList.add("open");
+        window.ZenoaNav.restoreView(window.ZenoaNav.getLastView());
+        window.ZenoaNav.reopenSidebar();
         var isOpen = navResultsSublist.classList.toggle("open");
         if (navResultsCaret) navResultsCaret.classList.toggle("open", isOpen);
       });
@@ -321,10 +299,8 @@
         document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
         var v = document.getElementById("view-results");
         if (v) v.classList.add("active");
-        var sidebar = document.getElementById("sidebar");
-        var sidebarOverlay = document.getElementById("sidebar-overlay");
-        if (sidebar) sidebar.classList.remove("open");
-        if (sidebarOverlay) sidebarOverlay.classList.remove("open");
+        window.ZenoaNav.closeSidebar();
+        window.ZenoaNav.setLastView("results");
       }
 
       navResultsSublist.querySelectorAll(".nav-subitem").forEach(function (item) {

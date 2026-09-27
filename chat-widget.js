@@ -66,6 +66,10 @@
     var avatarCache = {};
 
     var navAdmin = document.getElementById("nav-admin");
+    var navGestionSublist = document.getElementById("nav-gestion-sublist");
+    var navGestionCaret = document.getElementById("nav-gestion-caret");
+    var navGestionEquipe = document.getElementById("nav-gestion-equipe");
+    var navAdministratifSub = document.getElementById("nav-administratif");
     var navResources = document.getElementById("nav-resources");
     var navAgentIa = document.getElementById("nav-agent-ia");
     var resGrid = document.getElementById("res-grid");
@@ -111,6 +115,43 @@
       var v = document.getElementById("view-" + viewName);
       if (v) v.classList.add("active");
     }
+
+    // ---------- Navigation partagée pour les menus "accordéon" du sidebar
+    // (Résultats, Gestion...) : un clic sur le parent ne doit qu'ouvrir/
+    // fermer son sous-menu, sans faire naviguer le bundle vers sa vue par
+    // défaut. On garde ici la dernière vue réellement visitée pour pouvoir
+    // annuler la navigation automatique du bundle sur ces éléments.
+    (function () {
+      var lastRealView = (function () {
+        var activeNav = document.querySelector(".nav-item.active[data-view]");
+        return activeNav ? activeNav.getAttribute("data-view") : "accueil";
+      })();
+
+      document.querySelectorAll(".nav-item[data-view]").forEach(function (navEl) {
+        navEl.addEventListener("click", function () {
+          if (navEl.hasAttribute("data-accordion")) return;
+          lastRealView = navEl.getAttribute("data-view");
+        });
+      });
+
+      window.ZenoaNav = {
+        getLastView: function () { return lastRealView; },
+        setLastView: function (v) { lastRealView = v; },
+        restoreView: switchToView,
+        reopenSidebar: function () {
+          var sidebar = document.getElementById("sidebar");
+          var sidebarOverlay = document.getElementById("sidebar-overlay");
+          if (sidebar) sidebar.classList.add("open");
+          if (sidebarOverlay) sidebarOverlay.classList.add("open");
+        },
+        closeSidebar: function () {
+          var sidebar = document.getElementById("sidebar");
+          var sidebarOverlay = document.getElementById("sidebar-overlay");
+          if (sidebar) sidebar.classList.remove("open");
+          if (sidebarOverlay) sidebarOverlay.classList.remove("open");
+        }
+      };
+    })();
 
     if (settingsBtn) {
       settingsBtn.addEventListener("click", function () {
@@ -453,10 +494,46 @@
         backToGrid();
       });
     }
-    if (navAdmin) {
-      navAdmin.addEventListener("click", function () {
+    function markGestionSubActive(el) {
+      if (navGestionSublist) {
+        navGestionSublist.querySelectorAll(".nav-subitem").forEach(function (si) { si.classList.remove("active"); });
+      }
+      if (el) el.classList.add("active");
+    }
+
+    if (navAdmin && navGestionSublist) {
+      navAdmin.addEventListener("click", function (e) {
+        e.stopPropagation();
+        // Le bundle ouvre automatiquement "Gérer l'équipe" et ferme le menu
+        // latéral sur ce clic ; on annule les deux pour ne faire QUE déplier
+        // le sous-menu "Gestion" — la vraie navigation passe par un sous-élément.
+        window.ZenoaNav.restoreView(window.ZenoaNav.getLastView());
+        window.ZenoaNav.reopenSidebar();
+        var isOpen = navGestionSublist.classList.toggle("open");
+        if (navGestionCaret) navGestionCaret.classList.toggle("open", isOpen);
+      });
+    }
+    if (navGestionEquipe) {
+      navGestionEquipe.addEventListener("click", function () {
+        document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
+        if (navAdmin) navAdmin.classList.add("active");
+        document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+        var v = document.getElementById("view-admin");
+        if (v) v.classList.add("active");
+        markGestionSubActive(navGestionEquipe);
+        window.ZenoaNav.closeSidebar();
+        window.ZenoaNav.setLastView("admin");
+        stopPinnedVideo();
         watchTeamList();
         setTimeout(decorateTeamList, 300);
+      });
+    }
+    if (navAdministratifSub) {
+      navAdministratifSub.addEventListener("click", function () {
+        markGestionSubActive(navAdministratifSub);
+        window.ZenoaNav.closeSidebar();
+        window.ZenoaNav.setLastView("administratif");
+        stopPinnedVideo();
       });
     }
     if (navAgentIa) {
