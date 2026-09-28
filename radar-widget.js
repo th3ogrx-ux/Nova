@@ -85,7 +85,7 @@
     return t.getFullYear() + "-" + pad2(t.getMonth() + 1) + "-" + pad2(t.getDate());
   }
 
-  var CSS = "\n.radar-card{display:flex;flex-direction:column;gap:6px;padding:16px 18px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);margin-bottom:10px;}\n.radar-card-name{font-weight:700;font-size:15.5px;}\n.radar-card-row{font-size:13px;color:var(--text-mid);display:flex;align-items:center;gap:7px;}\n.radar-card-row a{color:#E0B3FF;word-break:break-all;}\n.radar-empty{opacity:.55;font-size:14px;padding:20px 4px;}\n";
+  var CSS = "\n.radar-card{display:flex;flex-direction:column;gap:6px;padding:16px 18px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);margin-bottom:10px;transition:opacity .2s ease,border-color .2s ease;}\n.radar-card.done{opacity:.5;border-color:rgba(79,191,122,.5);}\n.radar-card-name{font-weight:700;font-size:15.5px;}\n.radar-card-row{font-size:13px;color:var(--text-mid);display:flex;align-items:center;gap:7px;}\n.radar-card-row a{color:#E0B3FF;word-break:break-all;}\n.radar-card-check{cursor:pointer;margin-top:4px;padding-top:10px;border-top:1px solid rgba(199,194,219,.12);color:var(--metal-2);font-weight:600;user-select:none;}\n.radar-card-check input{width:16px;height:16px;accent-color:var(--warm-1);cursor:pointer;}\n.radar-empty{opacity:.55;font-size:14px;padding:20px 4px;}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -122,6 +122,10 @@
       });
     }
 
+    function toggleContacted(id, val) {
+      supabase.from("radar_leads").update({ contacted: val }).eq("id", id).then(function () {});
+    }
+
     function renderCards(container, results, emptyText) {
       container.innerHTML = "";
       if (!results.length) {
@@ -129,7 +133,7 @@
         return;
       }
       results.forEach(function (r) {
-        var card = el("div", { class: "radar-card" });
+        var card = el("div", { class: "radar-card" + (r.contacted ? " done" : "") });
         card.appendChild(el("div", { class: "radar-card-name" }, escapeHtml(r.name)));
         if (r.category_label) card.appendChild(el("div", { class: "radar-card-row" }, "🏷️ " + escapeHtml(r.category_label) + (r.city ? " — " + escapeHtml(r.city) : "")));
         if (r.address) card.appendChild(el("div", { class: "radar-card-row" }, "📍 " + escapeHtml(r.address)));
@@ -138,6 +142,19 @@
           card.appendChild(el("div", { class: "radar-card-row" }, '🌐 <a href="' + escapeHtml(r.website) + '" target="_blank" rel="noopener">' + escapeHtml(r.website) + "</a>"));
         }
         card.appendChild(el("div", { class: "radar-card-row" }, "✉️ " + (r.email ? escapeHtml(r.email) : "Non trouvé")));
+
+        var checkLabel = el("label", { class: "radar-card-check" });
+        var checkbox = el("input", { type: "checkbox" });
+        checkbox.checked = !!r.contacted;
+        checkbox.addEventListener("change", function () {
+          r.contacted = checkbox.checked;
+          card.classList.toggle("done", checkbox.checked);
+          toggleContacted(r.id, checkbox.checked);
+        });
+        checkLabel.appendChild(checkbox);
+        checkLabel.appendChild(document.createTextNode(" Contacté"));
+        card.appendChild(checkLabel);
+
         container.appendChild(card);
       });
     }
@@ -169,7 +186,7 @@
       });
       loadDailyLeads();
       supabase.channel("nova-radar-leads")
-        .on("postgres_changes", { event: "INSERT", schema: "public", table: "radar_leads" }, function () {
+        .on("postgres_changes", { event: "*", schema: "public", table: "radar_leads" }, function () {
           var radarView = document.getElementById("view-radar");
           if (radarView && radarView.classList.contains("active")) loadDailyLeads();
         })
