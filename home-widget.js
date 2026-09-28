@@ -49,7 +49,7 @@
     return (n || 0).toLocaleString("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
   }
 
-  var CSS = "\n.home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;}\n.home-tile{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:18px;border-radius:18px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);cursor:pointer;}\n.home-tile:hover{background:rgba(255,255,255,.09);}\n.home-tile-label{font-size:14px;opacity:.7;font-weight:600;}\n.home-tile-value{font-size:32px;font-weight:700;background:linear-gradient(180deg,var(--metal-2) 0%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}\n.home-tile-stack{gap:6px;}\n.home-tile-stat-row{display:flex;align-items:baseline;gap:8px;}\n.home-tile-stat-row span{font-size:22px;font-weight:700;background:linear-gradient(180deg,var(--metal-2) 0%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;min-width:28px;text-align:right;}\n.home-tile-stat-row small{font-size:12px;opacity:.65;}\n";
+  var CSS = "\n.home-hero{margin-bottom:30px;}\n.home-hero-greeting{font-size:13.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);}\n.home-hero-name{font-family:'Playfair Display',Georgia,serif;font-size:34px;font-weight:700;line-height:1.2;margin:4px 0 8px;background:linear-gradient(120deg,var(--metal-2) 20%,var(--warm-2) 60%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}\n.home-hero-date{font-size:13px;color:var(--text-mid);text-transform:capitalize;}\n.home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;}\n.home-tile{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:10px;text-align:left;padding:22px;border-radius:18px;background:radial-gradient(ellipse at 100% 0%,#bf5af21a,transparent 60%),rgba(255,255,255,.045);border:1px solid rgba(199,194,219,.14);cursor:pointer;transition:transform .2s ease,background .2s ease,border-color .2s ease;}\n.home-tile:hover{background:radial-gradient(ellipse at 100% 0%,#bf5af226,transparent 60%),rgba(255,255,255,.08);border-color:rgba(191,90,242,.35);transform:translateY(-2px);}\n.home-tile-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--warm-1),var(--cool-1));color:#fff;flex-shrink:0;}\n.home-tile-icon svg{width:19px;height:19px;}\n.home-tile-label{font-size:13.5px;opacity:.7;font-weight:600;}\n.home-tile-value{font-size:30px;font-weight:700;background:linear-gradient(180deg,var(--metal-2) 0%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}\n.home-tile-stack{gap:8px;width:100%;}\n.home-tile-stat-row{display:flex;align-items:baseline;gap:8px;width:100%;}\n.home-tile-stat-row span{font-size:20px;font-weight:700;background:linear-gradient(180deg,var(--metal-2) 0%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;min-width:26px;text-align:right;}\n.home-tile-stat-row small{font-size:12px;opacity:.65;}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -65,8 +65,23 @@
     var activityRepliedEl = document.getElementById("home-activity-replied");
     var activitySoldEl = document.getElementById("home-activity-sold");
     var boxmailValueEl = document.getElementById("home-boxmail-value");
+    var greetingEl = document.getElementById("home-greeting");
+    var heroNameEl = document.getElementById("home-hero-name");
+    var heroDateEl = document.getElementById("home-hero-date");
 
     if (!homeGrid) return;
+
+    function renderHero(pseudo) {
+      if (greetingEl) {
+        var hour = new Date().getHours();
+        greetingEl.textContent = hour < 6 ? "Bonne nuit" : hour < 18 ? "Bonjour" : "Bonsoir";
+      }
+      if (heroNameEl) heroNameEl.textContent = pseudo || "";
+      if (heroDateEl) {
+        var dateStr = new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+        heroDateEl.textContent = dateStr;
+      }
+    }
 
     homeGrid.querySelectorAll(".home-tile").forEach(function (tile) {
       tile.addEventListener("click", function () {
@@ -133,9 +148,10 @@
     function boot(userId) {
       if (booted) return;
       booted = true;
-      supabase.from("profiles").select("id,role").eq("id", userId).single().then(function (res) {
+      supabase.from("profiles").select("id,role,pseudo").eq("id", userId).single().then(function (res) {
         if (!res || !res.data) return;
         me = res.data;
+        renderHero(me.pseudo);
 
         if (me.role === "chef") {
           switchToAccueil();
