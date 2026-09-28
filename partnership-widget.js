@@ -68,6 +68,9 @@
     var me = null;
 
     var navPartenariat = document.getElementById("nav-partenariat");
+    var navPartenariatSublist = document.getElementById("nav-partenariat-sublist");
+    var navPartenariatCaret = document.getElementById("nav-partenariat-caret");
+    var navPartenariatReponses = document.getElementById("nav-partenariat-reponses");
     var leadsListEl = document.getElementById("partnership-list");
 
     if (!navPartenariat || !leadsListEl) return;
@@ -75,6 +78,10 @@
     function switchToView() {
       document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
       navPartenariat.classList.add("active");
+      if (navPartenariatSublist) {
+        navPartenariatSublist.querySelectorAll(".nav-subitem").forEach(function (si) { si.classList.remove("active"); });
+      }
+      if (navPartenariatReponses) navPartenariatReponses.classList.add("active");
       document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
       var v = document.getElementById("view-partenariat");
       if (v) v.classList.add("active");
@@ -124,10 +131,28 @@
       });
     }
 
-    navPartenariat.addEventListener("click", function () {
-      switchToView();
-      renderLeads();
-    });
+    if (navPartenariatSublist) {
+      navPartenariat.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (window.ZenoaNav) {
+          window.ZenoaNav.restoreView(window.ZenoaNav.getLastView());
+          window.ZenoaNav.reopenSidebar();
+        }
+        var isOpen = navPartenariatSublist.classList.toggle("open");
+        if (navPartenariatCaret) navPartenariatCaret.classList.toggle("open", isOpen);
+      });
+    }
+
+    if (navPartenariatReponses) {
+      navPartenariatReponses.addEventListener("click", function () {
+        switchToView();
+        if (window.ZenoaNav) {
+          window.ZenoaNav.closeSidebar();
+          window.ZenoaNav.setLastView("partenariat");
+        }
+        renderLeads();
+      });
+    }
 
     var booted = false;
     function boot(userId) {
