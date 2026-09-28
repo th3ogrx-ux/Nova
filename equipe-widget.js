@@ -135,8 +135,7 @@
         me = res.data;
         // Le chef a déjà la liste complète via Gestion -> Gérer l'équipe,
         // donc seul le sous-élément "Membres" (la liste simplifiée pour
-        // les setters) lui est masqué — pas tout le menu "Équipe", sinon
-        // "Journal de DMs" (rangé dessous) deviendrait inaccessible.
+        // les membres) lui est masqué.
         if (navEquipeMembres) navEquipeMembres.style.display = me.role === "chef" ? "none" : "block";
       });
     }

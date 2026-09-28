@@ -447,7 +447,7 @@
     var rolePillCreate = document.getElementById("role-pill-create");
     if (rolePillCreate) {
       new MutationObserver(function () {
-        if (rolePillCreate.textContent === "Setter") rolePillCreate.textContent = "Rôle non défini";
+        if (rolePillCreate.textContent === "Membre") rolePillCreate.textContent = "Rôle non défini";
       }).observe(rolePillCreate, { childList: true, characterData: true, subtree: true });
     }
 
@@ -797,9 +797,9 @@
         }
         resSetterTourWrap.appendChild(card);
       } else if (me.role === "chef") {
-        var placeholder = el("div", { class: "res-card res-card-wide res-card-empty" }, "+ Créer la présentation Setter");
+        var placeholder = el("div", { class: "res-card res-card-wide res-card-empty" }, "+ Créer la présentation Membre");
         placeholder.addEventListener("click", function () {
-          var title = window.prompt("Titre de la présentation :", "Présentation — Partie Setter");
+          var title = window.prompt("Titre de la présentation :", "Présentation — Partie Membre");
           if (!title || !title.trim()) return;
           supabase.from("resource_categories").insert({ title: title.trim(), created_by: me.id, is_setter_tour: true }).then(function (res) {
             if (res && res.error) { alert("Erreur : " + res.error.message); return; }
