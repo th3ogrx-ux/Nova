@@ -48,10 +48,16 @@
 
   window.zenoaConfirm = function (message, opts) {
     build();
-    titleEl.textContent = message || "Es-tu sûr ?";
+    if (opts && opts.html) titleEl.innerHTML = opts.html;
+    else titleEl.textContent = message || "Es-tu sûr ?";
     okBtn.textContent = (opts && opts.confirmLabel) || "Confirmer";
-    cancelBtn.textContent = (opts && opts.cancelLabel) || "Annuler";
     okBtn.className = (opts && opts.danger === false) ? "btn primary" : "btn danger";
+    if (opts && opts.hideCancel) {
+      cancelBtn.style.display = "none";
+    } else {
+      cancelBtn.style.display = "";
+      cancelBtn.textContent = (opts && opts.cancelLabel) || "Annuler";
+    }
     return new Promise(function (resolve) {
       if (pendingResolve) pendingResolve(false);
       pendingResolve = resolve;
