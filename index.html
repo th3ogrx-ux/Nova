@@ -20,6 +20,10 @@
     .sidebar-head .brand-row{justify-content:flex-start;margin:0;}
     .sidebar-head .brand-row .brand-mark{width:30px;height:30px;margin:0;}
 
+    /* Empêche la sélection de texte accidentelle au clic/tap partout dans l'app */
+    html,body{-webkit-user-select:none;-moz-user-select:none;user-select:none;-webkit-touch-callout:none;}
+    input,textarea,[contenteditable="true"]{-webkit-user-select:text;-moz-user-select:text;user-select:text;-webkit-touch-callout:default;}
+
     /* Barre de défilement stylée (violet/noir, au lieu de la barre blanche par défaut) */
     *{scrollbar-width:thin;scrollbar-color:var(--cool-1) transparent;}
     ::-webkit-scrollbar{width:10px;height:10px;}
