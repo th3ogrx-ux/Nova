@@ -82,6 +82,8 @@
     var linkNote = document.getElementById("admin-link-note");
     var linkError = document.getElementById("admin-link-error");
     var linksList = document.getElementById("admin-links-list");
+    var linkSearch = document.getElementById("admin-link-search");
+    var currentLinks = [];
 
     if (!navGestionRessources || !linksList) return;
 
@@ -121,7 +123,7 @@
         if (!confirm("Supprimer ce lien ?")) return;
         supabase.from("admin_links").delete().eq("id", link.id).then(function (res) {
           if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-          card.remove();
+          renderLinks();
         });
       });
       card.appendChild(del);
@@ -129,14 +131,40 @@
       return card;
     }
 
-    function renderLinks() {
-      linksList.innerHTML = "";
-      supabase.from("admin_links").select("*").order("created_at", { ascending: false }).then(function (res) {
-        if (res && res.error) { linksList.appendChild(el("div", { class: "empty-note" }, "Erreur : " + res.error.message)); return; }
-        var rows = (res && res.data) || [];
-        if (!rows.length) { linksList.appendChild(el("div", { class: "empty-note" }, "Aucun lien enregistré.")); return; }
-        rows.forEach(function (r) { linksList.appendChild(buildLinkCard(r)); });
+    function normalize(s) {
+      return (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    }
+
+    function applyFilter() {
+      var query = normalize(linkSearch ? linkSearch.value.trim() : "");
+      var matches = !query ? currentLinks : currentLinks.filter(function (link) {
+        return normalize(link.title).indexOf(query) !== -1 ||
+          normalize(link.url).indexOf(query) !== -1 ||
+          normalize(link.note).indexOf(query) !== -1;
       });
+
+      linksList.innerHTML = "";
+      if (!matches.length) {
+        linksList.appendChild(el("div", { class: "empty-note" }, currentLinks.length ? "Aucun résultat pour cette recherche." : "Aucun lien enregistré."));
+        return;
+      }
+      matches.forEach(function (r) { linksList.appendChild(buildLinkCard(r)); });
+    }
+
+    function renderLinks() {
+      supabase.from("admin_links").select("*").order("created_at", { ascending: false }).then(function (res) {
+        if (res && res.error) {
+          linksList.innerHTML = "";
+          linksList.appendChild(el("div", { class: "empty-note" }, "Erreur : " + res.error.message));
+          return;
+        }
+        currentLinks = (res && res.data) || [];
+        applyFilter();
+      });
+    }
+
+    if (linkSearch) {
+      linkSearch.addEventListener("input", applyFilter);
     }
 
     navGestionRessources.addEventListener("click", function () {
