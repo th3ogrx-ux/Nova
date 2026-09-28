@@ -74,7 +74,7 @@
     return null;
   }
 
-  var CSS = "\n.rj-row{display:flex;align-items:center;gap:16px;padding:14px 16px;flex-wrap:wrap;}\n.rj-person{display:flex;flex-direction:column;align-items:center;gap:6px;width:62px;flex-shrink:0;}\n.rj-name{font-size:11.5px;color:var(--text-mid);text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n.rj-stats{display:flex;gap:18px;flex:1;justify-content:center;}\n.rj-stat{text-align:center;min-width:34px;}\n.rj-remove{flex-shrink:0;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:.55;cursor:pointer;font-size:15px;background:rgba(255,255,255,.05);}\n.rj-remove:hover{opacity:1;background:#d9534f26;color:#e88783;}\n.rj-picker{margin-top:10px;display:none;flex-direction:column;gap:6px;}\n.rj-picker.open{display:flex;}\n.rj-picker-item{padding:10px 14px;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text-mid);background:rgba(255,255,255,.04);border:1px solid rgba(199,194,219,.2);transition:background .2s ease,border-color .2s ease,color .2s ease;}\n.rj-picker-item:hover{background:#bf5af21a;border-color:var(--warm-1);color:var(--metal-2);}\n";
+  var CSS = "\n.rj-row{display:flex;align-items:center;gap:16px;padding:14px 16px;flex-wrap:wrap;user-select:none;transition:background .15s ease,border-color .15s ease;}\n.rj-row.rj-pressing{background:#d9534f1a;border-color:#d9534f80;}\n.rj-person{display:flex;flex-direction:column;align-items:center;gap:6px;width:62px;flex-shrink:0;}\n.rj-name{font-size:11.5px;color:var(--text-mid);text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n.rj-stats{display:flex;gap:18px;flex:1;justify-content:center;}\n.rj-stat{text-align:center;min-width:34px;}\n.rj-picker{margin-top:10px;display:none;flex-direction:column;gap:6px;}\n.rj-picker.open{display:flex;}\n.rj-picker-item{padding:10px 14px;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text-mid);background:rgba(255,255,255,.04);border:1px solid rgba(199,194,219,.2);transition:background .2s ease,border-color .2s ease,color .2s ease;}\n.rj-picker-item:hover{background:#bf5af21a;border-color:var(--warm-1);color:var(--metal-2);}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -100,6 +100,29 @@
 
     function initials(name) {
       return (name || "?").trim().slice(0, 2).toUpperCase();
+    }
+
+    function attachLongPress(node, onLongPress) {
+      var timer = null;
+      var start = function () {
+        node.classList.add("rj-pressing");
+        timer = setTimeout(function () {
+          timer = null;
+          node.classList.remove("rj-pressing");
+          onLongPress();
+        }, 600);
+      };
+      var cancel = function () {
+        node.classList.remove("rj-pressing");
+        if (timer) { clearTimeout(timer); timer = null; }
+      };
+      node.addEventListener("mousedown", start);
+      node.addEventListener("mouseup", cancel);
+      node.addEventListener("mouseleave", cancel);
+      node.addEventListener("touchstart", start, { passive: true });
+      node.addEventListener("touchend", cancel);
+      node.addEventListener("touchmove", cancel);
+      node.addEventListener("contextmenu", function (e) { e.preventDefault(); });
     }
 
     function switchToView() {
@@ -187,7 +210,7 @@
         activityListEl.innerHTML = "";
         members.forEach(function (m) {
           var p = m.profile, counts = m.counts;
-          var row = el("div", { class: "team-row glass-card rj-row" });
+          var row = el("div", { class: "team-row glass-card rj-row", style: isChef() ? "cursor:pointer;" : "" });
 
           var person = el("div", { class: "rj-person" });
           var avatar = el("div", { class: "avatar", style: "cursor:default;" });
@@ -207,14 +230,13 @@
           row.appendChild(stats);
 
           if (isChef()) {
-            var remove = el("div", { class: "rj-remove", title: "Retirer" }, "×");
-            remove.addEventListener("click", function () {
+            attachLongPress(row, function () {
+              if (!confirm("Es-tu sûr de vouloir supprimer " + (p.pseudo || "cette personne") + " ?")) return;
               supabase.from("radar_journal_watchlist").delete().eq("profile_id", p.id).then(function (res) {
                 if (res && res.error) { alert("Erreur : " + res.error.message); return; }
                 loadWatchlist();
               });
             });
-            row.appendChild(remove);
           }
 
           activityListEl.appendChild(row);
