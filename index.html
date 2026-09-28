@@ -179,6 +179,7 @@
         <div class="nav-sublist" id="nav-equipe-sublist">
           <div class="nav-subitem" id="nav-equipe-membres" data-subview="equipe">Membres</div>
           <div class="nav-item" data-view="dms"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H8l-4 4V4z"/></svg></span>Journal de DMs</div>
+          <div class="nav-subitem" id="nav-radar-journal" data-subview="radar-journal">Journal de Zenoa Radar</div>
         </div>
         <div class="nav-item" id="nav-boxmail" data-view="boxmail"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span>BoxMail<span class="nova-boxmail-badge" id="boxmail-nav-badge" style="display:none;"></span></div>
         <div class="nav-item" id="nav-calendrier" data-view="calendrier"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg></span>Calendrier</div>
@@ -459,6 +460,40 @@
           </div>
 
           <div id="dm-journal"></div>
+        </div>
+
+        <div class="view" id="view-radar-journal">
+          <div class="dash-toolbar">
+            <h1 class="metal-title">Journal de Zenoa Radar</h1>
+          </div>
+
+          <div class="glass-card activity-panel">
+            <div class="activity-head">
+              <div class="panel-title">Activité de l'équipe</div>
+              <div class="period-tabs" id="radar-journal-period-tabs">
+                <div class="period-tab active" data-period="day">Aujourd'hui</div>
+                <div class="period-tab" data-period="week">Cette semaine</div>
+                <div class="period-tab" data-period="month">Ce mois</div>
+                <div class="period-tab" data-period="all">Tout</div>
+              </div>
+            </div>
+            <div class="home-grid" style="margin-top:14px;">
+              <div class="home-tile" style="cursor:default;">
+                <div class="home-tile-label">Intéressés</div>
+                <div class="home-tile-value" id="radar-journal-interested">—</div>
+              </div>
+              <div class="home-tile" style="cursor:default;">
+                <div class="home-tile-label">Pas intéressés</div>
+                <div class="home-tile-value" id="radar-journal-not-interested">—</div>
+              </div>
+              <div class="home-tile" style="cursor:default;">
+                <div class="home-tile-label">En attente</div>
+                <div class="home-tile-value" id="radar-journal-pending">—</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="radar-journal-list"></div>
         </div>
         <div class="view" id="view-boxmail">
           <div class="dash-toolbar">
@@ -960,6 +995,7 @@
 <script src="/partnership-widget.js"></script>
 <script src="/radar-widget.js"></script>
 <script src="/admin-links-widget.js"></script>
+<script src="/radar-journal-widget.js"></script>
 
 </body>
 </html>
