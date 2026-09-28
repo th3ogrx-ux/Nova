@@ -196,6 +196,7 @@
         <div class="nav-sublist" id="nav-gestion-sublist">
           <div class="nav-subitem" id="nav-gestion-equipe" data-subview="admin">Gérer l'équipe</div>
           <div class="nav-subitem" id="nav-administratif" data-subview="administratif">Administratif</div>
+          <div class="nav-subitem" id="nav-gestion-ressources" data-subview="gestion-ressources">Ressources</div>
         </div>
       </div>
       <div class="glow-divider" style="margin:0 18px; width:auto;"></div>
@@ -638,6 +639,34 @@
           </div>
         </div>
 
+        <div class="view" id="view-gestion-ressources">
+          <div class="view-head">
+            <h1 class="metal-title" style="display:block;">Ressources</h1>
+            <p>Liens et notes privés, visibles uniquement par toi.</p>
+          </div>
+          <div class="glass-card panel-section" style="margin-bottom:20px;">
+            <form id="admin-link-form" style="display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                <div class="field" style="flex:1;min-width:160px;">
+                  <label class="field-label">Titre</label>
+                  <input id="admin-link-title" placeholder="Nom du lien" autocomplete="off" required>
+                </div>
+                <div class="field" style="flex:1;min-width:200px;">
+                  <label class="field-label">Lien (URL)</label>
+                  <input id="admin-link-url" placeholder="https://..." autocomplete="off">
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label">Note (optionnel)</label>
+                <input id="admin-link-note" placeholder="Petite note..." autocomplete="off">
+              </div>
+              <button type="submit" class="btn primary" style="align-self:flex-start;">Ajouter</button>
+            </form>
+            <div class="error-msg" id="admin-link-error"></div>
+          </div>
+          <div id="admin-links-list"></div>
+        </div>
+
         <div class="view" id="view-settings">
           <div class="view-head">
             <div class="back-btn" id="btn-back-settings">←</div>
@@ -927,6 +956,7 @@
 <script src="/calendar-widget.js"></script>
 <script src="/partnership-widget.js"></script>
 <script src="/radar-widget.js"></script>
+<script src="/admin-links-widget.js"></script>
 
 </body>
 </html>
