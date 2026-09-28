@@ -145,6 +145,7 @@
     if (broadcastCheck && toField) {
       broadcastCheck.addEventListener("change", function () {
         toField.style.display = broadcastCheck.checked ? "none" : "block";
+        if (broadcastField) broadcastField.classList.toggle("checked", broadcastCheck.checked);
       });
     }
 

@@ -37,6 +37,11 @@
     .nav-subitem{font-size:12px;padding:8px 12px;border-radius:8px;cursor:pointer;color:var(--text-dim);transition:background .2s ease,color .2s ease;}
     .nav-subitem:hover{background:#ffffff0a;color:var(--metal-2);}
     .nav-subitem.active{color:var(--cool-2);background:#300a6614;font-weight:600;}
+
+    .boxmail-broadcast-toggle{display:flex;align-items:center;gap:9px;padding:10px 16px;border-radius:10px;border:1px solid rgba(199,194,219,.2);background:rgba(255,255,255,.04);cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text-mid);transition:background .2s ease,border-color .2s ease,color .2s ease;user-select:none;}
+    .boxmail-broadcast-toggle:hover{background:rgba(255,255,255,.08);}
+    .boxmail-broadcast-toggle input{width:16px;height:16px;accent-color:var(--warm-1);cursor:pointer;}
+    .boxmail-broadcast-toggle.checked{border-color:var(--warm-1);background:#bf5af226;color:var(--metal-2);}
   </style>
 </head>
 <body>
@@ -444,11 +449,6 @@
 
           <div id="boxmail-send-panel" style="display:none;">
             <div class="glass-card panel-section">
-              <div class="field" id="boxmail-broadcast-field" style="display:none;">
-                <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;">
-                  <input type="checkbox" id="boxmail-broadcast"> Envoyer à toute l'équipe
-                </label>
-              </div>
               <div class="field" id="boxmail-to-field" style="position:relative;">
                 <label class="field-label">Destinataire (pseudo)</label>
                 <input type="text" id="boxmail-to" placeholder="Tape le pseudo du destinataire" autocomplete="off">
@@ -460,7 +460,13 @@
               </div>
               <div class="error-msg" id="boxmail-send-error"></div>
               <div class="info-msg" id="boxmail-send-success"></div>
-              <button class="btn primary" id="boxmail-send-btn">Envoyer</button>
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <button class="btn primary" id="boxmail-send-btn">Envoyer</button>
+                <label class="boxmail-broadcast-toggle" id="boxmail-broadcast-field" style="display:none;">
+                  <input type="checkbox" id="boxmail-broadcast">
+                  <span>Envoyer à toute l'équipe</span>
+                </label>
+              </div>
             </div>
           </div>
 
