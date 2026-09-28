@@ -68,6 +68,9 @@
     var greetingEl = document.getElementById("home-greeting");
     var heroNameEl = document.getElementById("home-hero-name");
     var heroDateEl = document.getElementById("home-hero-date");
+    var radarInterestedEl = document.getElementById("home-radar-interested");
+    var radarNotInterestedEl = document.getElementById("home-radar-not-interested");
+    var radarPendingEl = document.getElementById("home-radar-pending");
 
     if (!homeGrid) return;
 
@@ -86,7 +89,8 @@
     homeGrid.querySelectorAll(".home-tile").forEach(function (tile) {
       tile.addEventListener("click", function () {
         var view = tile.getAttribute("data-view");
-        var navEl = document.querySelector('.nav-item[data-view="' + view + '"]');
+        var navEl = document.querySelector('.nav-item[data-view="' + view + '"]') ||
+          document.querySelector('.nav-subitem[data-subview="' + view + '"]');
         if (navEl) navEl.click();
       });
     });
@@ -135,6 +139,22 @@
         });
     }
 
+    function loadRadarStatus() {
+      if (!radarInterestedEl) return;
+      supabase.from("radar_leads").select("status").then(function (res) {
+        var rows = (res && res.data) || [];
+        var interested = 0, notInterested = 0, pending = 0;
+        rows.forEach(function (r) {
+          if (r.status === "interested") interested++;
+          else if (r.status === "not_interested") notInterested++;
+          else if (r.status === "pending") pending++;
+        });
+        radarInterestedEl.textContent = interested;
+        radarNotInterestedEl.textContent = notInterested;
+        radarPendingEl.textContent = pending;
+      });
+    }
+
     function switchToAccueil() {
       document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
       var navEl = document.getElementById("nav-accueil");
@@ -160,6 +180,7 @@
         loadCaTotal();
         loadActivity();
         loadBoxmail();
+        loadRadarStatus();
       });
     }
 
