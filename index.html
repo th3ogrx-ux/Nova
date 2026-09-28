@@ -83,6 +83,15 @@
     .zenoa-switch input:checked + .zenoa-switch-track:before{transform:translateX(18px);background:#04010a;}
     .zenoa-switch input:disabled + .zenoa-switch-track{opacity:.4;cursor:not-allowed;}
 
+    /* Écran vidéo de bienvenue affiché juste après la création du compte */
+    #screen-welcome-video{align-items:center;justify-content:center;padding:24px;}
+    .welcome-video-wrap{width:100%;max-width:560px;text-align:center;}
+    .welcome-video-wrap h1{font-size:27px;margin-bottom:8px;}
+    .welcome-video-wrap p.sub{color:var(--text-dim);font-size:14px;margin-bottom:26px;}
+    .welcome-video-frame{padding:10px;margin-bottom:24px;border-radius:26px;box-shadow:0 24px 70px rgba(0,0,0,.5),0 0 50px rgba(191,90,242,.16);}
+    .welcome-video-frame video{width:100%;display:block;aspect-ratio:16/9;border-radius:18px;background:#04010a;}
+    .welcome-video-wrap .btn{width:100%;padding:15px;}
+
     /* Zones sûres (encoche / barre d'accueil) en mode PWA plein écran */
     .topbar{padding-top:env(safe-area-inset-top);height:calc(64px + env(safe-area-inset-top));}
     .main{padding-top:calc(64px + env(safe-area-inset-top));padding-bottom:env(safe-area-inset-bottom);}
@@ -172,6 +181,18 @@
         <div class="error-msg" id="create-error"></div>
         <a class="back-link" id="create-back">← Retour au code d'accès</a>
       </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: WELCOME VIDEO ============ -->
+  <div class="screen" id="screen-welcome-video">
+    <div class="welcome-video-wrap">
+      <h1 class="metal-title">Découvre Zenoa</h1>
+      <p class="sub">Une minute pour tout comprendre avant de démarrer</p>
+      <div class="welcome-video-frame glass-card">
+        <video id="welcome-video" src="/zenoa-promo.mp4" autoplay muted playsinline preload="auto"></video>
+      </div>
+      <button class="btn primary" id="welcome-video-continue" disabled>Accéder à l'app</button>
     </div>
   </div>
 
