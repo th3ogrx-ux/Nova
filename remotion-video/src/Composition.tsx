@@ -6,7 +6,7 @@ export const MyComposition = () => {
     <Composition
       id="ZenoaSetupPromo"
       component={PromoVideo}
-      durationInFrames={296}
+      durationInFrames={378}
       fps={30}
       width={1920}
       height={1080}

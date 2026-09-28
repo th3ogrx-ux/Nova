@@ -13,6 +13,7 @@ import {
 import { PhoneFrame, COLORS } from "./PhoneFrame";
 import { SettingsMock, TapRipple, FingerTap } from "./SettingsMock";
 import { BoxMailMock } from "./BoxMailMock";
+import { AppShellMock } from "./AppShellMock";
 import { Sparkles } from "./Sparkles";
 
 const Backdrop: React.FC = () => {
@@ -92,6 +93,151 @@ const Caption: React.FC<{ children: React.ReactNode; frame: number; from: number
         {children}
       </div>
     </div>
+  );
+};
+
+// ---- Scene A: where to tap (hamburger -> settings gear) ----
+const AppShellScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const enter = spring({
+    frame,
+    fps,
+    config: { damping: 11, stiffness: 200, mass: 0.7 },
+    durationInFrames: 16,
+  });
+  const phoneOpacity = interpolate(frame, [0, 8], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const phoneScale = interpolate(enter, [0, 1], [0.75, 1]);
+  const phoneY = interpolate(enter, [0, 1], [90, 0]);
+
+  const TAP_HAMBURGER = 20;
+  const OPEN_START = TAP_HAMBURGER + 4;
+  const OPEN_END = OPEN_START + 14;
+  const TAP_GEAR = OPEN_END + 16;
+
+  const hamburgerX = 35;
+  const hamburgerY = 32;
+  const gearX = 279;
+  const gearY = 747;
+
+  const hamburgerGlow = interpolate(
+    frame,
+    [TAP_HAMBURGER - 4, TAP_HAMBURGER + 4, TAP_HAMBURGER + 14],
+    [0, 1, 0.3],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+  const sidebarProgress = interpolate(frame, [OPEN_START, OPEN_END], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
+  });
+  const gearGlow = interpolate(
+    frame,
+    [TAP_GEAR - 4, TAP_GEAR + 4, TAP_GEAR + 14],
+    [0, 1, 0.4],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+
+  const tapHamburgerProgress = interpolate(
+    frame,
+    [TAP_HAMBURGER, TAP_HAMBURGER + 5, TAP_HAMBURGER + 12],
+    [0, 1, 0],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+  const tapGearProgress = interpolate(
+    frame,
+    [TAP_GEAR, TAP_GEAR + 5, TAP_GEAR + 12],
+    [0, 1, 0],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+  const pressed = Math.max(tapHamburgerProgress, tapGearProgress);
+
+  const fingerVisible = frame >= TAP_HAMBURGER - 8 && frame < TAP_GEAR + 14;
+  const fingerX = interpolate(
+    frame,
+    [TAP_HAMBURGER - 8, TAP_HAMBURGER, OPEN_END, TAP_GEAR],
+    [hamburgerX, hamburgerX, gearX, gearX],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+  const fingerY = interpolate(
+    frame,
+    [TAP_HAMBURGER - 8, TAP_HAMBURGER, OPEN_END, TAP_GEAR],
+    [hamburgerY, hamburgerY, gearY, gearY],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+  const fingerOpacity = interpolate(
+    frame,
+    [TAP_HAMBURGER - 8, TAP_HAMBURGER - 3, TAP_GEAR + 10, TAP_GEAR + 16],
+    [0, 1, 1, 0],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+
+  const shake1 = punch(frame, TAP_HAMBURGER, 8, 9);
+  const shake2 = punch(frame, TAP_GEAR, 10, 10);
+  const shakeX = shake1.x + shake2.x;
+  const shakeScale = Math.max(shake1.scale, shake2.scale);
+
+  const tapHamburgerRipple = interpolate(
+    frame,
+    [TAP_HAMBURGER, TAP_HAMBURGER + 22],
+    [0, 1],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+  const tapGearRipple = interpolate(frame, [TAP_GEAR, TAP_GEAR + 22], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  const sceneOutOpacity = interpolate(frame, [TAP_GEAR + 14, TAP_GEAR + 22], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const sceneOutScale = interpolate(frame, [TAP_GEAR + 14, TAP_GEAR + 22], [1, 0.9], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  return (
+    <AbsoluteFill
+      style={{
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: Math.min(phoneOpacity, sceneOutOpacity),
+      }}
+    >
+      <div
+        style={{
+          transform: `translateY(${phoneY}px) scale(${
+            phoneScale * shakeScale * sceneOutScale
+          }) translateX(${shakeX}px)`,
+          position: "relative",
+        }}
+      >
+        <PhoneFrame>
+          <AppShellMock
+            sidebarProgress={sidebarProgress}
+            hamburgerGlow={hamburgerGlow}
+            gearGlow={gearGlow}
+          />
+          <div style={{ position: "absolute", inset: 0, zIndex: 999 }}>
+            <TapRipple progress={tapHamburgerRipple} x={hamburgerX} y={hamburgerY} />
+            <TapRipple progress={tapGearRipple} x={gearX} y={gearY} />
+            {fingerVisible && (
+              <div style={{ opacity: fingerOpacity }}>
+                <FingerTap x={fingerX} y={fingerY} pressed={pressed} />
+              </div>
+            )}
+          </div>
+        </PhoneFrame>
+      </div>
+      <Caption frame={frame} from={0}>
+        Où trouver Paramètres ?
+      </Caption>
+    </AbsoluteFill>
   );
 };
 
@@ -462,7 +608,7 @@ const OutroScene: React.FC = () => {
           transform: `translateY(${line1Y}px)`,
         }}
       >
-        Ne rate plus rien.
+        Ne rate rien.
       </div>
       <div
         style={{
@@ -487,13 +633,16 @@ export const PromoVideo: React.FC = () => {
       <Sequence from={0} durationInFrames={40}>
         <IntroScene />
       </Sequence>
-      <Sequence from={40} durationInFrames={108}>
+      <Sequence from={40} durationInFrames={82}>
+        <AppShellScene />
+      </Sequence>
+      <Sequence from={122} durationInFrames={108}>
         <SettingsScene />
       </Sequence>
-      <Sequence from={148} durationInFrames={92}>
+      <Sequence from={230} durationInFrames={92}>
         <BoxMailScene />
       </Sequence>
-      <Sequence from={240} durationInFrames={56}>
+      <Sequence from={322} durationInFrames={56}>
         <OutroScene />
       </Sequence>
     </AbsoluteFill>
