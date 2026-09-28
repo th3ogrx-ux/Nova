@@ -14,6 +14,7 @@ import { PhoneFrame, COLORS } from "./PhoneFrame";
 import { SettingsMock, TapRipple, FingerTap } from "./SettingsMock";
 import { BoxMailMock } from "./BoxMailMock";
 import { AppShellMock } from "./AppShellMock";
+import { LockScreenMock } from "./LockScreenMock";
 import { Sparkles } from "./Sparkles";
 
 const Backdrop: React.FC = () => {
@@ -39,6 +40,14 @@ const punch = (frame: number, at: number, amp = 10, dur = 10) => {
   const x = Math.sin(t * 2.4) * amp * decay;
   const scale = 1 + (t < dur * 0.35 ? (dur * 0.35 - t) / (dur * 0.35) : 0) * 0.045;
   return { x, y: 0, scale };
+};
+
+// Phone buzzing to signal an incoming notification: quick decaying side-to-side jitter.
+const vibrate = (frame: number, at: number, dur = 16, amp = 7) => {
+  const t = frame - at;
+  if (t < 0 || t > dur) return 0;
+  const decay = 1 - t / dur;
+  return Math.sin(t * 3.4) * amp * decay;
 };
 
 const Caption: React.FC<{
@@ -450,6 +459,165 @@ const SettingsScene: React.FC = () => {
   );
 };
 
+// ---- Scene: lock screen notification (phone off -> buzzes -> tap to open) ----
+const LockScreenScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const enter = spring({
+    frame,
+    fps,
+    config: { damping: 14, stiffness: 200, mass: 0.7 },
+    durationInFrames: 14,
+  });
+  const phoneOpacity = interpolate(frame, [0, 8], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const phoneScale = interpolate(enter, [0, 1], [0.94, 1]);
+
+  const VIBRATE_AT = 4;
+  const SCREEN_ON_START = 10;
+  const SCREEN_ON_END = 20;
+  const BANNER_AT = 16;
+  const TAP = 54;
+
+  const vib = vibrate(frame, VIBRATE_AT, 18, 7);
+
+  const screenOpacity = interpolate(frame, [SCREEN_ON_START, SCREEN_ON_END], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  const bannerSpring = spring({
+    frame: frame - BANNER_AT,
+    fps,
+    config: { damping: 10, stiffness: 180, mass: 0.7 },
+    durationInFrames: 18,
+  });
+  const bannerTranslateY = interpolate(bannerSpring, [0, 1], [-140, 0]);
+  const bannerOpacity = interpolate(frame, [BANNER_AT, BANNER_AT + 6], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const bannerGlow = interpolate(frame, [BANNER_AT, BANNER_AT + 10, TAP], [0, 1, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  const tapProgress = interpolate(frame, [TAP, TAP + 5, TAP + 12], [0, 1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const tapRipple = interpolate(frame, [TAP, TAP + 20], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const bannerPressScale = interpolate(
+    frame,
+    [TAP, TAP + 5, TAP + 14],
+    [1, 0.94, 1],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+
+  const fingerVisible = frame >= TAP - 10 && frame < TAP + 12;
+  const fingerX = 190;
+  const fingerY = 262;
+  const fingerOpacity = interpolate(
+    frame,
+    [TAP - 10, TAP - 4, TAP + 8, TAP + 14],
+    [0, 1, 1, 0],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+
+  const shakeP = punch(frame, TAP, 8, 8);
+
+  const transitionOutOpacity = interpolate(frame, [TAP + 12, TAP + 20], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const transitionOutScale = interpolate(frame, [TAP + 12, TAP + 20], [1, 1.15], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  const captionOpacity = interpolate(
+    frame,
+    [SCREEN_ON_END, SCREEN_ON_END + 8, TAP - 4, TAP + 6],
+    [0, 1, 1, 0],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+  const captionY = interpolate(frame, [SCREEN_ON_END, SCREEN_ON_END + 8], [30, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  return (
+    <AbsoluteFill
+      style={{
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: Math.min(phoneOpacity, transitionOutOpacity),
+      }}
+    >
+      <div
+        style={{
+          transform: `scale(${phoneScale * shakeP.scale * transitionOutScale}) translateX(${
+            vib + shakeP.x
+          }px)`,
+          position: "relative",
+        }}
+      >
+        <PhoneFrame>
+          <LockScreenMock
+            screenOpacity={screenOpacity}
+            bannerTranslateY={bannerTranslateY}
+            bannerOpacity={bannerOpacity}
+            bannerScale={bannerPressScale}
+            glow={bannerGlow}
+          />
+          <div style={{ position: "absolute", inset: 0, zIndex: 999 }}>
+            <TapRipple progress={tapRipple} x={fingerX} y={fingerY} />
+            {fingerVisible && (
+              <div style={{ opacity: fingerOpacity }}>
+                <FingerTap x={fingerX} y={fingerY} pressed={tapProgress} />
+              </div>
+            )}
+          </div>
+        </PhoneFrame>
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          bottom: 90,
+          left: 0,
+          right: 0,
+          textAlign: "center",
+          opacity: captionOpacity,
+          transform: `translateY(${captionY}px)`,
+          fontFamily: "Poppins, sans-serif",
+        }}
+      >
+        <div
+          style={{
+            display: "inline-block",
+            padding: "14px 30px",
+            borderRadius: 999,
+            background: "rgba(12,5,24,0.8)",
+            border: `1px solid ${COLORS.warm1}88`,
+            color: COLORS.metal2,
+            fontSize: 28,
+            fontWeight: 700,
+            boxShadow: "0 10px 40px rgba(0,0,0,0.55), 0 0 30px rgba(191,90,242,0.25)",
+          }}
+        >
+          3. Reçois la notif, direct
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 // ---- Scene 3: BoxMail payoff ----
 const BoxMailScene: React.FC = () => {
   const frame = useCurrentFrame();
@@ -545,7 +713,7 @@ const BoxMailScene: React.FC = () => {
             boxShadow: "0 10px 40px rgba(0,0,0,0.55), 0 0 30px rgba(191,90,242,0.25)",
           }}
         >
-          3. Reçois tes BoxMails direct
+          4. Et tes BoxMails arrivent direct
         </div>
       </div>
     </AbsoluteFill>
@@ -643,10 +811,13 @@ export const PromoVideo: React.FC = () => {
       <Sequence from={122} durationInFrames={108}>
         <SettingsScene />
       </Sequence>
-      <Sequence from={230} durationInFrames={92}>
+      <Sequence from={230} durationInFrames={76}>
+        <LockScreenScene />
+      </Sequence>
+      <Sequence from={306} durationInFrames={92}>
         <BoxMailScene />
       </Sequence>
-      <Sequence from={322} durationInFrames={56}>
+      <Sequence from={398} durationInFrames={56}>
         <OutroScene />
       </Sequence>
     </AbsoluteFill>
