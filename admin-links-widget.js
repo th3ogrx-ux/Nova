@@ -152,7 +152,15 @@
       } else {
         matches.forEach(function (r) { linksList.appendChild(buildLinkCard(r)); });
       }
-      window.scrollTo(0, scrollY);
+      restoreScroll(scrollY);
+    }
+
+    function restoreScroll(y) {
+      window.scrollTo(0, y);
+      requestAnimationFrame(function () {
+        window.scrollTo(0, y);
+        requestAnimationFrame(function () { window.scrollTo(0, y); });
+      });
     }
 
     function renderLinks() {
@@ -168,6 +176,12 @@
     }
 
     if (linkSearch) {
+      linkSearch.addEventListener("focus", function () {
+        linksList.style.minHeight = linksList.offsetHeight + "px";
+      });
+      linkSearch.addEventListener("blur", function () {
+        linksList.style.minHeight = "";
+      });
       linkSearch.addEventListener("input", applyFilter);
     }
 
