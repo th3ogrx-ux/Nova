@@ -611,7 +611,7 @@ const LockScreenScene: React.FC = () => {
             boxShadow: "0 10px 40px rgba(0,0,0,0.55), 0 0 30px rgba(191,90,242,0.25)",
           }}
         >
-          3. Reçois la notif, direct
+          Tu vas recevoir une notif très rapidement où l'on va tout t'expliquer
         </div>
       </div>
     </AbsoluteFill>
