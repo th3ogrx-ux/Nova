@@ -78,6 +78,13 @@
     var funnelCounts = {}; // pseudo (lowercase) -> {sent, replied, sold, not_interested, total}
     var rolesByPseudo = {}; // pseudo (lowercase) -> custom_role
     var profileByPseudo = {}; // pseudo (lowercase) -> {id, pseudo, photo_url, role}
+    var dmWatchlistIds = [];
+
+    function loadDmWatchlist() {
+      return supabase.from("dm_journal_watchlist").select("profile_id").then(function (res) {
+        dmWatchlistIds = ((res && res.data) || []).map(function (r) { return r.profile_id; });
+      });
+    }
 
     if (!dmJournalEl && !activityListEl) return;
 
@@ -222,6 +229,10 @@
             row.style.display = "none";
             return;
           }
+          if (rowProfile && dmWatchlistIds.indexOf(rowProfile.id) === -1) {
+            row.style.display = "none";
+            return;
+          }
           row.style.display = "";
 
           var wrap = nameEl.parentElement.classList.contains("nova-activity-namewrap")
@@ -287,9 +298,16 @@
     function boot(userId) {
       if (booted) return;
       booted = true;
-      supabase.from("profiles").select("id,pseudo").eq("id", userId).single().then(function (res) {
+      supabase.from("profiles").select("id,pseudo,role").eq("id", userId).single().then(function (res) {
         if (!res || !res.data) return;
         me = res.data;
+
+        var navDms = document.querySelector('.nav-item[data-view="dms"]');
+        if (navDms && me.role !== "chef") {
+          supabase.from("dm_journal_watchlist").select("profile_id").eq("profile_id", me.id).maybeSingle().then(function (wres) {
+            navDms.style.display = (wres && wres.data) ? "" : "none";
+          });
+        }
 
         watchDmJournal();
         watchActivityList();
@@ -298,12 +316,18 @@
         if (dayTab) dayTab.click();
 
         decorateDmJournal();
-        decorateActivityList();
+        loadDmWatchlist().then(decorateActivityList);
 
         supabase.channel("nova-prospects-funnel")
           .on("postgres_changes", { event: "*", schema: "public", table: "prospects" }, function () {
             decorateDmJournal();
             decorateActivityList();
+          })
+          .subscribe();
+
+        supabase.channel("nova-dm-watchlist-filter")
+          .on("postgres_changes", { event: "*", schema: "public", table: "dm_journal_watchlist" }, function () {
+            loadDmWatchlist().then(decorateActivityList);
           })
           .subscribe();
       });
