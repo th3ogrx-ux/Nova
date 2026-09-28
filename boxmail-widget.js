@@ -56,6 +56,19 @@
     return new Date(ts).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
   }
 
+  function linkify(text) {
+    var span = document.createElement("span");
+    var urlRe = /(https?:\/\/[^\s]+)/g;
+    var last = 0, m;
+    while ((m = urlRe.exec(text))) {
+      span.appendChild(document.createTextNode(text.slice(last, m.index)));
+      span.appendChild(el("a", { href: m[0], target: "_blank", rel: "noopener" }, m[0]));
+      last = m.index + m[0].length;
+    }
+    span.appendChild(document.createTextNode(text.slice(last)));
+    return span;
+  }
+
   function initials(name) {
     return (name || "?").trim().slice(0, 2).toUpperCase();
   }
@@ -286,7 +299,8 @@
         });
       } else {
         validateBtn.style.display = "";
-        detailContent.textContent = r.content;
+        detailContent.innerHTML = "";
+        detailContent.appendChild(linkify(r.content));
       }
 
       if (!r.read_at) {
