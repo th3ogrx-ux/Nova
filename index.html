@@ -61,6 +61,14 @@
     .boxmail-broadcast-toggle input{width:16px;height:16px;accent-color:var(--warm-1);cursor:pointer;}
     .boxmail-broadcast-toggle.checked{border-color:var(--warm-1);background:#bf5af226;color:var(--metal-2);}
 
+    /* Logo tournant affiché le temps que la vérification de session
+       (async) détermine quel écran afficher — évite l'écran noir vide
+       et le flash de l'écran code. */
+    #zenoa-bootloader{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;background:#04010a;}
+    #zenoa-bootloader.zenoa-bootloader-hide{display:none;}
+    #zenoa-bootloader img{width:56px;height:56px;animation:zenoa-boot-spin 1s linear infinite;filter:drop-shadow(0 0 14px rgba(191,90,242,.55));}
+    @keyframes zenoa-boot-spin{to{transform:rotate(360deg);}}
+
     /* Interrupteur (notifications, etc.) */
     .settings-tile-switch{cursor:default;}
     .settings-tile-switch::after{content:none!important;}
@@ -81,6 +89,7 @@
 </head>
 <body>
 <div class="noise"></div>
+<div id="zenoa-bootloader"><img src="/zenoa-icon.png" alt=""></div>
 <div id="app">
 
   <!-- ============ SCREEN: ACCESS CODE ============ -->
