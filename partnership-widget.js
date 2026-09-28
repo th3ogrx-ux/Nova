@@ -109,10 +109,12 @@
 
       var del = el("button", { class: "btn btn-sm danger" }, "Supprimer");
       del.addEventListener("click", function () {
-        if (!confirm("Supprimer cette réponse ?")) return;
-        supabase.from("partnership_leads").delete().eq("id", lead.id).then(function (res) {
-          if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-          card.remove();
+        zenoaConfirm("Supprimer cette réponse ?").then(function (ok) {
+          if (!ok) return;
+          supabase.from("partnership_leads").delete().eq("id", lead.id).then(function (res) {
+            if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+            card.remove();
+          });
         });
       });
       card.appendChild(del);

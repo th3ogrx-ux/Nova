@@ -120,10 +120,12 @@
 
       var del = el("button", { class: "btn btn-sm danger" }, "Supprimer");
       del.addEventListener("click", function () {
-        if (!confirm("Supprimer ce lien ?")) return;
-        supabase.from("admin_links").delete().eq("id", link.id).then(function (res) {
-          if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-          renderLinks();
+        zenoaConfirm("Supprimer ce lien ?").then(function (ok) {
+          if (!ok) return;
+          supabase.from("admin_links").delete().eq("id", link.id).then(function (res) {
+            if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+            renderLinks();
+          });
         });
       });
       card.appendChild(del);

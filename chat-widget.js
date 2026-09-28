@@ -177,8 +177,10 @@
     }
     if (settingsLogout) {
       settingsLogout.addEventListener("click", function () {
-        if (!confirm("Es-tu sûr de vouloir te déconnecter ?")) return;
-        supabase.auth.signOut().then(function () { window.location.reload(); });
+        zenoaConfirm("Es-tu sûr de vouloir te déconnecter ?").then(function (ok) {
+          if (!ok) return;
+          supabase.auth.signOut().then(function () { window.location.reload(); });
+        });
       });
     }
     if (settingsEditPseudo) {
@@ -612,10 +614,12 @@
       var del = el("span", { class: "res-del" }, "✕");
       del.addEventListener("click", function (e) {
         e.stopPropagation();
-        if (!confirm("Supprimer cette ressource et tout son contenu ?")) return;
-        supabase.from("resource_categories").delete().eq("id", cat.id).then(function (res) {
-          if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-          onDone();
+        zenoaConfirm("Supprimer cette ressource et tout son contenu ?").then(function (ok) {
+          if (!ok) return;
+          supabase.from("resource_categories").delete().eq("id", cat.id).then(function (res) {
+            if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+            onDone();
+          });
         });
       });
       return del;
@@ -732,10 +736,12 @@
 
         var del = el("span", { class: "res-del" }, "✕");
         del.addEventListener("click", function () {
-          if (!confirm("Supprimer cette ressource ?")) return;
-          supabase.from("resource_items").delete().eq("id", item.id).then(function (res) {
-            if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-            box.remove();
+          zenoaConfirm("Supprimer cette ressource ?").then(function (ok) {
+            if (!ok) return;
+            supabase.from("resource_items").delete().eq("id", item.id).then(function (res) {
+              if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+              box.remove();
+            });
           });
         });
         box.appendChild(del);
