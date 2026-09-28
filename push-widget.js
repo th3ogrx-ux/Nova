@@ -69,6 +69,7 @@
 
     var settingsPushTile = document.getElementById("settings-push");
     var settingsPushStatus = document.getElementById("settings-push-status");
+    var settingsPushSwitch = document.getElementById("settings-push-switch");
 
     if (!isSupported()) {
       if (settingsPushTile) settingsPushTile.style.display = "none";
@@ -76,11 +77,32 @@
     }
 
     function refreshSettingsUI() {
-      if (!settingsPushStatus) return;
       var perm = Notification.permission;
-      if (perm === "granted") settingsPushStatus.textContent = "Activées ✓";
-      else if (perm === "denied") settingsPushStatus.textContent = "Bloquées par le navigateur";
-      else settingsPushStatus.textContent = "Désactivées";
+
+      if (perm === "denied") {
+        if (settingsPushStatus) settingsPushStatus.textContent = "Bloquées par le navigateur";
+        if (settingsPushSwitch) { settingsPushSwitch.checked = false; settingsPushSwitch.disabled = true; }
+        return;
+      }
+      if (settingsPushSwitch) settingsPushSwitch.disabled = false;
+
+      if (perm !== "granted") {
+        if (settingsPushStatus) settingsPushStatus.textContent = "Désactivées";
+        if (settingsPushSwitch) settingsPushSwitch.checked = false;
+        return;
+      }
+
+      if (!swRegistration) {
+        if (settingsPushStatus) settingsPushStatus.textContent = "Désactivées";
+        if (settingsPushSwitch) settingsPushSwitch.checked = false;
+        return;
+      }
+
+      swRegistration.pushManager.getSubscription().then(function (sub) {
+        var active = !!sub;
+        if (settingsPushStatus) settingsPushStatus.textContent = active ? "Activées ✓" : "Désactivées";
+        if (settingsPushSwitch) settingsPushSwitch.checked = active;
+      });
     }
 
     function registerSW() {
@@ -118,6 +140,23 @@
         return saveSubscription(sub);
       }).catch(function (err) {
         console.error("[ZENOA push] échec d'abonnement :", err);
+      }).then(function () {
+        refreshSettingsUI();
+      });
+    }
+
+    function unsubscribe() {
+      if (!swRegistration) return Promise.resolve();
+      return swRegistration.pushManager.getSubscription().then(function (sub) {
+        if (!sub) return;
+        var endpoint = sub.endpoint;
+        return sub.unsubscribe().then(function () {
+          return supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+        });
+      }).catch(function (err) {
+        console.error("[ZENOA push] échec de désabonnement :", err);
+      }).then(function () {
+        refreshSettingsUI();
       });
     }
 
@@ -128,13 +167,20 @@
       });
     }
 
-    if (settingsPushTile) {
-      settingsPushTile.addEventListener("click", function () {
+    if (settingsPushSwitch) {
+      settingsPushSwitch.addEventListener("change", function () {
         if (Notification.permission === "denied") {
-          alert("Les notifications sont bloquées pour ZENOA. Autorise-les depuis les réglages de ton navigateur (icône à côté de l'adresse du site) puis reviens ici.");
+          settingsPushSwitch.checked = false;
+          zenoaConfirm("", {
+            html: "Les notifications sont bloquées pour ZENOA. Autorise-les depuis les réglages de ton navigateur (icône à côté de l'adresse du site) puis reviens ici.",
+            confirmLabel: "Compris",
+            hideCancel: true,
+            danger: false
+          });
           return;
         }
-        requestAndSubscribe();
+        if (settingsPushSwitch.checked) requestAndSubscribe();
+        else unsubscribe();
       });
     }
 

@@ -20,27 +20,31 @@
 
   function init() {
     var tile = document.getElementById("settings-install-app");
-    if (!tile || isStandalone()) return;
+    if (!tile) return;
 
     var deferredPrompt = null;
 
     window.addEventListener("beforeinstallprompt", function (e) {
       e.preventDefault();
       deferredPrompt = e;
-      tile.style.display = "";
     });
 
     window.addEventListener("appinstalled", function () {
       deferredPrompt = null;
-      tile.style.display = "none";
     });
-
-    if (isIOS()) tile.style.display = "";
 
     tile.addEventListener("click", function () {
       if (deferredPrompt) {
         deferredPrompt.prompt();
         deferredPrompt.userChoice.then(function () { deferredPrompt = null; });
+        return;
+      }
+      if (isStandalone()) {
+        zenoaConfirm("L'app ZENOA est déjà installée sur ton écran d'accueil.", {
+          confirmLabel: "Compris",
+          hideCancel: true,
+          danger: false
+        });
         return;
       }
       if (isIOS()) {
