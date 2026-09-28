@@ -189,12 +189,23 @@
       });
     }
 
+    function applyAccess(allowed) {
+      if (navRadar) navRadar.style.display = allowed ? "" : "none";
+      var homeTileRadar = document.getElementById("home-tile-radar");
+      if (homeTileRadar) homeTileRadar.style.display = allowed ? "" : "none";
+    }
+
     var booted = false;
     function boot(userId) {
       if (booted) return;
       booted = true;
-      supabase.from("profiles").select("id,pseudo").eq("id", userId).single().then(function (res) {
-        if (res && res.data) me = res.data;
+      supabase.from("profiles").select("id,pseudo,role").eq("id", userId).single().then(function (res) {
+        if (!res || !res.data) return;
+        me = res.data;
+        if (me.role === "chef") { applyAccess(true); return; }
+        supabase.from("radar_journal_watchlist").select("profile_id").eq("profile_id", me.id).maybeSingle().then(function (wres) {
+          applyAccess(!!(wres && wres.data));
+        });
       });
       loadDailyLeads();
       supabase.channel("nova-radar-leads")

@@ -74,7 +74,7 @@
     return null;
   }
 
-  var CSS = "\n.rj-row{display:flex;align-items:center;gap:14px;}\n.rj-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n.rj-stats{display:flex;gap:18px;flex-shrink:0;}\n.rj-stat{text-align:center;min-width:34px;}\n.rj-remove{flex-shrink:0;opacity:.5;cursor:pointer;font-size:16px;padding:0 4px;}\n.rj-remove:hover{opacity:1;color:#e88783;}\n.rj-picker{margin:10px 0;display:none;flex-direction:column;gap:2px;}\n.rj-picker.open{display:flex;}\n.rj-picker-item{padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13.5px;background:rgba(255,255,255,.04);}\n.rj-picker-item:hover{background:rgba(255,255,255,.09);}\n";
+  var CSS = "\n.rj-row{display:flex;align-items:center;gap:14px;}\n.rj-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n.rj-stats{display:flex;gap:18px;flex-shrink:0;}\n.rj-stat{text-align:center;min-width:34px;}\n.rj-remove{flex-shrink:0;opacity:.5;cursor:pointer;font-size:16px;padding:0 4px;}\n.rj-remove:hover{opacity:1;color:#e88783;}\n.rj-picker{margin-top:10px;display:none;flex-direction:column;gap:6px;}\n.rj-picker.open{display:flex;}\n.rj-picker-item{padding:10px 14px;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text-mid);background:rgba(255,255,255,.04);border:1px solid rgba(199,194,219,.2);transition:background .2s ease,border-color .2s ease,color .2s ease;}\n.rj-picker-item:hover{background:#bf5af21a;border-color:var(--warm-1);color:var(--metal-2);}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -261,10 +261,14 @@
       if (subscribed) return;
       subscribed = true;
       supabase.from("profiles").select("id,pseudo,role").eq("id", userId).single().then(function (res) {
-        if (res && res.data) {
-          me = res.data;
-          if (addBtn && isChef()) addBtn.style.display = "inline-flex";
-        }
+        if (!res || !res.data) return;
+        me = res.data;
+        if (addBtn && isChef()) addBtn.style.display = "inline-flex";
+        if (isChef()) { if (navRadarJournal) navRadarJournal.style.display = ""; return; }
+        supabase.from("radar_journal_watchlist").select("profile_id").eq("profile_id", me.id).maybeSingle().then(function (wres) {
+          var allowed = !!(wres && wres.data);
+          if (navRadarJournal) navRadarJournal.style.display = allowed ? "" : "none";
+        });
       });
       supabase.channel("nova-radar-journal")
         .on("postgres_changes", { event: "*", schema: "public", table: "radar_leads" }, function () {
