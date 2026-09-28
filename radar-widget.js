@@ -193,6 +193,8 @@
       if (navRadar) navRadar.style.display = allowed ? "" : "none";
       var homeTileRadar = document.getElementById("home-tile-radar");
       if (homeTileRadar) homeTileRadar.style.display = allowed ? "" : "none";
+      var navAgentIa = document.getElementById("nav-agent-ia");
+      if (navAgentIa) navAgentIa.style.display = allowed ? "" : "none";
     }
 
     var booted = false;
