@@ -741,11 +741,6 @@ const OutroScene: React.FC = () => {
   const line1Opacity = interpolate(line1Spring, [0, 1], [0, 1]);
   const line1Y = interpolate(line1Spring, [0, 1], [26, 0]);
 
-  const line2Opacity = interpolate(frame, [16, 24], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
   const fadeOut = interpolate(frame, [42, 54], [1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
@@ -771,28 +766,17 @@ const OutroScene: React.FC = () => {
       <div
         style={{
           marginTop: 26,
-          fontSize: 38,
-          fontWeight: 800,
+          fontSize: 34,
+          fontWeight: 700,
+          letterSpacing: "0.3em",
           color: COLORS.metal2,
-          fontFamily: "Poppins, sans-serif",
+          fontFamily: "Orbitron, sans-serif",
           textAlign: "center",
           opacity: line1Opacity,
           transform: `translateY(${line1Y}px)`,
         }}
       >
-        Ne rate rien.
-      </div>
-      <div
-        style={{
-          marginTop: 8,
-          fontSize: 21,
-          color: COLORS.warm2,
-          fontFamily: "Poppins, sans-serif",
-          textAlign: "center",
-          opacity: line2Opacity,
-        }}
-      >
-        ZENOA — Paramètres → Écran d'accueil → Notifications
+        ZENOA
       </div>
     </AbsoluteFill>
   );
