@@ -13,11 +13,59 @@
 // par la plateforme Supabase à toutes les Edge Functions.)
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import webpush from "npm:web-push@3.6.7";
 
 const GEOAPIFY_API_KEY = Deno.env.get("GEOAPIFY_API_KEY")!;
 const RADAR_CRON_SECRET = Deno.env.get("RADAR_CRON_SECRET")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+// Mêmes secrets VAPID que send-boxmail-push (partagés par toutes les Edge
+// Functions du projet) : pas de config supplémentaire à faire pour ce push.
+const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY") || "";
+const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") || "";
+const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:contact@zenoa.app";
+
+// Prévient le chef par push que le tirage du jour est prêt. Ne doit jamais
+// faire échouer la génération de prospects elle-même en cas de souci.
+async function notifyChefs(count: number, supabase: ReturnType<typeof createClient>) {
+  try {
+    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY || count <= 0) return;
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+
+    const chefsRes = await supabase.from("profiles").select("id").eq("role", "chef");
+    const chefIds = ((chefsRes.data as { id: string }[]) || []).map((p) => p.id);
+    if (!chefIds.length) return;
+
+    const subsRes = await supabase.from("push_subscriptions").select("id,endpoint,p256dh,auth").in("user_id", chefIds);
+    const subs = (subsRes.data as { id: string; endpoint: string; p256dh: string; auth: string }[]) || [];
+    if (!subs.length) return;
+
+    const notifPayload = JSON.stringify({
+      title: "ZENOA — Zenoa Radar",
+      body: count + " nouveau" + (count > 1 ? "x" : "") + " prospect" + (count > 1 ? "s" : "") + " disponible" + (count > 1 ? "s" : "") + " dans Zenoa Radar",
+      url: "/"
+    });
+
+    await Promise.all(subs.map(async (s) => {
+      try {
+        await webpush.sendNotification(
+          { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+          notifPayload
+        );
+      } catch (err) {
+        const statusCode = err && (err as { statusCode?: number }).statusCode;
+        if (statusCode === 404 || statusCode === 410) {
+          await supabase.from("push_subscriptions").delete().eq("id", s.id);
+        } else {
+          console.error("[radar-daily push] échec d'envoi:", err);
+        }
+      }
+    }));
+  } catch (err) {
+    console.error("[radar-daily push] erreur globale:", err);
+  }
+}
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -228,6 +276,8 @@ Deno.serve(async (req) => {
         if (!insertRes.error && insertRes.data) inserted = inserted.concat(insertRes.data);
       }
     }
+
+    await notifyChefs(inserted.length, supabase);
 
     return new Response(JSON.stringify({
       inserted: inserted.length,
