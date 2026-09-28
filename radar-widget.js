@@ -85,7 +85,7 @@
     return t.getFullYear() + "-" + pad2(t.getMonth() + 1) + "-" + pad2(t.getDate());
   }
 
-  var CSS = "\n.radar-card{display:flex;flex-direction:column;gap:6px;padding:16px 18px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);margin-bottom:10px;transition:opacity .2s ease,border-color .2s ease;}\n.radar-card.done{opacity:.5;border-color:rgba(79,191,122,.5);}\n.radar-card-name{font-weight:700;font-size:15.5px;}\n.radar-card-row{font-size:13px;color:var(--text-mid);display:flex;align-items:center;gap:7px;}\n.radar-card-row a{color:#E0B3FF;word-break:break-all;}\n.radar-card-check{cursor:pointer;margin-top:4px;padding-top:10px;border-top:1px solid rgba(199,194,219,.12);color:var(--metal-2);font-weight:600;user-select:none;display:flex;align-items:center;justify-content:center;gap:8px;}\n.radar-card-check input{width:16px;height:16px;accent-color:var(--warm-1);cursor:pointer;}\n.radar-empty{opacity:.55;font-size:14px;padding:20px 4px;}\n";
+  var CSS = "\n.radar-card{display:flex;flex-direction:column;gap:6px;padding:16px 18px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.14);margin-bottom:10px;transition:opacity .2s ease,border-color .2s ease;}\n.radar-card.done{opacity:.5;border-color:rgba(79,191,122,.5);}\n.radar-card-name{font-weight:700;font-size:15.5px;}\n.radar-card-row{font-size:13px;color:var(--text-mid);display:flex;align-items:center;gap:7px;}\n.radar-card-row a{color:#E0B3FF;word-break:break-all;}\n.radar-card-status{display:flex;gap:8px;margin-top:4px;padding-top:10px;border-top:1px solid rgba(199,194,219,.12);flex-wrap:wrap;}\n.radar-status-btn{flex:1;text-align:center;padding:8px 6px;border-radius:8px;border:1px solid rgba(199,194,219,.2);background:rgba(255,255,255,.03);color:var(--text-mid);font-size:12.5px;font-weight:600;cursor:pointer;transition:background .2s ease,border-color .2s ease,color .2s ease;white-space:nowrap;}\n.radar-status-btn:hover{background:rgba(255,255,255,.08);}\n.radar-status-btn.active.interested{background:#4fbf7a26;border-color:#4fbf7a;color:#7fe0a4;}\n.radar-status-btn.active.not_interested{background:#d9534f26;border-color:#d9534f;color:#e88783;}\n.radar-status-btn.active.pending{background:#bf5af226;border-color:#bf5af2;color:#e0b3ff;}\n.radar-empty{opacity:.55;font-size:14px;padding:20px 4px;}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -122,8 +122,14 @@
       });
     }
 
-    function toggleContacted(id, val) {
-      supabase.from("radar_leads").update({ contacted: val }).eq("id", id).then(function () {});
+    var STATUS_OPTIONS = [
+      { value: "interested", label: "Intéressé" },
+      { value: "not_interested", label: "Non intéressé" },
+      { value: "pending", label: "En attente" }
+    ];
+
+    function setStatus(id, val) {
+      supabase.from("radar_leads").update({ status: val }).eq("id", id).then(function () {});
     }
 
     function renderCards(container, results, emptyText) {
@@ -133,7 +139,7 @@
         return;
       }
       results.forEach(function (r) {
-        var card = el("div", { class: "radar-card" + (r.contacted ? " done" : "") });
+        var card = el("div", { class: "radar-card" + (r.status ? " done" : "") });
         card.appendChild(el("div", { class: "radar-card-name" }, escapeHtml(r.name)));
         if (r.category_label) card.appendChild(el("div", { class: "radar-card-row" }, "🏷️ " + escapeHtml(r.category_label) + (r.city ? " — " + escapeHtml(r.city) : "")));
         if (r.address) card.appendChild(el("div", { class: "radar-card-row" }, "📍 " + escapeHtml(r.address)));
@@ -143,17 +149,20 @@
         }
         card.appendChild(el("div", { class: "radar-card-row" }, "✉️ " + (r.email ? escapeHtml(r.email) : "Non trouvé")));
 
-        var checkLabel = el("label", { class: "radar-card-check" });
-        var checkbox = el("input", { type: "checkbox" });
-        checkbox.checked = !!r.contacted;
-        checkbox.addEventListener("change", function () {
-          r.contacted = checkbox.checked;
-          card.classList.toggle("done", checkbox.checked);
-          toggleContacted(r.id, checkbox.checked);
+        var statusRow = el("div", { class: "radar-card-status" });
+        STATUS_OPTIONS.forEach(function (opt) {
+          var btn = el("div", { class: "radar-status-btn " + opt.value + (r.status === opt.value ? " active" : "") }, escapeHtml(opt.label));
+          btn.addEventListener("click", function () {
+            var next = r.status === opt.value ? null : opt.value;
+            r.status = next;
+            card.classList.toggle("done", !!next);
+            statusRow.querySelectorAll(".radar-status-btn").forEach(function (b) { b.classList.remove("active"); });
+            if (next) btn.classList.add("active");
+            setStatus(r.id, next);
+          });
+          statusRow.appendChild(btn);
         });
-        checkLabel.appendChild(checkbox);
-        checkLabel.appendChild(document.createTextNode(" Contacté"));
-        card.appendChild(checkLabel);
+        card.appendChild(statusRow);
 
         container.appendChild(card);
       });
