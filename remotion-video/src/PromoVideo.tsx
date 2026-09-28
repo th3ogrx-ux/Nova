@@ -13,64 +13,116 @@ import {
 import { PhoneFrame, COLORS } from "./PhoneFrame";
 import { SettingsMock, TapRipple, FingerTap } from "./SettingsMock";
 import { BoxMailMock } from "./BoxMailMock";
+import { Sparkles } from "./Sparkles";
 
-const Backdrop: React.FC = () => (
-  <AbsoluteFill
-    style={{
-      background: COLORS.bgDeep,
-      backgroundImage: `radial-gradient(ellipse at 20% 25%, rgba(191,90,242,0.16), transparent 55%), radial-gradient(ellipse at 82% 75%, rgba(48,10,102,0.28), transparent 55%)`,
-    }}
-  />
-);
-
-const Caption: React.FC<{ children: React.ReactNode; opacity: number }> = ({
-  children,
-  opacity,
-}) => (
-  <div
-    style={{
-      position: "absolute",
-      bottom: 90,
-      left: 0,
-      right: 0,
-      textAlign: "center",
-      opacity,
-      fontFamily: "Poppins, sans-serif",
-    }}
-  >
-    <div
+const Backdrop: React.FC = () => {
+  const frame = useCurrentFrame();
+  const drift = Math.sin(frame / 45) * 6;
+  return (
+    <AbsoluteFill
       style={{
-        display: "inline-block",
-        padding: "14px 30px",
-        borderRadius: 999,
-        background: "rgba(12,5,24,0.75)",
-        border: "1px solid rgba(191,90,242,0.35)",
-        color: COLORS.metal2,
-        fontSize: 26,
-        fontWeight: 600,
-        letterSpacing: "0.01em",
-        boxShadow: "0 10px 40px rgba(0,0,0,0.5)",
+        background: COLORS.bgDeep,
+        backgroundImage: `radial-gradient(ellipse at ${20 + drift}% 25%, rgba(191,90,242,0.2), transparent 55%), radial-gradient(ellipse at ${82 - drift}% 75%, rgba(48,10,102,0.32), transparent 55%)`,
       }}
     >
-      {children}
+      <Sparkles />
+    </AbsoluteFill>
+  );
+};
+
+// Punchy shake for the moment of impact: a few frames of decaying oscillation.
+const punch = (frame: number, at: number, amp = 10, dur = 10) => {
+  const t = frame - at;
+  if (t < 0 || t > dur) return { x: 0, y: 0, scale: 1 };
+  const decay = 1 - t / dur;
+  const x = Math.sin(t * 2.4) * amp * decay;
+  const scale = 1 + (t < dur * 0.35 ? (dur * 0.35 - t) / (dur * 0.35) : 0) * 0.045;
+  return { x, y: 0, scale };
+};
+
+const Caption: React.FC<{ children: React.ReactNode; frame: number; from: number }> = ({
+  children,
+  frame,
+  from,
+}) => {
+  const { fps } = useVideoConfig();
+  const local = frame - from;
+  const enter = spring({
+    frame: local,
+    fps,
+    config: { damping: 11, stiffness: 220, mass: 0.6 },
+    durationInFrames: 14,
+  });
+  const opacity = interpolate(local, [-1, 0, 100, 112], [0, 1, 1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const translateY = interpolate(enter, [0, 1], [50, 0]);
+  const scale = interpolate(enter, [0, 1], [0.7, 1]);
+
+  if (opacity <= 0) return null;
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        bottom: 90,
+        left: 0,
+        right: 0,
+        textAlign: "center",
+        opacity,
+        transform: `translateY(${translateY}px) scale(${scale})`,
+        fontFamily: "Poppins, sans-serif",
+      }}
+    >
+      <div
+        style={{
+          display: "inline-block",
+          padding: "14px 30px",
+          borderRadius: 999,
+          background: "rgba(12,5,24,0.8)",
+          border: `1px solid ${COLORS.warm1}88`,
+          color: COLORS.metal2,
+          fontSize: 28,
+          fontWeight: 700,
+          letterSpacing: "0.01em",
+          boxShadow: `0 10px 40px rgba(0,0,0,0.55), 0 0 30px rgba(191,90,242,0.25)`,
+        }}
+      >
+        {children}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ---- Scene 1: Intro ----
 const IntroScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const logoScale = spring({ frame, fps, config: { damping: 14 } });
-  const titleOpacity = interpolate(frame, [12, 28], [0, 1], {
+  const logoSpring = spring({
+    frame,
+    fps,
+    config: { damping: 9, stiffness: 240, mass: 0.7 },
+  });
+  const logoScale = interpolate(logoSpring, [0, 1], [0.2, 1]);
+  const logoRotate = interpolate(logoSpring, [0, 1], [-35, 0]);
+
+  const titleSpring = spring({
+    frame: frame - 8,
+    fps,
+    config: { damping: 10, stiffness: 260, mass: 0.6 },
+  });
+  const titleOpacity = interpolate(titleSpring, [0, 1], [0, 1]);
+  const titleY = interpolate(titleSpring, [0, 1], [30, 0]);
+  const titleScale = interpolate(titleSpring, [0, 1], [0.8, 1]);
+
+  const pulse = 1 + Math.sin(frame / 5) * 0.02;
+
+  const exitScale = interpolate(frame, [30, 40], [1, 1.15], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const titleY = interpolate(frame, [12, 28], [16, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const exitOpacity = interpolate(frame, [45, 58], [1, 0], {
+  const exitOpacity = interpolate(frame, [30, 40], [1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -81,25 +133,26 @@ const IntroScene: React.FC = () => {
         alignItems: "center",
         justifyContent: "center",
         opacity: exitOpacity,
+        transform: `scale(${exitScale})`,
       }}
     >
       <Img
         src={staticFile("zenoa-icon.png")}
         style={{
-          width: 140,
-          height: 140,
-          transform: `scale(${logoScale})`,
-          filter: "drop-shadow(0 0 30px rgba(191,90,242,0.55))",
+          width: 150,
+          height: 150,
+          transform: `scale(${logoScale * pulse}) rotate(${logoRotate}deg)`,
+          filter: "drop-shadow(0 0 40px rgba(191,90,242,0.65))",
         }}
       />
       <div
         style={{
-          marginTop: 34,
-          fontSize: 40,
-          fontWeight: 700,
+          marginTop: 30,
+          fontSize: 46,
+          fontWeight: 800,
           color: COLORS.metal2,
           opacity: titleOpacity,
-          transform: `translateY(${titleY}px)`,
+          transform: `translateY(${titleY}px) scale(${titleScale})`,
           fontFamily: "Poppins, sans-serif",
           textAlign: "center",
         }}
@@ -115,81 +168,93 @@ const SettingsScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const enter = spring({ frame, fps, config: { damping: 16 }, durationInFrames: 20 });
-  const phoneOpacity = interpolate(frame, [0, 15], [0, 1], {
+  const enter = spring({
+    frame,
+    fps,
+    config: { damping: 11, stiffness: 200, mass: 0.7 },
+    durationInFrames: 16,
+  });
+  const phoneOpacity = interpolate(frame, [0, 8], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const phoneScale = interpolate(enter, [0, 1], [0.92, 1]);
+  const phoneScale = interpolate(enter, [0, 1], [0.75, 1]);
+  const phoneY = interpolate(enter, [0, 1], [90, 0]);
+  const phoneRotate = interpolate(enter, [0, 1], [6, 0]);
 
-  // Tap 1: install tile, around frame 35-55
+  const TAP1 = 22;
+  const TAP2 = 62;
+
   const tap1X = 190;
   const tap1Y = 331;
-  const tap1Progress = interpolate(frame, [35, 42, 50], [0, 1, 0], {
+  const tap1Progress = interpolate(frame, [TAP1, TAP1 + 5, TAP1 + 12], [0, 1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const tap1Ripple = interpolate(frame, [35, 60], [0, 1], {
+  const tap1Ripple = interpolate(frame, [TAP1, TAP1 + 22], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
   const installGlow = interpolate(
     frame,
-    [30, 40, 50, 70],
+    [TAP1 - 4, TAP1 + 4, TAP1 + 14, TAP1 + 34],
     [0, 1, 1, 0.35],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
-  // Tap 2: notif switch, around frame 95-115
   const tap2X = 316;
   const tap2Y = 424;
-  const tap2Progress = interpolate(frame, [95, 102, 110], [0, 1, 0], {
+  const tap2Progress = interpolate(frame, [TAP2, TAP2 + 5, TAP2 + 12], [0, 1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const tap2Ripple = interpolate(frame, [95, 120], [0, 1], {
+  const tap2Ripple = interpolate(frame, [TAP2, TAP2 + 22], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
   const notifGlow = interpolate(
     frame,
-    [90, 100, 110, 130],
+    [TAP2 - 4, TAP2 + 4, TAP2 + 14, TAP2 + 34],
     [0, 1, 1, 0.35],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
-  const notifOn = interpolate(frame, [98, 108], [0, 1], {
+  const notifOn = interpolate(frame, [TAP2 + 2, TAP2 + 9], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
-    easing: Easing.out(Easing.cubic),
+    easing: Easing.out(Easing.back(2)),
   });
 
-  const fingerVisible = frame >= 30 && frame < 118;
-  const fingerX = interpolate(frame, [30, 40, 85, 100], [tap1X, tap1X, tap2X, tap2X], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const fingerY = interpolate(frame, [30, 40, 85, 100], [tap1Y, tap1Y, tap2Y, tap2Y], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const fingerVisible = frame >= TAP1 - 8 && frame < TAP2 + 14;
+  const fingerX = interpolate(
+    frame,
+    [TAP1 - 8, TAP1, TAP1 + 16, TAP2],
+    [tap1X, tap1X, tap2X, tap2X],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+  const fingerY = interpolate(
+    frame,
+    [TAP1 - 8, TAP1, TAP1 + 16, TAP2],
+    [tap1Y, tap1Y, tap2Y, tap2Y],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
   const fingerOpacity = interpolate(
     frame,
-    [26, 32, 116, 124],
+    [TAP1 - 8, TAP1 - 3, TAP2 + 10, TAP2 + 16],
     [0, 1, 1, 0],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
   const pressed = Math.max(tap1Progress, tap2Progress);
 
-  const caption1Opacity = interpolate(frame, [22, 30, 68, 78], [0, 1, 1, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const caption2Opacity = interpolate(frame, [82, 90, 128, 140], [0, 1, 1, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const shake1 = punch(frame, TAP1, 9, 9);
+  const shake2 = punch(frame, TAP2, 11, 10);
+  const shakeX = shake1.x + shake2.x;
+  const shakeScale = Math.max(shake1.scale, shake2.scale);
 
-  const sceneOutOpacity = interpolate(frame, [140, 150], [1, 0], {
+  const sceneOutOpacity = interpolate(frame, [95, 104], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const sceneOutScale = interpolate(frame, [95, 104], [1, 0.9], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -202,7 +267,14 @@ const SettingsScene: React.FC = () => {
         opacity: Math.min(phoneOpacity, sceneOutOpacity),
       }}
     >
-      <div style={{ transform: `scale(${phoneScale})`, position: "relative" }}>
+      <div
+        style={{
+          transform: `translateY(${phoneY}px) rotate(${phoneRotate}deg) scale(${
+            phoneScale * shakeScale * sceneOutScale
+          }) translateX(${shakeX}px)`,
+          position: "relative",
+        }}
+      >
         <PhoneFrame>
           <SettingsMock
             installGlow={installGlow}
@@ -218,10 +290,12 @@ const SettingsScene: React.FC = () => {
           )}
         </PhoneFrame>
       </div>
-      <Caption opacity={caption1Opacity}>
+      <Caption frame={frame} from={TAP1 - 10}>
         1. Ajoute l'app à l'écran d'accueil
       </Caption>
-      <Caption opacity={caption2Opacity}>2. Active les notifications</Caption>
+      <Caption frame={frame} from={TAP2 - 10}>
+        2. Active les notifications
+      </Caption>
     </AbsoluteFill>
   );
 };
@@ -231,31 +305,48 @@ const BoxMailScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const enter = spring({ frame, fps, config: { damping: 16 }, durationInFrames: 18 });
-  const phoneOpacity = interpolate(frame, [0, 14], [0, 1], {
+  const enter = spring({
+    frame,
+    fps,
+    config: { damping: 11, stiffness: 200, mass: 0.7 },
+    durationInFrames: 14,
+  });
+  const phoneOpacity = interpolate(frame, [0, 7], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const phoneScale = interpolate(enter, [0, 1], [0.92, 1]);
+  const phoneScale = interpolate(enter, [0, 1], [0.78, 1]);
+  const phoneY = interpolate(enter, [0, 1], [80, 0]);
 
-  const newMsgProgress = interpolate(frame, [20, 34], [0, 1], {
+  const ARRIVE = 14;
+  const newMsgProgress = interpolate(frame, [ARRIVE, ARRIVE + 12], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
-    easing: Easing.out(Easing.back(1.6)),
+    easing: Easing.out(Easing.back(2.2)),
   });
   const pulse = interpolate(
     frame,
-    [20, 34, 50, 65],
+    [ARRIVE, ARRIVE + 12, ARRIVE + 34, ARRIVE + 46],
     [0, 1, 1, 0.3],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
-  const captionOpacity = interpolate(frame, [30, 40, 78, 90], [0, 1, 1, 0], {
+  const shake = punch(frame, ARRIVE + 10, 14, 12);
+
+  const captionOpacity = interpolate(frame, [ARRIVE + 2, ARRIVE + 10, 74, 84], [0, 1, 1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const captionY = interpolate(frame, [ARRIVE + 2, ARRIVE + 10], [40, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  const sceneOutOpacity = interpolate(frame, [88, 98], [1, 0], {
+  const sceneOutOpacity = interpolate(frame, [80, 90], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const sceneOutScale = interpolate(frame, [80, 90], [1, 0.9], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -268,14 +359,45 @@ const BoxMailScene: React.FC = () => {
         opacity: Math.min(phoneOpacity, sceneOutOpacity),
       }}
     >
-      <div style={{ transform: `scale(${phoneScale})` }}>
+      <div
+        style={{
+          transform: `translateY(${phoneY}px) scale(${
+            phoneScale * shake.scale * sceneOutScale
+          }) translateX(${shake.x}px)`,
+        }}
+      >
         <PhoneFrame>
           <BoxMailMock newMsgProgress={newMsgProgress} pulse={pulse} />
         </PhoneFrame>
       </div>
-      <Caption opacity={captionOpacity}>
-        3. Reçois tes BoxMails direct
-      </Caption>
+      <div
+        style={{
+          position: "absolute",
+          bottom: 90,
+          left: 0,
+          right: 0,
+          textAlign: "center",
+          opacity: captionOpacity,
+          transform: `translateY(${captionY}px)`,
+          fontFamily: "Poppins, sans-serif",
+        }}
+      >
+        <div
+          style={{
+            display: "inline-block",
+            padding: "14px 30px",
+            borderRadius: 999,
+            background: "rgba(12,5,24,0.8)",
+            border: `1px solid ${COLORS.warm1}88`,
+            color: COLORS.metal2,
+            fontSize: 28,
+            fontWeight: 700,
+            boxShadow: "0 10px 40px rgba(0,0,0,0.55), 0 0 30px rgba(191,90,242,0.25)",
+          }}
+        >
+          3. Reçois tes BoxMails direct
+        </div>
+      </div>
     </AbsoluteFill>
   );
 };
@@ -284,12 +406,29 @@ const BoxMailScene: React.FC = () => {
 const OutroScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const scale = spring({ frame, fps, config: { damping: 14 } });
-  const opacity = interpolate(frame, [0, 12], [0, 1], {
+  const logoSpring = spring({
+    frame,
+    fps,
+    config: { damping: 9, stiffness: 260, mass: 0.65 },
+  });
+  const scale = interpolate(logoSpring, [0, 1], [0.2, 1]);
+  const rotate = interpolate(logoSpring, [0, 1], [180, 0]);
+  const pulse = 1 + Math.sin(frame / 5) * 0.03;
+
+  const line1Spring = spring({
+    frame: frame - 6,
+    fps,
+    config: { damping: 10, stiffness: 260, mass: 0.6 },
+  });
+  const line1Opacity = interpolate(line1Spring, [0, 1], [0, 1]);
+  const line1Y = interpolate(line1Spring, [0, 1], [26, 0]);
+
+  const line2Opacity = interpolate(frame, [16, 24], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const fadeOut = interpolate(frame, [58, 70], [1, 0], {
+
+  const fadeOut = interpolate(frame, [42, 54], [1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -299,26 +438,28 @@ const OutroScene: React.FC = () => {
       style={{
         alignItems: "center",
         justifyContent: "center",
-        opacity: Math.min(opacity, fadeOut),
+        opacity: fadeOut,
       }}
     >
       <Img
         src={staticFile("zenoa-icon.png")}
         style={{
-          width: 110,
-          height: 110,
-          transform: `scale(${scale})`,
-          filter: "drop-shadow(0 0 26px rgba(191,90,242,0.55))",
+          width: 120,
+          height: 120,
+          transform: `scale(${scale * pulse}) rotate(${rotate}deg)`,
+          filter: "drop-shadow(0 0 34px rgba(191,90,242,0.6))",
         }}
       />
       <div
         style={{
-          marginTop: 28,
-          fontSize: 34,
-          fontWeight: 700,
+          marginTop: 26,
+          fontSize: 38,
+          fontWeight: 800,
           color: COLORS.metal2,
           fontFamily: "Poppins, sans-serif",
           textAlign: "center",
+          opacity: line1Opacity,
+          transform: `translateY(${line1Y}px)`,
         }}
       >
         Ne rate plus rien.
@@ -326,10 +467,11 @@ const OutroScene: React.FC = () => {
       <div
         style={{
           marginTop: 8,
-          fontSize: 20,
+          fontSize: 21,
           color: COLORS.warm2,
           fontFamily: "Poppins, sans-serif",
           textAlign: "center",
+          opacity: line2Opacity,
         }}
       >
         ZENOA — Paramètres → Écran d'accueil → Notifications
@@ -342,16 +484,16 @@ export const PromoVideo: React.FC = () => {
   return (
     <AbsoluteFill>
       <Backdrop />
-      <Sequence from={0} durationInFrames={62}>
+      <Sequence from={0} durationInFrames={40}>
         <IntroScene />
       </Sequence>
-      <Sequence from={62} durationInFrames={152}>
+      <Sequence from={40} durationInFrames={108}>
         <SettingsScene />
       </Sequence>
-      <Sequence from={214} durationInFrames={100}>
+      <Sequence from={148} durationInFrames={92}>
         <BoxMailScene />
       </Sequence>
-      <Sequence from={312} durationInFrames={70}>
+      <Sequence from={240} durationInFrames={56}>
         <OutroScene />
       </Sequence>
     </AbsoluteFill>
