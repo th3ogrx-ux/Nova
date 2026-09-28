@@ -229,6 +229,13 @@
 
     // ---------- Notifications (mail BoxMail, prospects DM, signalements) ----------
 
+    var NOTIF_ICON_SVG = {
+      money: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M17 7a6 6 0 1 0 0 10"/><line x1="4" y1="10" x2="13" y2="10"/><line x1="4" y1="14" x2="11" y2="14"/></svg>',
+      users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+      radar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><circle cx="12" cy="19" r="1.2" fill="currentColor" stroke="none"/><path d="M8 19a4 4 0 0 1 8 0"/><path d="M5 19a7 7 0 0 1 14 0"/><path d="M2 19a10 10 0 0 1 20 0"/></svg>',
+      alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+    };
+
     function fetchBoxmailNotifs() {
       return supabase.from("boxmails").select("id,sender_id,content,created_at")
         .eq("recipient_id", me.id).order("created_at", { ascending: false }).limit(20)
@@ -254,7 +261,7 @@
               created_at: r.created_at,
               text: (profilesCache[r.setter_id] || "Quelqu'un") + " a fait une vente : " + r.contact,
               view: "dms",
-              icon: { type: "emoji", value: "💰" }
+              icon: { type: "svg", svg: NOTIF_ICON_SVG.money }
             };
           });
         });
@@ -286,7 +293,7 @@
               created_at: r.created_at,
               text: "Nouvelle réponse au formulaire de partenariat : " + (r.activite || r.email || "sans titre"),
               view: "partenariat",
-              icon: { type: "emoji", value: "🤝" }
+              icon: { type: "svg", svg: NOTIF_ICON_SVG.users }
             };
           });
         });
@@ -310,7 +317,7 @@
               created_at: batch.latest,
               text: batch.count + " nouveau" + (batch.count > 1 ? "x" : "") + " prospect" + (batch.count > 1 ? "s" : "") + " disponible" + (batch.count > 1 ? "s" : "") + " dans Zenoa Radar",
               view: "agent-ia",
-              icon: { type: "emoji", value: "📡" }
+              icon: { type: "svg", svg: NOTIF_ICON_SVG.radar }
             };
           });
         });
@@ -326,7 +333,7 @@
               created_at: r.created_at,
               text: "Signalement de " + (profilesCache[r.sender_id] || "quelqu'un") + " : " + r.content,
               view: null,
-              icon: { type: "emoji", value: "🚨" }
+              icon: { type: "svg", svg: NOTIF_ICON_SVG.alert }
             };
           });
         });
@@ -377,6 +384,8 @@
         } else {
           wrap.appendChild(document.createTextNode(icon.initials || "?"));
         }
+      } else if (icon && icon.type === "svg") {
+        wrap.innerHTML = icon.svg;
       } else if (icon) {
         wrap.appendChild(document.createTextNode(icon.value || "🔔"));
       }
