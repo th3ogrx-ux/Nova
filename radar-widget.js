@@ -129,7 +129,10 @@
     ];
 
     function setStatus(id, val) {
-      supabase.from("radar_leads").update({ status: val }).eq("id", id).then(function () {});
+      supabase.from("radar_leads").update({
+        status: val,
+        status_set_by: val ? (me && me.id) : null
+      }).eq("id", id).then(function () {});
     }
 
     function renderCards(container, results, emptyText) {

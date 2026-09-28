@@ -87,14 +87,18 @@
     var navEquipeSublist = document.getElementById("nav-equipe-sublist");
     var navRadarJournal = document.getElementById("nav-radar-journal");
     var periodTabs = document.getElementById("radar-journal-period-tabs");
-    var interestedEl = document.getElementById("radar-journal-interested");
-    var notInterestedEl = document.getElementById("radar-journal-not-interested");
-    var pendingEl = document.getElementById("radar-journal-pending");
+    var activityListEl = document.getElementById("radar-journal-activity-list");
     var listEl = document.getElementById("radar-journal-list");
 
     if (!navRadarJournal || !listEl) return;
 
     var currentPeriod = "day";
+    var me = null;
+    var members = [];
+
+    function initials(name) {
+      return (name || "?").trim().slice(0, 2).toUpperCase();
+    }
 
     function switchToView() {
       document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
@@ -113,7 +117,10 @@
     }
 
     function setStatus(id, status, row) {
-      supabase.from("radar_leads").update({ status: status }).eq("id", id).then(function () {});
+      supabase.from("radar_leads").update({
+        status: status,
+        status_set_by: status ? (me && me.id) : null
+      }).eq("id", id).then(function () {});
     }
 
     function renderCards(results) {
@@ -152,22 +159,60 @@
       });
     }
 
+    function renderActivity(rows) {
+      if (!activityListEl) return;
+      activityListEl.innerHTML = "";
+      if (!members.length) return;
+
+      var byMember = {};
+      members.forEach(function (m) { byMember[m.id] = { interested: 0, notInterested: 0, pending: 0 }; });
+      rows.forEach(function (r) {
+        if (!r.status_set_by || !byMember[r.status_set_by]) return;
+        if (r.status === "interested") byMember[r.status_set_by].interested++;
+        else if (r.status === "not_interested") byMember[r.status_set_by].notInterested++;
+        else if (r.status === "pending") byMember[r.status_set_by].pending++;
+      });
+
+      members.forEach(function (m) {
+        var counts = byMember[m.id];
+        var row = el("div", { class: "team-row glass-card" });
+
+        var avatar = el("div", { class: "avatar", style: "cursor:default;" });
+        if (m.photo_url) avatar.appendChild(el("img", { src: m.photo_url }));
+        else avatar.appendChild(el("span", {}, initials(m.pseudo)));
+        row.appendChild(avatar);
+
+        var info = el("div", { class: "team-row-info" });
+        info.appendChild(el("div", { class: "team-row-name" }, escapeHtml(m.pseudo || "Compte incomplet")));
+        row.appendChild(info);
+
+        var stats = el("div", { style: "display:flex;gap:18px;flex-shrink:0;" });
+        [["Intéressé", counts.interested, "#4FBF7A"], ["Non intéressé", counts.notInterested, "#D9534F"], ["En attente", counts.pending, "var(--warm-1)"]].forEach(function (t) {
+          var stat = el("div", { style: "text-align:center;" });
+          stat.appendChild(el("div", { style: "font-weight:700;font-size:16px;color:" + t[2] + ";" }, String(t[1])));
+          stat.appendChild(el("small", { style: "font-size:11px;color:var(--text-dim);" }, t[0]));
+          stats.appendChild(stat);
+        });
+        row.appendChild(stats);
+
+        activityListEl.appendChild(row);
+      });
+    }
+
     function loadJournal() {
       var since = periodSince(currentPeriod);
       var query = supabase.from("radar_leads").select("*").order("created_at", { ascending: false });
       if (since) query = query.gte("created_at", since);
       query.then(function (res) {
         var rows = (res && res.data) || [];
-        var interested = 0, notInterested = 0, pending = 0;
-        rows.forEach(function (r) {
-          if (r.status === "interested") interested++;
-          else if (r.status === "not_interested") notInterested++;
-          else if (r.status === "pending") pending++;
-        });
-        if (interestedEl) interestedEl.textContent = interested;
-        if (notInterestedEl) notInterestedEl.textContent = notInterested;
-        if (pendingEl) pendingEl.textContent = pending;
+        renderActivity(rows);
         renderCards(rows);
+      });
+    }
+
+    function loadMembers() {
+      return supabase.from("profiles").select("id,pseudo,photo_url").eq("is_active", true).order("pseudo").then(function (res) {
+        members = (res && res.data) || [];
       });
     }
 
@@ -184,13 +229,16 @@
 
     navRadarJournal.addEventListener("click", function () {
       switchToView();
-      loadJournal();
+      loadMembers().then(loadJournal);
     });
 
     var subscribed = false;
-    function boot() {
+    function boot(userId) {
       if (subscribed) return;
       subscribed = true;
+      supabase.from("profiles").select("id,pseudo").eq("id", userId).single().then(function (res) {
+        if (res && res.data) me = res.data;
+      });
       supabase.channel("nova-radar-journal")
         .on("postgres_changes", { event: "*", schema: "public", table: "radar_leads" }, function () {
           var v = document.getElementById("view-radar-journal");
@@ -201,10 +249,10 @@
 
     supabase.auth.getSession().then(function (res) {
       var session = res && res.data && res.data.session;
-      if (session && session.user) boot();
+      if (session && session.user) boot(session.user.id);
     });
     supabase.auth.onAuthStateChange(function (event, session) {
-      if (session && session.user) boot();
+      if (session && session.user) boot(session.user.id);
     });
   }
 
