@@ -133,7 +133,11 @@
       supabase.from("profiles").select("id,role").eq("id", userId).single().then(function (res) {
         if (!res || !res.data) return;
         me = res.data;
-        navEquipe.style.display = me.role === "chef" ? "none" : "flex";
+        // Le chef a déjà la liste complète via Gestion -> Gérer l'équipe,
+        // donc seul le sous-élément "Membres" (la liste simplifiée pour
+        // les setters) lui est masqué — pas tout le menu "Équipe", sinon
+        // "Journal de DMs" (rangé dessous) deviendrait inaccessible.
+        if (navEquipeMembres) navEquipeMembres.style.display = me.role === "chef" ? "none" : "block";
       });
     }
 
