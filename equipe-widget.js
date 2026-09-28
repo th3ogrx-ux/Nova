@@ -61,18 +61,46 @@
 
     var me = null;
     var navEquipe = document.getElementById("nav-equipe");
+    var navEquipeSublist = document.getElementById("nav-equipe-sublist");
+    var navEquipeCaret = document.getElementById("nav-equipe-caret");
+    var navEquipeMembres = document.getElementById("nav-equipe-membres");
     var equipeList = document.getElementById("equipe-list");
 
     if (!navEquipe || !equipeList) return;
 
-    navEquipe.addEventListener("click", function () {
-      document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
-      navEquipe.classList.add("active");
-      document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
-      var v = document.getElementById("view-equipe");
-      if (v) v.classList.add("active");
-      renderEquipe();
-    });
+    if (navEquipeSublist) {
+      navEquipe.addEventListener("click", function (e) {
+        e.stopPropagation();
+        // Comme Résultats/Gestion/Agent IA : un clic sur "Équipe" ne fait
+        // que déplier son sous-menu, la vraie navigation passe par un
+        // sous-élément ("Membres" ou "Journal de DMs").
+        if (window.ZenoaNav) {
+          window.ZenoaNav.restoreView(window.ZenoaNav.getLastView());
+          window.ZenoaNav.reopenSidebar();
+        }
+        var isOpen = navEquipeSublist.classList.toggle("open");
+        if (navEquipeCaret) navEquipeCaret.classList.toggle("open", isOpen);
+      });
+    }
+
+    if (navEquipeMembres) {
+      navEquipeMembres.addEventListener("click", function () {
+        document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
+        navEquipe.classList.add("active");
+        if (navEquipeSublist) {
+          navEquipeSublist.querySelectorAll(".nav-subitem").forEach(function (si) { si.classList.remove("active"); });
+        }
+        navEquipeMembres.classList.add("active");
+        document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+        var v = document.getElementById("view-equipe");
+        if (v) v.classList.add("active");
+        if (window.ZenoaNav) {
+          window.ZenoaNav.closeSidebar();
+          window.ZenoaNav.setLastView("equipe");
+        }
+        renderEquipe();
+      });
+    }
 
     function renderEquipe() {
       equipeList.innerHTML = "";
