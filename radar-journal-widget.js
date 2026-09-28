@@ -58,12 +58,6 @@
     });
   }
 
-  var STATUS_OPTIONS = [
-    { value: "interested", label: "Intéressé" },
-    { value: "not_interested", label: "Non intéressé" },
-    { value: "pending", label: "En attente" }
-  ];
-
   function periodSince(period) {
     var now = new Date();
     if (period === "day") {
@@ -80,7 +74,13 @@
     return null;
   }
 
+  var CSS = "\n.rj-row{display:flex;align-items:center;gap:14px;}\n.rj-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n.rj-stats{display:flex;gap:18px;flex-shrink:0;}\n.rj-stat{text-align:center;min-width:34px;}\n.rj-remove{flex-shrink:0;opacity:.5;cursor:pointer;font-size:16px;padding:0 4px;}\n.rj-remove:hover{opacity:1;color:#e88783;}\n.rj-picker{margin:10px 0;display:none;flex-direction:column;gap:2px;}\n.rj-picker.open{display:flex;}\n.rj-picker-item{padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13.5px;background:rgba(255,255,255,.04);}\n.rj-picker-item:hover{background:rgba(255,255,255,.09);}\n";
+
   function init() {
+    var style = document.createElement("style");
+    style.textContent = CSS;
+    document.head.appendChild(style);
+
     var supabase = getSupabaseClient();
 
     var navEquipe = document.getElementById("nav-equipe");
@@ -88,13 +88,15 @@
     var navRadarJournal = document.getElementById("nav-radar-journal");
     var periodTabs = document.getElementById("radar-journal-period-tabs");
     var activityListEl = document.getElementById("radar-journal-activity-list");
-    var listEl = document.getElementById("radar-journal-list");
+    var addBtn = document.getElementById("radar-journal-add-btn");
 
-    if (!navRadarJournal || !listEl) return;
+    if (!navRadarJournal || !activityListEl) return;
 
     var currentPeriod = "day";
     var me = null;
-    var members = [];
+    var allProfiles = [];
+    var watchedIds = [];
+    var picker = null;
 
     function initials(name) {
       return (name || "?").trim().slice(0, 2).toUpperCase();
@@ -116,103 +118,119 @@
       }
     }
 
-    function setStatus(id, status, row) {
-      supabase.from("radar_leads").update({
-        status: status,
-        status_set_by: status ? (me && me.id) : null
-      }).eq("id", id).then(function () {});
+    function isChef() {
+      return me && me.role === "chef";
     }
 
-    function renderCards(results) {
-      listEl.innerHTML = "";
-      if (!results.length) {
-        listEl.appendChild(el("div", { class: "empty-note" }, "Aucun prospect sur cette période."));
+    function togglePicker() {
+      if (!picker) return;
+      var isOpen = picker.classList.toggle("open");
+      if (isOpen) renderPicker();
+    }
+
+    function renderPicker() {
+      picker.innerHTML = "";
+      var available = allProfiles.filter(function (p) { return watchedIds.indexOf(p.id) === -1; });
+      if (!available.length) {
+        picker.appendChild(el("div", { class: "empty-note" }, "Tout le monde est déjà ajouté."));
         return;
       }
-      results.forEach(function (r) {
-        var card = el("div", { class: "radar-card" + (r.status ? " done" : "") });
-        card.appendChild(el("div", { class: "radar-card-name" }, escapeHtml(r.name)));
-        if (r.category_label) card.appendChild(el("div", { class: "radar-card-row" }, "🏷️ " + escapeHtml(r.category_label) + (r.city ? " — " + escapeHtml(r.city) : "")));
-        if (r.address) card.appendChild(el("div", { class: "radar-card-row" }, "📍 " + escapeHtml(r.address)));
-        if (r.phone) card.appendChild(el("div", { class: "radar-card-row" }, "📞 " + escapeHtml(r.phone)));
-        if (r.website) {
-          card.appendChild(el("div", { class: "radar-card-row" }, '🌐 <a href="' + escapeHtml(r.website) + '" target="_blank" rel="noopener">' + escapeHtml(r.website) + "</a>"));
-        }
-        card.appendChild(el("div", { class: "radar-card-row" }, "✉️ " + (r.email ? escapeHtml(r.email) : "Non trouvé")));
-
-        var statusRow = el("div", { class: "radar-card-status" });
-        STATUS_OPTIONS.forEach(function (opt) {
-          var btn = el("div", { class: "radar-status-btn " + opt.value + (r.status === opt.value ? " active" : "") }, escapeHtml(opt.label));
-          btn.addEventListener("click", function () {
-            var next = r.status === opt.value ? null : opt.value;
-            r.status = next;
-            card.classList.toggle("done", !!next);
-            statusRow.querySelectorAll(".radar-status-btn").forEach(function (b) { b.classList.remove("active"); });
-            if (next) btn.classList.add("active");
-            setStatus(r.id, next, r);
+      available.forEach(function (p) {
+        var item = el("div", { class: "rj-picker-item" }, "+ " + escapeHtml(p.pseudo || "Compte incomplet"));
+        item.addEventListener("click", function () {
+          supabase.from("radar_journal_watchlist").insert({ profile_id: p.id }).then(function (res) {
+            if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+            loadWatchlist();
           });
-          statusRow.appendChild(btn);
         });
-        card.appendChild(statusRow);
-
-        listEl.appendChild(card);
-      });
-    }
-
-    function renderActivity(rows) {
-      if (!activityListEl) return;
-      activityListEl.innerHTML = "";
-      if (!members.length) return;
-
-      var byMember = {};
-      members.forEach(function (m) { byMember[m.id] = { interested: 0, notInterested: 0, pending: 0 }; });
-      rows.forEach(function (r) {
-        if (!r.status_set_by || !byMember[r.status_set_by]) return;
-        if (r.status === "interested") byMember[r.status_set_by].interested++;
-        else if (r.status === "not_interested") byMember[r.status_set_by].notInterested++;
-        else if (r.status === "pending") byMember[r.status_set_by].pending++;
-      });
-
-      members.forEach(function (m) {
-        var counts = byMember[m.id];
-        var row = el("div", { class: "team-row glass-card" });
-
-        var avatar = el("div", { class: "avatar", style: "cursor:default;" });
-        if (m.photo_url) avatar.appendChild(el("img", { src: m.photo_url }));
-        else avatar.appendChild(el("span", {}, initials(m.pseudo)));
-        row.appendChild(avatar);
-
-        var info = el("div", { class: "team-row-info" });
-        info.appendChild(el("div", { class: "team-row-name" }, escapeHtml(m.pseudo || "Compte incomplet")));
-        row.appendChild(info);
-
-        var stats = el("div", { style: "display:flex;gap:18px;flex-shrink:0;" });
-        [["Intéressé", counts.interested, "#4FBF7A"], ["Non intéressé", counts.notInterested, "#D9534F"], ["En attente", counts.pending, "var(--warm-1)"]].forEach(function (t) {
-          var stat = el("div", { style: "text-align:center;" });
-          stat.appendChild(el("div", { style: "font-weight:700;font-size:16px;color:" + t[2] + ";" }, String(t[1])));
-          stat.appendChild(el("small", { style: "font-size:11px;color:var(--text-dim);" }, t[0]));
-          stats.appendChild(stat);
-        });
-        row.appendChild(stats);
-
-        activityListEl.appendChild(row);
+        picker.appendChild(item);
       });
     }
 
     function loadJournal() {
+      if (!watchedIds.length) {
+        activityListEl.innerHTML = "";
+        activityListEl.appendChild(el("div", { class: "empty-note" }, "Aucune personne suivie — clique sur \"+ Ajouter des personnes\"."));
+        return;
+      }
+
       var since = periodSince(currentPeriod);
-      var query = supabase.from("radar_leads").select("*").order("created_at", { ascending: false });
+      var query = supabase.from("radar_leads").select("status,status_set_by").in("status_set_by", watchedIds);
       if (since) query = query.gte("created_at", since);
+
       query.then(function (res) {
         var rows = (res && res.data) || [];
-        renderActivity(rows);
-        renderCards(rows);
+        var byMember = {};
+        watchedIds.forEach(function (id) { byMember[id] = { interested: 0, notInterested: 0, pending: 0 }; });
+        rows.forEach(function (r) {
+          if (!byMember[r.status_set_by]) return;
+          if (r.status === "interested") byMember[r.status_set_by].interested++;
+          else if (r.status === "not_interested") byMember[r.status_set_by].notInterested++;
+          else if (r.status === "pending") byMember[r.status_set_by].pending++;
+        });
+
+        var members = watchedIds.map(function (id) {
+          var profile = allProfiles.filter(function (p) { return p.id === id; })[0];
+          return { profile: profile, counts: byMember[id] };
+        }).filter(function (m) { return m.profile; });
+
+        members.sort(function (a, b) {
+          if (b.counts.interested !== a.counts.interested) return b.counts.interested - a.counts.interested;
+          var totalA = a.counts.interested + a.counts.notInterested + a.counts.pending;
+          var totalB = b.counts.interested + b.counts.notInterested + b.counts.pending;
+          if (totalB !== totalA) return totalB - totalA;
+          return (a.profile.pseudo || "").localeCompare(b.profile.pseudo || "");
+        });
+
+        activityListEl.innerHTML = "";
+        members.forEach(function (m) {
+          var p = m.profile, counts = m.counts;
+          var row = el("div", { class: "team-row glass-card rj-row" });
+
+          var avatar = el("div", { class: "avatar", style: "cursor:default;" });
+          if (p.photo_url) avatar.appendChild(el("img", { src: p.photo_url }));
+          else avatar.appendChild(el("span", {}, initials(p.pseudo)));
+          row.appendChild(avatar);
+
+          var info = el("div", { class: "team-row-info" });
+          info.appendChild(el("div", { class: "team-row-name rj-name" }, escapeHtml(p.pseudo || "Compte incomplet")));
+          row.appendChild(info);
+
+          var stats = el("div", { class: "rj-stats" });
+          [["Intéressé", counts.interested, "#4FBF7A"], ["Non intéressé", counts.notInterested, "#D9534F"], ["En attente", counts.pending, "var(--warm-1)"]].forEach(function (t) {
+            var stat = el("div", { class: "rj-stat" });
+            stat.appendChild(el("div", { style: "font-weight:700;font-size:16px;color:" + t[2] + ";" }, String(t[1])));
+            stat.appendChild(el("small", { style: "font-size:11px;color:var(--text-dim);" }, t[0]));
+            stats.appendChild(stat);
+          });
+          row.appendChild(stats);
+
+          if (isChef()) {
+            var remove = el("div", { class: "rj-remove", title: "Retirer" }, "×");
+            remove.addEventListener("click", function () {
+              supabase.from("radar_journal_watchlist").delete().eq("profile_id", p.id).then(function (res) {
+                if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+                loadWatchlist();
+              });
+            });
+            row.appendChild(remove);
+          }
+
+          activityListEl.appendChild(row);
+        });
       });
     }
 
-    function loadMembers() {
-      return supabase.from("profiles").select("id,pseudo,photo_url").eq("is_active", true).order("pseudo").then(function (res) {
-        members = (res && res.data) || [];
+    function loadWatchlist() {
+      supabase.from("radar_journal_watchlist").select("profile_id").then(function (res) {
+        watchedIds = ((res && res.data) || []).map(function (r) { return r.profile_id; });
+        loadJournal();
+      });
+    }
+
+    function loadProfiles() {
+      return supabase.from("profiles").select("id,pseudo,photo_url,role").eq("is_active", true).order("pseudo").then(function (res) {
+        allProfiles = (res && res.data) || [];
       });
     }
 
@@ -227,22 +245,37 @@
       });
     }
 
+    if (addBtn) {
+      picker = el("div", { class: "rj-picker", id: "radar-journal-picker" });
+      addBtn.insertAdjacentElement("afterend", picker);
+      addBtn.addEventListener("click", togglePicker);
+    }
+
     navRadarJournal.addEventListener("click", function () {
       switchToView();
-      loadMembers().then(loadJournal);
+      loadProfiles().then(loadWatchlist);
     });
 
     var subscribed = false;
     function boot(userId) {
       if (subscribed) return;
       subscribed = true;
-      supabase.from("profiles").select("id,pseudo").eq("id", userId).single().then(function (res) {
-        if (res && res.data) me = res.data;
+      supabase.from("profiles").select("id,pseudo,role").eq("id", userId).single().then(function (res) {
+        if (res && res.data) {
+          me = res.data;
+          if (addBtn && isChef()) addBtn.style.display = "inline-flex";
+        }
       });
       supabase.channel("nova-radar-journal")
         .on("postgres_changes", { event: "*", schema: "public", table: "radar_leads" }, function () {
           var v = document.getElementById("view-radar-journal");
           if (v && v.classList.contains("active")) loadJournal();
+        })
+        .subscribe();
+      supabase.channel("nova-radar-journal-watchlist")
+        .on("postgres_changes", { event: "*", schema: "public", table: "radar_journal_watchlist" }, function () {
+          var v = document.getElementById("view-radar-journal");
+          if (v && v.classList.contains("active")) loadWatchlist();
         })
         .subscribe();
     }
