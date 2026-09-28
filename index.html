@@ -2,8 +2,18 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>ZENOA</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#04010a">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ZENOA">
   <script type="module" crossorigin src="/index-dvofGVgL.js"></script>
   <link rel="stylesheet" crossorigin href="/index-C8RpDqbc.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -50,6 +60,12 @@
     .boxmail-broadcast-toggle:hover{background:rgba(255,255,255,.08);}
     .boxmail-broadcast-toggle input{width:16px;height:16px;accent-color:var(--warm-1);cursor:pointer;}
     .boxmail-broadcast-toggle.checked{border-color:var(--warm-1);background:#bf5af226;color:var(--metal-2);}
+
+    /* Zones sûres (encoche / barre d'accueil) en mode PWA plein écran */
+    .topbar{padding-top:env(safe-area-inset-top);height:calc(64px + env(safe-area-inset-top));}
+    .main{padding-top:calc(64px + env(safe-area-inset-top));padding-bottom:env(safe-area-inset-bottom);}
+    .sidebar{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);}
+    #toast{bottom:calc(26px + env(safe-area-inset-bottom));}
   </style>
 </head>
 <body>
@@ -982,6 +998,7 @@
 
 <div id="toast"></div>
 
+<script src="/pwa-widget.js"></script>
 <script src="/confirm-dialog-widget.js"></script>
 <script src="/chat-widget.js"></script>
 <script src="/boxmail-widget.js"></script>
