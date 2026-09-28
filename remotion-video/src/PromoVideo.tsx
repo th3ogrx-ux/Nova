@@ -41,11 +41,13 @@ const punch = (frame: number, at: number, amp = 10, dur = 10) => {
   return { x, y: 0, scale };
 };
 
-const Caption: React.FC<{ children: React.ReactNode; frame: number; from: number }> = ({
-  children,
-  frame,
-  from,
-}) => {
+const Caption: React.FC<{
+  children: React.ReactNode;
+  frame: number;
+  from: number;
+  exitAt?: number;
+  exitDur?: number;
+}> = ({ children, frame, from, exitAt = 100, exitDur = 12 }) => {
   const { fps } = useVideoConfig();
   const local = frame - from;
   const enter = spring({
@@ -54,10 +56,12 @@ const Caption: React.FC<{ children: React.ReactNode; frame: number; from: number
     config: { damping: 11, stiffness: 220, mass: 0.6 },
     durationInFrames: 14,
   });
-  const opacity = interpolate(local, [-1, 0, 100, 112], [0, 1, 1, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const opacity = interpolate(
+    local,
+    [-1, 0, exitAt, exitAt + exitDur],
+    [0, 1, 1, 0],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
   const translateY = interpolate(enter, [0, 1], [50, 0]);
   const scale = interpolate(enter, [0, 1], [0.7, 1]);
 
@@ -436,10 +440,10 @@ const SettingsScene: React.FC = () => {
           )}
         </PhoneFrame>
       </div>
-      <Caption frame={frame} from={TAP1 - 10}>
+      <Caption frame={frame} from={TAP1 - 10} exitAt={28} exitDur={8}>
         1. Ajoute l'app à l'écran d'accueil
       </Caption>
-      <Caption frame={frame} from={TAP2 - 10}>
+      <Caption frame={frame} from={TAP2 - 10} exitAt={40} exitDur={8}>
         2. Active les notifications
       </Caption>
     </AbsoluteFill>
