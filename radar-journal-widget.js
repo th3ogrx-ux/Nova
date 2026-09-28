@@ -83,8 +83,6 @@
 
     var supabase = getSupabaseClient();
 
-    var navEquipe = document.getElementById("nav-equipe");
-    var navEquipeSublist = document.getElementById("nav-equipe-sublist");
     var navRadarJournal = document.getElementById("nav-radar-journal");
     var periodTabs = document.getElementById("radar-journal-period-tabs");
     var activityListEl = document.getElementById("radar-journal-activity-list");
@@ -127,10 +125,6 @@
 
     function switchToView() {
       document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
-      if (navEquipe) navEquipe.classList.add("active");
-      // Efface TOUS les sous-éléments actifs (pas seulement ceux d'Équipe) :
-      // sinon en venant d'un autre accordéon (Agent IA, Gestion...) son
-      // sous-élément reste violet même après avoir quitté sa page.
       document.querySelectorAll(".nav-subitem").forEach(function (si) { si.classList.remove("active"); });
       navRadarJournal.classList.add("active");
       document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
