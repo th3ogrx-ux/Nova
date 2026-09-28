@@ -396,12 +396,14 @@
     if (btnDeleteContract) {
       btnDeleteContract.addEventListener("click", function () {
         if (!currentContractId) return;
-        if (!confirm("Supprimer définitivement ce contrat ?")) return;
-        supabase.from("team_contracts").delete().eq("id", currentContractId).then(function (res) {
-          if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-          currentContractId = null;
-          showContractsList();
-          renderContractsList();
+        zenoaConfirm("Supprimer définitivement ce contrat ?").then(function (ok) {
+          if (!ok) return;
+          supabase.from("team_contracts").delete().eq("id", currentContractId).then(function (res) {
+            if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+            currentContractId = null;
+            showContractsList();
+            renderContractsList();
+          });
         });
       });
     }

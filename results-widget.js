@@ -219,10 +219,12 @@
           right.appendChild(el("div", { class: "oneshot-row-amount" }, fmtEUR(r.amount)));
           var del = el("span", { class: "res-del", style: "position:static;cursor:pointer;opacity:.6;" }, "✕");
           del.addEventListener("click", function () {
-            if (!confirm("Supprimer cette vente one-shot ?")) return;
-            supabase.from("one_shot_sales").delete().eq("id", r.id).then(function (res) {
-              if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-              renderOneshot();
+            zenoaConfirm("Supprimer cette vente one-shot ?").then(function (ok) {
+              if (!ok) return;
+              supabase.from("one_shot_sales").delete().eq("id", r.id).then(function (res) {
+                if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+                renderOneshot();
+              });
             });
           });
           right.appendChild(del);

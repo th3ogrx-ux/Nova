@@ -203,10 +203,12 @@
         if (me && ev.created_by === me.id) {
           var del = el("span", { class: "calendar-event-del" }, "✕");
           del.addEventListener("click", function () {
-            if (!confirm("Supprimer ce point ?")) return;
-            supabase.from("calendar_events").delete().eq("id", ev.id).then(function (res) {
-              if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-              loadMonthEvents();
+            zenoaConfirm("Supprimer ce point ?").then(function (ok) {
+              if (!ok) return;
+              supabase.from("calendar_events").delete().eq("id", ev.id).then(function (res) {
+                if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+                loadMonthEvents();
+              });
             });
           });
           row.appendChild(del);

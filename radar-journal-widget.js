@@ -231,10 +231,12 @@
 
           if (isChef()) {
             attachLongPress(row, function () {
-              if (!confirm("Es-tu sûr de vouloir supprimer " + (p.pseudo || "cette personne") + " ?")) return;
-              supabase.from("radar_journal_watchlist").delete().eq("profile_id", p.id).then(function (res) {
-                if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-                loadWatchlist();
+              zenoaConfirm("Es-tu sûr de vouloir supprimer " + (p.pseudo || "cette personne") + " ?").then(function (ok) {
+                if (!ok) return;
+                supabase.from("radar_journal_watchlist").delete().eq("profile_id", p.id).then(function (res) {
+                  if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+                  loadWatchlist();
+                });
               });
             });
           }
