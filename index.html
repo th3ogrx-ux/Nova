@@ -61,6 +61,17 @@
     .boxmail-broadcast-toggle input{width:16px;height:16px;accent-color:var(--warm-1);cursor:pointer;}
     .boxmail-broadcast-toggle.checked{border-color:var(--warm-1);background:#bf5af226;color:var(--metal-2);}
 
+    /* Interrupteur (notifications, etc.) */
+    .settings-tile-switch{cursor:default;}
+    .settings-tile-switch::after{content:none!important;}
+    .zenoa-switch{position:relative;display:inline-block;width:44px;height:26px;flex-shrink:0;cursor:pointer;}
+    .zenoa-switch input{opacity:0;width:0;height:0;position:absolute;}
+    .zenoa-switch-track{position:absolute;inset:0;background:rgba(255,255,255,.14);border:1px solid rgba(199,194,219,.22);border-radius:999px;transition:background .2s ease,border-color .2s ease;}
+    .zenoa-switch-track:before{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--metal-2);transition:transform .2s ease;box-shadow:0 2px 6px #0006;}
+    .zenoa-switch input:checked + .zenoa-switch-track{background:linear-gradient(120deg,var(--warm-1),var(--warm-2));border-color:transparent;}
+    .zenoa-switch input:checked + .zenoa-switch-track:before{transform:translateX(18px);background:#04010a;}
+    .zenoa-switch input:disabled + .zenoa-switch-track{opacity:.4;cursor:not-allowed;}
+
     /* Zones sûres (encoche / barre d'accueil) en mode PWA plein écran */
     .topbar{padding-top:env(safe-area-inset-top);height:calc(64px + env(safe-area-inset-top));}
     .main{padding-top:calc(64px + env(safe-area-inset-top));padding-bottom:env(safe-area-inset-bottom);}
@@ -738,13 +749,17 @@
             <div class="settings-tile" id="settings-manage-roles" style="display:none;">
               <div class="settings-tile-label">Rôles de l'équipe</div>
             </div>
-            <div class="settings-tile" id="settings-push">
-              <div class="settings-tile-label">Notifications push
+            <div class="settings-tile" id="settings-install-app">
+              <div class="settings-tile-label">Ajouter à l'écran d'accueil</div>
+            </div>
+            <div class="settings-tile settings-tile-switch" id="settings-push">
+              <div class="settings-tile-label">Activer les notifications
                 <div class="settings-tile-sub" id="settings-push-status" style="font-size:11px;font-weight:400;opacity:.6;margin-top:2px;">Désactivées</div>
               </div>
-            </div>
-            <div class="settings-tile" id="settings-install-app" style="display:none;">
-              <div class="settings-tile-label">Ajouter à l'écran d'accueil</div>
+              <label class="zenoa-switch" id="settings-push-switch-wrap">
+                <input type="checkbox" id="settings-push-switch">
+                <span class="zenoa-switch-track"></span>
+              </label>
             </div>
             <div class="settings-tile settings-tile-danger" id="settings-logout">
               <div class="settings-tile-label">Se déconnecter</div>
