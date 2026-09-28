@@ -145,12 +145,14 @@
           normalize(link.note).indexOf(query) !== -1;
       });
 
+      var scrollY = window.scrollY;
       linksList.innerHTML = "";
       if (!matches.length) {
         linksList.appendChild(el("div", { class: "empty-note" }, currentLinks.length ? "Aucun résultat pour cette recherche." : "Aucun lien enregistré."));
-        return;
+      } else {
+        matches.forEach(function (r) { linksList.appendChild(buildLinkCard(r)); });
       }
-      matches.forEach(function (r) { linksList.appendChild(buildLinkCard(r)); });
+      window.scrollTo(0, scrollY);
     }
 
     function renderLinks() {
