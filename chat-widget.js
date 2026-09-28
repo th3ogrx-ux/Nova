@@ -133,6 +133,10 @@
         navEl.addEventListener("click", function () {
           if (navEl.hasAttribute("data-accordion")) return;
           lastRealView = navEl.getAttribute("data-view");
+          // Un vrai clic de navigation (pas un simple dépli d'accordéon)
+          // quitte forcément tout sous-menu ouvert ailleurs : on efface
+          // les sous-éléments restés violets d'un autre accordéon.
+          document.querySelectorAll(".nav-subitem.active").forEach(function (si) { si.classList.remove("active"); });
         });
       });
 

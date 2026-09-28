@@ -89,6 +89,7 @@
         item.addEventListener("click", function () {
           supabase.from("dm_journal_watchlist").insert({ profile_id: p.id }).then(function (res) {
             if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+            picker.classList.remove("open");
             loadWatchlist();
           });
         });

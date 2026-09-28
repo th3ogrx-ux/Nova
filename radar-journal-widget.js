@@ -74,7 +74,7 @@
     return null;
   }
 
-  var CSS = "\n.rj-row{display:flex;align-items:center;gap:14px;}\n.rj-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n.rj-stats{display:flex;gap:18px;flex-shrink:0;}\n.rj-stat{text-align:center;min-width:34px;}\n.rj-remove{flex-shrink:0;opacity:.5;cursor:pointer;font-size:16px;padding:0 4px;}\n.rj-remove:hover{opacity:1;color:#e88783;}\n.rj-picker{margin-top:10px;display:none;flex-direction:column;gap:6px;}\n.rj-picker.open{display:flex;}\n.rj-picker-item{padding:10px 14px;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text-mid);background:rgba(255,255,255,.04);border:1px solid rgba(199,194,219,.2);transition:background .2s ease,border-color .2s ease,color .2s ease;}\n.rj-picker-item:hover{background:#bf5af21a;border-color:var(--warm-1);color:var(--metal-2);}\n";
+  var CSS = "\n.rj-row{display:flex;align-items:center;gap:16px;padding:14px 16px;flex-wrap:wrap;}\n.rj-person{display:flex;flex-direction:column;align-items:center;gap:6px;width:62px;flex-shrink:0;}\n.rj-name{font-size:11.5px;color:var(--text-mid);text-align:center;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n.rj-stats{display:flex;gap:18px;flex:1;justify-content:center;}\n.rj-stat{text-align:center;min-width:34px;}\n.rj-remove{flex-shrink:0;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:.55;cursor:pointer;font-size:15px;background:rgba(255,255,255,.05);}\n.rj-remove:hover{opacity:1;background:#d9534f26;color:#e88783;}\n.rj-picker{margin-top:10px;display:none;flex-direction:column;gap:6px;}\n.rj-picker.open{display:flex;}\n.rj-picker-item{padding:10px 14px;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text-mid);background:rgba(255,255,255,.04);border:1px solid rgba(199,194,219,.2);transition:background .2s ease,border-color .2s ease,color .2s ease;}\n.rj-picker-item:hover{background:#bf5af21a;border-color:var(--warm-1);color:var(--metal-2);}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -105,9 +105,10 @@
     function switchToView() {
       document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
       if (navEquipe) navEquipe.classList.add("active");
-      if (navEquipeSublist) {
-        navEquipeSublist.querySelectorAll(".nav-subitem").forEach(function (si) { si.classList.remove("active"); });
-      }
+      // Efface TOUS les sous-éléments actifs (pas seulement ceux d'Équipe) :
+      // sinon en venant d'un autre accordéon (Agent IA, Gestion...) son
+      // sous-élément reste violet même après avoir quitté sa page.
+      document.querySelectorAll(".nav-subitem").forEach(function (si) { si.classList.remove("active"); });
       navRadarJournal.classList.add("active");
       document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
       var v = document.getElementById("view-radar-journal");
@@ -140,6 +141,7 @@
         item.addEventListener("click", function () {
           supabase.from("radar_journal_watchlist").insert({ profile_id: p.id }).then(function (res) {
             if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+            picker.classList.remove("open");
             loadWatchlist();
           });
         });
@@ -187,14 +189,13 @@
           var p = m.profile, counts = m.counts;
           var row = el("div", { class: "team-row glass-card rj-row" });
 
+          var person = el("div", { class: "rj-person" });
           var avatar = el("div", { class: "avatar", style: "cursor:default;" });
           if (p.photo_url) avatar.appendChild(el("img", { src: p.photo_url }));
           else avatar.appendChild(el("span", {}, initials(p.pseudo)));
-          row.appendChild(avatar);
-
-          var info = el("div", { class: "team-row-info" });
-          info.appendChild(el("div", { class: "team-row-name rj-name" }, escapeHtml(p.pseudo || "Compte incomplet")));
-          row.appendChild(info);
+          person.appendChild(avatar);
+          person.appendChild(el("div", { class: "rj-name" }, escapeHtml(p.pseudo || "Compte incomplet")));
+          row.appendChild(person);
 
           var stats = el("div", { class: "rj-stats" });
           [["Intéressé", counts.interested, "#4FBF7A"], ["Non intéressé", counts.notInterested, "#D9534F"], ["En attente", counts.pending, "var(--warm-1)"]].forEach(function (t) {
