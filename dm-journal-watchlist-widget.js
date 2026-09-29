@@ -144,7 +144,10 @@
       if (booted) return;
       booted = true;
       supabase.from("profiles").select("id,role").eq("id", userId).single().then(function (res) {
-        if (!res || !res.data || res.data.role !== "chef") return;
+        if (!res || !res.data || res.data.role !== "chef") {
+          panel.style.display = "none";
+          return;
+        }
         me = res.data;
         loadProfiles().then(loadWatchlist);
       });

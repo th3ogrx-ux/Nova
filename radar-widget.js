@@ -95,8 +95,6 @@
     var supabase = getSupabaseClient();
     var me = null;
 
-    var navAgentIa = document.getElementById("nav-agent-ia");
-    var navAgentIaSublist = document.getElementById("nav-agent-ia-sublist");
     var navRadar = document.getElementById("nav-radar");
     var radarDailyResults = document.getElementById("radar-daily-results");
     var radarDailyCount = document.getElementById("radar-daily-count");
@@ -106,10 +104,7 @@
     if (navRadar) {
       navRadar.addEventListener("click", function () {
         document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
-        if (navAgentIa) navAgentIa.classList.add("active");
-        if (navAgentIaSublist) {
-          navAgentIaSublist.querySelectorAll(".nav-subitem").forEach(function (si) { si.classList.remove("active"); });
-        }
+        document.querySelectorAll(".nav-subitem").forEach(function (si) { si.classList.remove("active"); });
         navRadar.classList.add("active");
         document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
         var v = document.getElementById("view-radar");
@@ -193,8 +188,6 @@
       if (navRadar) navRadar.style.display = allowed ? "" : "none";
       var homeTileRadar = document.getElementById("home-tile-radar");
       if (homeTileRadar) homeTileRadar.style.display = allowed ? "" : "none";
-      var navAgentIa = document.getElementById("nav-agent-ia");
-      if (navAgentIa) navAgentIa.style.display = allowed ? "" : "none";
     }
 
     var booted = false;

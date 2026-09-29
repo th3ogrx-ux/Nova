@@ -93,6 +93,7 @@
     var modalProspect = document.getElementById("modal-prospect");
 
     var statusChecksWrap = document.getElementById("prospect-status-checks");
+    var statusField = document.getElementById("prospect-status-field");
     var prospectModalTitle = document.getElementById("prospect-modal-title");
 
     function syncChecksFromSelect() {
@@ -105,6 +106,7 @@
 
     function syncModalMode() {
       var isEdit = !!(prospectModalTitle && prospectModalTitle.textContent.indexOf("Modifier") !== -1);
+      if (statusField) statusField.style.display = isEdit ? "block" : "none";
       if (statusChecksWrap) statusChecksWrap.style.display = isEdit ? "flex" : "none";
       syncChecksFromSelect();
     }
@@ -302,10 +304,10 @@
         if (!res || !res.data) return;
         me = res.data;
 
-        var navDms = document.querySelector('.nav-item[data-view="dms"]');
-        if (navDms && me.role !== "chef") {
+        var navEquipe = document.getElementById("nav-equipe");
+        if (navEquipe && me.role !== "chef") {
           supabase.from("dm_journal_watchlist").select("profile_id").eq("profile_id", me.id).maybeSingle().then(function (wres) {
-            navDms.style.display = (wres && wres.data) ? "" : "none";
+            navEquipe.style.display = (wres && wres.data) ? "" : "none";
           });
         }
 
