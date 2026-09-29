@@ -76,6 +76,10 @@ const CORS_HEADERS = {
 
 const DAILY_TARGET = 20;
 const MAX_ATTEMPTS = 14;
+// Empêche un seul métier (ex: salles de sport) de remplir tout le quota
+// du jour si sa recherche renvoie beaucoup de résultats contactables d'un
+// coup — force un minimum de diversité entre métiers chaque jour.
+const MAX_PER_TRADE = 3;
 
 const MAILTO_RE = /mailto:([^"'?\s]+)/i;
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
@@ -210,6 +214,7 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const geocodeCache: Record<string, string | null> = {};
+    const perTradeCount: Record<string, number> = {};
     let inserted: any[] = [];
     let attempts = 0;
     let tradeOrder = shuffle(TRADES);
@@ -277,11 +282,16 @@ Deno.serve(async (req) => {
         };
       }))).filter((r): r is NonNullable<typeof r> => r !== null);
 
-      const rows = candidateRows.slice(0, remaining);
+      const tradeRemaining = MAX_PER_TRADE - (perTradeCount[trade.label] || 0);
+      const take = Math.max(0, Math.min(remaining, tradeRemaining));
+      const rows = candidateRows.slice(0, take);
 
       if (rows.length) {
         const insertRes = await supabase.from("radar_leads").insert(rows).select();
-        if (!insertRes.error && insertRes.data) inserted = inserted.concat(insertRes.data);
+        if (!insertRes.error && insertRes.data) {
+          inserted = inserted.concat(insertRes.data);
+          perTradeCount[trade.label] = (perTradeCount[trade.label] || 0) + insertRes.data.length;
+        }
       }
     }
 
