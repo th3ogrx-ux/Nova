@@ -83,6 +83,7 @@
 
     var supabase = getSupabaseClient();
 
+    var navEquipe = document.getElementById("nav-equipe");
     var navRadarJournal = document.getElementById("nav-radar-journal");
     var periodTabs = document.getElementById("radar-journal-period-tabs");
     var activityListEl = document.getElementById("radar-journal-activity-list");
@@ -125,6 +126,7 @@
 
     function switchToView() {
       document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
+      if (navEquipe) navEquipe.classList.add("active");
       document.querySelectorAll(".nav-subitem").forEach(function (si) { si.classList.remove("active"); });
       navRadarJournal.classList.add("active");
       document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
@@ -283,11 +285,10 @@
         if (!res || !res.data) return;
         me = res.data;
         if (addBtn && isChef()) addBtn.style.display = "inline-flex";
-        if (isChef()) { if (navRadarJournal) navRadarJournal.style.display = ""; return; }
-        supabase.from("radar_journal_watchlist").select("profile_id").eq("profile_id", me.id).maybeSingle().then(function (wres) {
-          var allowed = !!(wres && wres.data);
-          if (navRadarJournal) navRadarJournal.style.display = allowed ? "" : "none";
-        });
+        // Le journal de Zenoa Radar reste strictement réservé au chef, quel
+        // que soit son statut dans radar_journal_watchlist (cette table ne
+        // sert plus qu'à accorder l'accès à l'outil Zenoa Radar lui-même).
+        if (navRadarJournal) navRadarJournal.style.display = isChef() ? "" : "none";
       });
       supabase.channel("nova-radar-journal")
         .on("postgres_changes", { event: "*", schema: "public", table: "radar_leads" }, function () {

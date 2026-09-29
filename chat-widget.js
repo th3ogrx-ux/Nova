@@ -71,9 +71,9 @@
     var navGestionEquipe = document.getElementById("nav-gestion-equipe");
     var navAdministratifSub = document.getElementById("nav-administratif");
     var navResources = document.getElementById("nav-resources");
-    var navAgentIa = document.getElementById("nav-agent-ia");
-    var navAgentIaSublist = document.getElementById("nav-agent-ia-sublist");
-    var navAgentIaCaret = document.getElementById("nav-agent-ia-caret");
+    var navEquipe = document.getElementById("nav-equipe");
+    var navEquipeSublist = document.getElementById("nav-equipe-sublist");
+    var navEquipeCaret = document.getElementById("nav-equipe-caret");
     var resGrid = document.getElementById("res-grid");
     var resPinnedWrap = document.getElementById("res-pinned-wrap");
     var resSetterTourWrap = document.getElementById("res-setter-tour-wrap");
@@ -267,23 +267,7 @@
         });
     }
 
-    function fetchCalendarNotifs() {
-      if (!me) return Promise.resolve([]);
-      return supabase.from("calendar_events").select("id,title,created_by,created_at")
-        .neq("created_by", me.id).order("created_at", { ascending: false }).limit(20)
-        .then(function (res) {
-          return ((res && res.data) || []).map(function (r) {
-            return {
-              created_at: r.created_at,
-              text: (profilesCache[r.created_by] || "Quelqu'un") + " a ajouté un point au calendrier : " + r.title,
-              view: "calendrier",
-              icon: { type: "avatar", src: avatarCache[r.created_by], initials: initials(profilesCache[r.created_by]) }
-            };
-          });
-        });
-    }
-
-    function fetchPartnershipNotifs() {
+function fetchPartnershipNotifs() {
       if (!me || me.role !== "chef") return Promise.resolve([]);
       return supabase.from("partnership_leads").select("id,activite,email,created_at")
         .order("created_at", { ascending: false }).limit(20)
@@ -316,7 +300,7 @@
             return {
               created_at: batch.latest,
               text: batch.count + " nouveau" + (batch.count > 1 ? "x" : "") + " prospect" + (batch.count > 1 ? "s" : "") + " disponible" + (batch.count > 1 ? "s" : "") + " dans Zenoa Radar",
-              view: "agent-ia",
+              view: "radar",
               icon: { type: "svg", svg: NOTIF_ICON_SVG.radar }
             };
           });
@@ -340,7 +324,7 @@
     }
 
     function loadNotifications() {
-      return Promise.all([fetchBoxmailNotifs(), fetchProspectNotifs(), fetchCalendarNotifs(), fetchPartnershipNotifs(), fetchReportNotifs(), fetchRadarNotifs()]).then(function (lists) {
+      return Promise.all([fetchBoxmailNotifs(), fetchProspectNotifs(), fetchPartnershipNotifs(), fetchReportNotifs(), fetchRadarNotifs()]).then(function (lists) {
         var all = lists[0].concat(lists[1]).concat(lists[2]).concat(lists[3]).concat(lists[4]).concat(lists[5]);
         all.sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); });
         return all.slice(0, 30);
@@ -577,15 +561,15 @@
         stopPinnedVideo();
       });
     }
-    if (navAgentIa && navAgentIaSublist) {
-      navAgentIa.addEventListener("click", function (e) {
+    if (navEquipe && navEquipeSublist) {
+      navEquipe.addEventListener("click", function (e) {
         e.stopPropagation();
-        // Comme Résultats/Gestion : un clic sur "Agent IA" ne fait que
+        // Comme Résultats/Gestion : un clic sur "Équipe" ne fait que
         // déplier son sous-menu, la vraie navigation passe par un sous-élément.
         window.ZenoaNav.restoreView(window.ZenoaNav.getLastView());
         window.ZenoaNav.reopenSidebar();
-        var isOpen = navAgentIaSublist.classList.toggle("open");
-        if (navAgentIaCaret) navAgentIaCaret.classList.toggle("open", isOpen);
+        var isOpen = navEquipeSublist.classList.toggle("open");
+        if (navEquipeCaret) navEquipeCaret.classList.toggle("open", isOpen);
       });
     }
 
@@ -1127,7 +1111,6 @@
 
           supabase.channel("nova-notifs-" + me.id)
             .on("postgres_changes", { event: "INSERT", schema: "public", table: "boxmails", filter: "recipient_id=eq." + me.id }, refreshBellBadge)
-            .on("postgres_changes", { event: "INSERT", schema: "public", table: "calendar_events" }, refreshBellBadge)
             .subscribe();
 
           if (me.role === "chef") {
