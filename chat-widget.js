@@ -328,7 +328,7 @@ function fetchPartnershipNotifs() {
 
     function loadNotifications() {
       return Promise.all([fetchBoxmailNotifs(), fetchProspectNotifs(), fetchPartnershipNotifs(), fetchReportNotifs(), fetchRadarNotifs()]).then(function (lists) {
-        var all = lists[0].concat(lists[1]).concat(lists[2]).concat(lists[3]).concat(lists[4]).concat(lists[5]);
+        var all = lists[0].concat(lists[1]).concat(lists[2]).concat(lists[3]).concat(lists[4]);
         all.sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); });
         return all.slice(0, 30);
       });
