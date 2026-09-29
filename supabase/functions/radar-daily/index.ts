@@ -74,12 +74,12 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
 };
 
-const DAILY_TARGET = 100;
-const MAX_ATTEMPTS = 60;
+const DAILY_TARGET = 50;
+const MAX_ATTEMPTS = 35;
 // Empêche un seul métier (ex: salles de sport) de remplir tout le quota
 // du jour si sa recherche renvoie beaucoup de résultats contactables d'un
 // coup — force un minimum de diversité entre métiers chaque jour.
-const MAX_PER_TRADE = 4;
+const MAX_PER_TRADE = 3;
 
 const MAILTO_RE = /mailto:([^"'?\s]+)/i;
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
@@ -144,17 +144,35 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+// Nombre max d'octets de HTML lus par site — un mailto/email se trouve
+// quasi toujours dans les premiers Ko d'une page (header/footer), donc
+// pas besoin de charger et scruter des pages entières de plusieurs Mo :
+// ça évite de saturer le CPU de la fonction sur un tirage à 100 leads.
+const MAX_SCRAPE_BYTES = 150000;
+
 async function scrapeEmail(websiteUrl: string): Promise<string | null> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
+    const timeout = setTimeout(() => controller.abort(), 5000);
     const res = await fetch(websiteUrl, {
       signal: controller.signal,
       headers: { "User-Agent": "Mozilla/5.0 (compatible; ZenoaRadar/1.0)" }
     });
+    if (!res.ok || !res.body) { clearTimeout(timeout); return null; }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let html = "";
+    let bytesRead = 0;
+    while (bytesRead < MAX_SCRAPE_BYTES) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytesRead += value.byteLength;
+      html += decoder.decode(value, { stream: true });
+    }
+    try { await reader.cancel(); } catch { /* déjà fermé */ }
     clearTimeout(timeout);
-    if (!res.ok) return null;
-    const html = await res.text();
+
     const mailtoMatch = html.match(MAILTO_RE);
     if (mailtoMatch && mailtoMatch[1]) {
       return decodeURIComponent(mailtoMatch[1]).replace(/\.(html?|php)$/i, "");
@@ -282,10 +300,7 @@ Deno.serve(async (req) => {
           const p = f.properties || {};
           const website = p.website || null;
           const phone = p.phone || (p.contact && p.contact.phone) || null;
-          // Un numéro de téléphone suffit déjà à rendre le prospect
-          // contactable — inutile de charger et scruter le site web dans
-          // ce cas (gros gain de CPU/temps sur un tirage à 100 leads).
-          const email = (!phone && website) ? await scrapeEmail(website) : null;
+          const email = website ? await scrapeEmail(website) : null;
           if (!phone && !email) return null;
           return {
             place_id: p.place_id,
