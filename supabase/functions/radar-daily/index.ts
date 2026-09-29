@@ -253,24 +253,31 @@ Deno.serve(async (req) => {
 
       const freshFeatures = features.filter((f: any) => f.properties && f.properties.place_id && !existingIds.has(f.properties.place_id));
       const remaining = DAILY_TARGET - inserted.length;
-      const toInsert = freshFeatures.slice(0, remaining);
 
-      const rows = await Promise.all(toInsert.map(async (f: any) => {
+      // On ne garde que les prospects avec un numéro de téléphone OU un
+      // email trouvé — sinon impossible à contacter. On scrape/filtre sur
+      // TOUS les candidats frais (pas juste les "remaining" premiers) pour
+      // ne pas gâcher le quota du jour sur des fiches sans coordonnées.
+      const candidateRows = (await Promise.all(freshFeatures.map(async (f: any) => {
         const p = f.properties || {};
         const website = p.website || null;
+        const phone = p.phone || (p.contact && p.contact.phone) || null;
         const email = website ? await scrapeEmail(website) : null;
+        if (!phone && !email) return null;
         return {
           place_id: p.place_id,
           name: p.name || p.address_line1 || "Sans nom",
           address: p.formatted || null,
-          phone: p.phone || (p.contact && p.contact.phone) || null,
+          phone,
           website,
           email,
           category_label: trade.label,
           city: city,
           sent_date: parisDateStr()
         };
-      }));
+      }))).filter((r): r is NonNullable<typeof r> => r !== null);
+
+      const rows = candidateRows.slice(0, remaining);
 
       if (rows.length) {
         const insertRes = await supabase.from("radar_leads").insert(rows).select();
