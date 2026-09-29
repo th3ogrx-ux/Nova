@@ -121,8 +121,11 @@
         container.appendChild(el("div", { class: "radar-empty" }, emptyText));
         return;
       }
+      var statusOptions = viewMode === "history"
+        ? STATUS_OPTIONS.filter(function (opt) { return opt.value !== "pending"; })
+        : STATUS_OPTIONS;
       results.forEach(function (r) {
-        var card = el("div", { class: "radar-card" + (r.status ? " done" : "") });
+        var card = el("div", { class: "radar-card" + (viewMode !== "history" && r.status ? " done" : "") });
         card.appendChild(el("div", { class: "radar-card-name" }, escapeHtml(r.name)));
         if (r.category_label) card.appendChild(el("div", { class: "radar-card-row" }, "🏷️ " + escapeHtml(r.category_label) + (r.city ? " — " + escapeHtml(r.city) : "")));
         if (r.address) card.appendChild(el("div", { class: "radar-card-row" }, "📍 " + escapeHtml(r.address)));
@@ -133,12 +136,12 @@
         card.appendChild(el("div", { class: "radar-card-row" }, "✉️ " + (r.email ? escapeHtml(r.email) : "Non trouvé")));
 
         var statusRow = el("div", { class: "radar-card-status" });
-        STATUS_OPTIONS.forEach(function (opt) {
+        statusOptions.forEach(function (opt) {
           var btn = el("div", { class: "radar-status-btn " + opt.value + (r.status === opt.value ? " active" : "") }, escapeHtml(opt.label));
           btn.addEventListener("click", function () {
             var next = r.status === opt.value ? null : opt.value;
             r.status = next;
-            card.classList.toggle("done", !!next);
+            card.classList.toggle("done", viewMode !== "history" && !!next);
             statusRow.querySelectorAll(".radar-status-btn").forEach(function (b) { b.classList.remove("active"); });
             if (next) btn.classList.add("active");
             setStatus(r.id, next);
