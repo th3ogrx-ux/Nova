@@ -110,7 +110,7 @@
 
     function notifyChefsInterested(lead) {
       if (!me) return;
-      supabase.from("profiles").select("id").eq("role", "chef").neq("id", me.id).then(function (res) {
+      supabase.from("profiles").select("id").eq("role", "chef").then(function (res) {
         var chefs = (res && res.data) || [];
         if (!chefs.length) return;
         var lines = [lead.name || "Sans nom", [lead.category_label, lead.city].filter(Boolean).join(" — ")];
