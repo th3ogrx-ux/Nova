@@ -108,11 +108,29 @@
       { value: "pending", label: "En attente" }
     ];
 
-    function setStatus(id, val) {
+    function notifyChefsInterested(lead) {
+      if (!me) return;
+      supabase.from("profiles").select("id").eq("role", "chef").neq("id", me.id).then(function (res) {
+        var chefs = (res && res.data) || [];
+        if (!chefs.length) return;
+        var lines = [lead.name || "Sans nom", [lead.category_label, lead.city].filter(Boolean).join(" — ")];
+        if (lead.address) lines.push("📍 " + lead.address);
+        if (lead.phone) lines.push("📞 " + lead.phone);
+        if (lead.website) lines.push("🌐 " + lead.website);
+        lines.push("✉️ " + (lead.email || "Non trouvé"));
+        var content = "Nouveau prospect intéressé sur Zenoa Radar :\n\n" + lines.join("\n") +
+          "\n\nMarqué intéressé par " + (me.pseudo || "quelqu'un") + ".";
+        var rows = chefs.map(function (c) { return { sender_id: me.id, recipient_id: c.id, content: content }; });
+        supabase.from("boxmails").insert(rows).then(function () {});
+      });
+    }
+
+    function setStatus(lead, val) {
       supabase.from("radar_leads").update({
         status: val,
         status_set_by: val ? (me && me.id) : null
-      }).eq("id", id).then(function () {});
+      }).eq("id", lead.id).then(function () {});
+      if (val === "interested") notifyChefsInterested(lead);
     }
 
     function renderCards(container, results, emptyText) {
@@ -144,7 +162,7 @@
             card.classList.toggle("done", viewMode !== "history" && !!next);
             statusRow.querySelectorAll(".radar-status-btn").forEach(function (b) { b.classList.remove("active"); });
             if (next) btn.classList.add("active");
-            setStatus(r.id, next);
+            setStatus(r, next);
           });
           statusRow.appendChild(btn);
         });
