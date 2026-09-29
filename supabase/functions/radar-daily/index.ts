@@ -225,11 +225,23 @@ Deno.serve(async (req) => {
     let lastPlacesError: string | null = null;
     let lastGeocodeError: string | null = null;
 
+    // Combien de sites web on scrute en parallèle max par lot — limite la
+    // charge mémoire/CPU de la fonction (évite un WORKER_RESOURCE_LIMIT).
+    const SCRAPE_CHUNK = 5;
+
     while (inserted.length < DAILY_TARGET && attempts < MAX_ATTEMPTS) {
       attempts++;
       if (tradeIndex >= tradeOrder.length) tradeOrder = shuffle(TRADES);
       const trade = tradeOrder[tradeIndex % tradeOrder.length];
       tradeIndex++;
+
+      // Ce métier a déjà atteint son quota du jour : on saute directement,
+      // sans consommer d'appel géocodage/Places ni scraper le moindre site.
+      const tradeRemaining = MAX_PER_TRADE - (perTradeCount[trade.label] || 0);
+      const remaining = DAILY_TARGET - inserted.length;
+      const need = Math.max(0, Math.min(remaining, tradeRemaining));
+      if (need <= 0) continue;
+
       const city = CITIES[Math.floor(Math.random() * CITIES.length)];
 
       if (!(city in geocodeCache)) {
@@ -257,34 +269,37 @@ Deno.serve(async (req) => {
       const existingIds = new Set(((existingRes && existingRes.data) || []).map((r: any) => r.place_id));
 
       const freshFeatures = features.filter((f: any) => f.properties && f.properties.place_id && !existingIds.has(f.properties.place_id));
-      const remaining = DAILY_TARGET - inserted.length;
 
       // On ne garde que les prospects avec un numéro de téléphone OU un
-      // email trouvé — sinon impossible à contacter. On scrape/filtre sur
-      // TOUS les candidats frais (pas juste les "remaining" premiers) pour
-      // ne pas gâcher le quota du jour sur des fiches sans coordonnées.
-      const candidateRows = (await Promise.all(freshFeatures.map(async (f: any) => {
-        const p = f.properties || {};
-        const website = p.website || null;
-        const phone = p.phone || (p.contact && p.contact.phone) || null;
-        const email = website ? await scrapeEmail(website) : null;
-        if (!phone && !email) return null;
-        return {
-          place_id: p.place_id,
-          name: p.name || p.address_line1 || "Sans nom",
-          address: p.formatted || null,
-          phone,
-          website,
-          email,
-          category_label: trade.label,
-          city: city,
-          sent_date: parisDateStr()
-        };
-      }))).filter((r): r is NonNullable<typeof r> => r !== null);
+      // email trouvé — sinon impossible à contacter. On scrute les sites
+      // web par petits lots et on s'arrête dès qu'on a assez de prospects
+      // contactables pour ce tour ("need"), au lieu de tout scruter d'un
+      // coup — ça évite de saturer la fonction en ressources.
+      const candidateRows: any[] = [];
+      for (let i = 0; i < freshFeatures.length && candidateRows.length < need; i += SCRAPE_CHUNK) {
+        const chunk = freshFeatures.slice(i, i + SCRAPE_CHUNK);
+        const chunkRows = (await Promise.all(chunk.map(async (f: any) => {
+          const p = f.properties || {};
+          const website = p.website || null;
+          const phone = p.phone || (p.contact && p.contact.phone) || null;
+          const email = website ? await scrapeEmail(website) : null;
+          if (!phone && !email) return null;
+          return {
+            place_id: p.place_id,
+            name: p.name || p.address_line1 || "Sans nom",
+            address: p.formatted || null,
+            phone,
+            website,
+            email,
+            category_label: trade.label,
+            city: city,
+            sent_date: parisDateStr()
+          };
+        }))).filter((r): r is NonNullable<typeof r> => r !== null);
+        candidateRows.push(...chunkRows);
+      }
 
-      const tradeRemaining = MAX_PER_TRADE - (perTradeCount[trade.label] || 0);
-      const take = Math.max(0, Math.min(remaining, tradeRemaining));
-      const rows = candidateRows.slice(0, take);
+      const rows = candidateRows.slice(0, need);
 
       if (rows.length) {
         const insertRes = await supabase.from("radar_leads").insert(rows).select();
