@@ -74,12 +74,12 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
 };
 
-const DAILY_TARGET = 20;
-const MAX_ATTEMPTS = 14;
+const DAILY_TARGET = 100;
+const MAX_ATTEMPTS = 60;
 // Empêche un seul métier (ex: salles de sport) de remplir tout le quota
 // du jour si sa recherche renvoie beaucoup de résultats contactables d'un
 // coup — force un minimum de diversité entre métiers chaque jour.
-const MAX_PER_TRADE = 3;
+const MAX_PER_TRADE = 4;
 
 const MAILTO_RE = /mailto:([^"'?\s]+)/i;
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
