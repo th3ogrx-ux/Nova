@@ -58,27 +58,6 @@
     });
   }
 
-  function csvEscape(v) {
-    var s = v === null || v === undefined ? "" : String(v);
-    if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
-    return s;
-  }
-
-  function exportCsv(rows, filename) {
-    var header = [["Nom", "Adresse", "Téléphone", "Site web", "Email", "Métier", "Ville"]];
-    var body = rows.map(function (r) {
-      return [r.name || "", r.address || "", r.phone || "", r.website || "", r.email || "", r.category_label || "", r.city || ""];
-    });
-    var csv = header.concat(body).map(function (row) { return row.map(csvEscape).join(","); }).join("\n");
-    var blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-    var url = URL.createObjectURL(blob);
-    var a = el("a", { href: url, download: filename });
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
   function pad2(n) { return n < 10 ? "0" + n : "" + n; }
   function todayStr() {
     var t = new Date();
@@ -96,31 +75,32 @@
     var me = null;
 
     var navRadar = document.getElementById("nav-radar");
+    var navRadarChef = document.getElementById("nav-radar-chef");
     var radarDailyResults = document.getElementById("radar-daily-results");
     var radarDailyCount = document.getElementById("radar-daily-count");
-    var radarDailyExportBtn = document.getElementById("radar-daily-export-csv");
     var radarHistoryToggle = document.getElementById("radar-history-toggle");
     var radarSectionTitle = document.getElementById("radar-section-title");
     var radarSearch = document.getElementById("radar-search");
+    var radarSearchField = document.getElementById("radar-search-field");
     var viewMode = "today"; // "today" | "history"
     var currentResults = [];
     var displayedResults = [];
 
-    if (navRadar) {
-      navRadar.addEventListener("click", function () {
-        document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
-        document.querySelectorAll(".nav-subitem").forEach(function (si) { si.classList.remove("active"); });
-        navRadar.classList.add("active");
-        document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
-        var v = document.getElementById("view-radar");
-        if (v) v.classList.add("active");
-        if (window.ZenoaNav) {
-          window.ZenoaNav.closeSidebar();
-          window.ZenoaNav.setLastView("radar");
-        }
-        loadResults();
-      });
+    function handleRadarNavClick() {
+      document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
+      document.querySelectorAll(".nav-subitem").forEach(function (si) { si.classList.remove("active"); });
+      this.classList.add("active");
+      document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+      var v = document.getElementById("view-radar");
+      if (v) v.classList.add("active");
+      if (window.ZenoaNav) {
+        window.ZenoaNav.closeSidebar();
+        window.ZenoaNav.setLastView("radar");
+      }
+      loadResults();
     }
+    if (navRadar) navRadar.addEventListener("click", handleRadarNavClick);
+    if (navRadarChef) navRadarChef.addEventListener("click", handleRadarNavClick);
 
     var STATUS_OPTIONS = [
       { value: "interested", label: "Intéressé" },
@@ -185,7 +165,6 @@
       if (!radarDailyResults) return;
       displayedResults = applySearchFilter(currentResults);
       radarDailyCount.textContent = displayedResults.length ? "(" + displayedResults.length + ")" : "";
-      if (radarDailyExportBtn) radarDailyExportBtn.style.display = displayedResults.length ? "inline-flex" : "none";
       var emptyText = viewMode === "today"
         ? "Aucun prospect généré aujourd'hui pour l'instant — repasse après minuit."
         : "Aucun prospect en attente.";
@@ -211,6 +190,7 @@
         if (radarSectionTitle) {
           radarSectionTitle.firstChild.textContent = viewMode === "history" ? "En attente " : "Prospects du jour ";
         }
+        if (radarSearchField) radarSearchField.style.display = viewMode === "history" ? "block" : "none";
         if (radarSearch) radarSearch.value = "";
         loadResults();
       });
@@ -220,18 +200,13 @@
       radarSearch.addEventListener("input", renderCurrent);
     }
 
-    if (radarDailyExportBtn) {
-      radarDailyExportBtn.addEventListener("click", function () {
-        if (!displayedResults.length) return;
-        var filename = (viewMode === "today" ? "zenoa-radar-du-jour-" : "zenoa-radar-historique-") + todayStr() + ".csv";
-        exportCsv(displayedResults, filename);
-      });
-    }
-
-    function applyAccess(allowed) {
-      if (navRadar) navRadar.style.display = allowed ? "" : "none";
+    function applyAccess(hasAccess, isChef) {
+      // Le chef atteint Zenoa Radar via le dossier Agent IA (chef-only) ;
+      // ce lien autonome n'est destiné qu'aux membres à qui l'accès a été
+      // accordé via radar_journal_watchlist.
+      if (navRadar) navRadar.style.display = (hasAccess && !isChef) ? "" : "none";
       var homeTileRadar = document.getElementById("home-tile-radar");
-      if (homeTileRadar) homeTileRadar.style.display = allowed ? "" : "none";
+      if (homeTileRadar) homeTileRadar.style.display = hasAccess ? "" : "none";
     }
 
     var booted = false;
@@ -241,9 +216,9 @@
       supabase.from("profiles").select("id,pseudo,role").eq("id", userId).single().then(function (res) {
         if (!res || !res.data) return;
         me = res.data;
-        if (me.role === "chef") { applyAccess(true); return; }
+        if (me.role === "chef") { applyAccess(true, true); return; }
         supabase.from("radar_journal_watchlist").select("profile_id").eq("profile_id", me.id).maybeSingle().then(function (wres) {
-          applyAccess(!!(wres && wres.data));
+          applyAccess(!!(wres && wres.data), false);
         });
       });
       loadResults();

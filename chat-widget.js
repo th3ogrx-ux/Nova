@@ -74,6 +74,9 @@
     var navEquipe = document.getElementById("nav-equipe");
     var navEquipeSublist = document.getElementById("nav-equipe-sublist");
     var navEquipeCaret = document.getElementById("nav-equipe-caret");
+    var navAgentIa = document.getElementById("nav-agent-ia");
+    var navAgentIaSublist = document.getElementById("nav-agent-ia-sublist");
+    var navAgentIaCaret = document.getElementById("nav-agent-ia-caret");
     var resGrid = document.getElementById("res-grid");
     var resPinnedWrap = document.getElementById("res-pinned-wrap");
     var resSetterTourWrap = document.getElementById("res-setter-tour-wrap");
@@ -570,6 +573,17 @@ function fetchPartnershipNotifs() {
         window.ZenoaNav.reopenSidebar();
         var isOpen = navEquipeSublist.classList.toggle("open");
         if (navEquipeCaret) navEquipeCaret.classList.toggle("open", isOpen);
+      });
+    }
+    if (navAgentIa && navAgentIaSublist) {
+      navAgentIa.addEventListener("click", function (e) {
+        e.stopPropagation();
+        // Comme Résultats/Gestion : un clic sur "Agent IA" ne fait que
+        // déplier son sous-menu, la vraie navigation passe par un sous-élément.
+        window.ZenoaNav.restoreView(window.ZenoaNav.getLastView());
+        window.ZenoaNav.reopenSidebar();
+        var isOpen = navAgentIaSublist.classList.toggle("open");
+        if (navAgentIaCaret) navAgentIaCaret.classList.toggle("open", isOpen);
       });
     }
 
