@@ -618,10 +618,15 @@
         <div class="view" id="view-radar">
           <div class="dash-toolbar">
             <h1 class="metal-title">Zenoa Radar</h1>
+            <button class="btn btn-sm" id="radar-history-toggle">Historique</button>
+          </div>
+
+          <div class="field" style="margin-bottom:16px;">
+            <input type="text" id="radar-search" placeholder="Rechercher une entreprise, un métier, une ville...">
           </div>
 
           <div class="dash-toolbar">
-            <h3 style="margin:0;font-size:15px;font-weight:600;">Prospects du jour <span id="radar-daily-count" style="font-weight:400;color:var(--text-dim);font-size:13px;"></span></h3>
+            <h3 style="margin:0;font-size:15px;font-weight:600;" id="radar-section-title">Prospects du jour <span id="radar-daily-count" style="font-weight:400;color:var(--text-dim);font-size:13px;"></span></h3>
             <button class="btn btn-sm" id="radar-daily-export-csv" style="display:none;">Exporter en CSV</button>
           </div>
           <div id="radar-daily-results"></div>

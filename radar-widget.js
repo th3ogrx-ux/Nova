@@ -99,7 +99,12 @@
     var radarDailyResults = document.getElementById("radar-daily-results");
     var radarDailyCount = document.getElementById("radar-daily-count");
     var radarDailyExportBtn = document.getElementById("radar-daily-export-csv");
-    var currentDailyResults = [];
+    var radarHistoryToggle = document.getElementById("radar-history-toggle");
+    var radarSectionTitle = document.getElementById("radar-section-title");
+    var radarSearch = document.getElementById("radar-search");
+    var viewMode = "today"; // "today" | "history"
+    var currentResults = [];
+    var displayedResults = [];
 
     if (navRadar) {
       navRadar.addEventListener("click", function () {
@@ -113,7 +118,7 @@
           window.ZenoaNav.closeSidebar();
           window.ZenoaNav.setLastView("radar");
         }
-        loadDailyLeads();
+        loadResults();
       });
     }
 
@@ -166,21 +171,60 @@
       });
     }
 
-    function loadDailyLeads() {
+    function applySearchFilter(list) {
+      var q = ((radarSearch && radarSearch.value) || "").trim().toLowerCase();
+      if (!q) return list;
+      return list.filter(function (r) {
+        return (r.name || "").toLowerCase().indexOf(q) !== -1 ||
+          (r.category_label || "").toLowerCase().indexOf(q) !== -1 ||
+          (r.city || "").toLowerCase().indexOf(q) !== -1;
+      });
+    }
+
+    function renderCurrent() {
       if (!radarDailyResults) return;
-      supabase.from("radar_leads").select("*").eq("sent_date", todayStr())
-        .order("created_at", { ascending: false }).then(function (res) {
-          currentDailyResults = (res && res.data) || [];
-          radarDailyCount.textContent = currentDailyResults.length ? "(" + currentDailyResults.length + ")" : "";
-          if (radarDailyExportBtn) radarDailyExportBtn.style.display = currentDailyResults.length ? "inline-flex" : "none";
-          renderCards(radarDailyResults, currentDailyResults, "Aucun prospect généré aujourd'hui pour l'instant — repasse après midi.");
-        });
+      displayedResults = applySearchFilter(currentResults);
+      radarDailyCount.textContent = displayedResults.length ? "(" + displayedResults.length + ")" : "";
+      if (radarDailyExportBtn) radarDailyExportBtn.style.display = displayedResults.length ? "inline-flex" : "none";
+      var emptyText = viewMode === "today"
+        ? "Aucun prospect généré aujourd'hui pour l'instant — repasse après minuit."
+        : "Aucun prospect en attente.";
+      renderCards(radarDailyResults, displayedResults, emptyText);
+    }
+
+    function loadResults() {
+      if (!radarDailyResults) return;
+      var query = viewMode === "today"
+        ? supabase.from("radar_leads").select("*").eq("sent_date", todayStr()).order("created_at", { ascending: false })
+        : supabase.from("radar_leads").select("*").eq("status", "pending").order("created_at", { ascending: false });
+      query.then(function (res) {
+        currentResults = (res && res.data) || [];
+        renderCurrent();
+      });
+    }
+
+    if (radarHistoryToggle) {
+      radarHistoryToggle.addEventListener("click", function () {
+        viewMode = viewMode === "today" ? "history" : "today";
+        radarHistoryToggle.classList.toggle("primary", viewMode === "history");
+        radarHistoryToggle.textContent = viewMode === "history" ? "Aujourd'hui" : "Historique";
+        if (radarSectionTitle) {
+          radarSectionTitle.firstChild.textContent = viewMode === "history" ? "En attente " : "Prospects du jour ";
+        }
+        if (radarSearch) radarSearch.value = "";
+        loadResults();
+      });
+    }
+
+    if (radarSearch) {
+      radarSearch.addEventListener("input", renderCurrent);
     }
 
     if (radarDailyExportBtn) {
       radarDailyExportBtn.addEventListener("click", function () {
-        if (!currentDailyResults.length) return;
-        exportCsv(currentDailyResults, "zenoa-radar-du-jour-" + todayStr() + ".csv");
+        if (!displayedResults.length) return;
+        var filename = (viewMode === "today" ? "zenoa-radar-du-jour-" : "zenoa-radar-historique-") + todayStr() + ".csv";
+        exportCsv(displayedResults, filename);
       });
     }
 
@@ -202,11 +246,11 @@
           applyAccess(!!(wres && wres.data));
         });
       });
-      loadDailyLeads();
+      loadResults();
       supabase.channel("nova-radar-leads")
         .on("postgres_changes", { event: "*", schema: "public", table: "radar_leads" }, function () {
           var radarView = document.getElementById("view-radar");
-          if (radarView && radarView.classList.contains("active")) loadDailyLeads();
+          if (radarView && radarView.classList.contains("active")) loadResults();
         })
         .subscribe();
     }

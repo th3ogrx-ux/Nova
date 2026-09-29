@@ -1,7 +1,8 @@
 // ZENOA — Supabase Edge Function
 // Tirage quotidien automatique de 20 prospects (Zenoa Radar), déclenché
-// par pg_cron tous les jours à midi (voir radar-leads.sql pour la table
-// et le cron). Peut aussi être déclenchée manuellement pour un test.
+// par pg_cron tous les jours à minuit heure de Paris (voir radar-cron.sql
+// pour le cron et radar-leads.sql pour la table). Peut aussi être
+// déclenchée manuellement pour un test.
 //
 // Sécurité : cette fonction n'est pas appelée par un utilisateur connecté
 // (elle est déclenchée par le planificateur côté base de données), donc
