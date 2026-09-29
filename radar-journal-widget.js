@@ -285,10 +285,9 @@
         if (!res || !res.data) return;
         me = res.data;
         if (addBtn && isChef()) addBtn.style.display = "inline-flex";
-        // Le journal de Zenoa Radar reste strictement réservé au chef, quel
-        // que soit son statut dans radar_journal_watchlist (cette table ne
-        // sert plus qu'à accorder l'accès à l'outil Zenoa Radar lui-même).
-        if (navRadarJournal) navRadarJournal.style.display = isChef() ? "" : "none";
+        // Visibilité du lien lui-même gérée génériquement via sa classe
+        // chef-only (radar_journal_watchlist ne sert plus qu'à accorder
+        // l'accès à l'outil Zenoa Radar, pas à ce journal).
       });
       supabase.channel("nova-radar-journal")
         .on("postgres_changes", { event: "*", schema: "public", table: "radar_leads" }, function () {

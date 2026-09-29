@@ -304,11 +304,18 @@
         if (!res || !res.data) return;
         me = res.data;
 
-        var navEquipe = document.getElementById("nav-equipe");
-        if (navEquipe && me.role !== "chef") {
-          supabase.from("dm_journal_watchlist").select("profile_id").eq("profile_id", me.id).maybeSingle().then(function (wres) {
-            navEquipe.style.display = (wres && wres.data) ? "" : "none";
-          });
+        // Le chef atteint le journal de DMs via le dossier Équipe
+        // (chef-only) ; ce lien autonome n'est destiné qu'aux membres
+        // à qui l'accès a été accordé via dm_journal_watchlist.
+        var navDms = document.getElementById("nav-dms");
+        if (navDms) {
+          if (me.role === "chef") {
+            navDms.style.display = "none";
+          } else {
+            supabase.from("dm_journal_watchlist").select("profile_id").eq("profile_id", me.id).maybeSingle().then(function (wres) {
+              navDms.style.display = (wres && wres.data) ? "" : "none";
+            });
+          }
         }
 
         watchDmJournal();
