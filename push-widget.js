@@ -5,8 +5,8 @@
   var SUPABASE_KEY = "sb_publishable_Qes5VQ0OcaAEVh_kMjej6A_HJ6yxY3T";
 
   // Clé publique VAPID (générée pour ZENOA). La clé privée correspondante
-  // vit uniquement dans les secrets de l'Edge Function côté Supabase.
-  var VAPID_PUBLIC_KEY = "BIwsGwB_LUY3jVd409Oobd9VGgtasWsgMuE-_9QZxHjuKkMfiECC2are9XfYoBUggj3f-NZWR4BG6Cv46KHguaw";
+  // vit uniquement dans les secrets des Edge Functions côté Supabase.
+  var VAPID_PUBLIC_KEY = "BEW6xA8fJGB5t82lnm16R7ZT3grErgQivtDJBT1XT4IibkHhZI_kjzjZzW9viQ5j-EJX59ISYpDBqp7MdDWiJm4";
 
   function loadSupabase(cb) {
     if (window.supabase && window.supabase.createClient) return cb();
@@ -128,14 +128,30 @@
       });
     }
 
+    function sameKey(a, b) {
+      if (!a || !b || a.byteLength !== b.byteLength) return false;
+      var ua = new Uint8Array(a), ub = new Uint8Array(b);
+      for (var i = 0; i < ua.length; i++) if (ua[i] !== ub[i]) return false;
+      return true;
+    }
+
+    function subscribeFresh() {
+      return swRegistration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+
     function subscribe() {
       if (!swRegistration) return Promise.resolve();
       return swRegistration.pushManager.getSubscription().then(function (existing) {
-        if (existing) return existing;
-        return swRegistration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-        });
+        if (!existing) return subscribeFresh();
+        // Abonnement créé avec une ancienne clé VAPID (jamais fonctionnelle
+        // tant que la clé privée n'était pas configurée côté serveur) : on
+        // le remplace automatiquement par un abonnement avec la clé actuelle.
+        var currentKey = existing.options && existing.options.applicationServerKey;
+        if (sameKey(currentKey, urlBase64ToUint8Array(VAPID_PUBLIC_KEY).buffer)) return existing;
+        return existing.unsubscribe().then(subscribeFresh);
       }).then(function (sub) {
         return saveSubscription(sub);
       }).catch(function (err) {
