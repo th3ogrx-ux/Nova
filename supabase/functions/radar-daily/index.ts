@@ -282,7 +282,10 @@ Deno.serve(async (req) => {
           const p = f.properties || {};
           const website = p.website || null;
           const phone = p.phone || (p.contact && p.contact.phone) || null;
-          const email = website ? await scrapeEmail(website) : null;
+          // Un numéro de téléphone suffit déjà à rendre le prospect
+          // contactable — inutile de charger et scruter le site web dans
+          // ce cas (gros gain de CPU/temps sur un tirage à 100 leads).
+          const email = (!phone && website) ? await scrapeEmail(website) : null;
           if (!phone && !email) return null;
           return {
             place_id: p.place_id,
