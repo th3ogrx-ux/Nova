@@ -76,7 +76,7 @@
     { key: "not_interested", label: "Pas intéressé", color: "var(--danger)" }
   ];
   var RADAR_CATEGORIES = [
-    { key: "total", label: "Total généré", color: "var(--cool-1)" },
+    { key: "total", label: "Total traité", color: "var(--cool-1)" },
     { key: "pending", label: "En attente", color: "var(--warm-1)" },
     { key: "interested", label: "Intéressé", color: "#4FBF7A" },
     { key: "not_interested", label: "Non intéressé", color: "#D9534F" }
@@ -253,12 +253,13 @@
     }
 
     function classifyRadar(status) {
-      // "total" compte toujours, même les leads pas encore traités
-      // (status nul) ; la 2e clé ajoute le détail par statut si connu.
+      // "total" = somme des 3 boutons (en attente + intéressé + non
+      // intéressé), pas le volume généré automatiquement — un lead
+      // sans statut (pas encore traité) ne compte dans aucune courbe.
       if (status === "interested") return ["total", "interested"];
       if (status === "not_interested") return ["total", "not_interested"];
       if (status === "pending") return ["total", "pending"];
-      return ["total"];
+      return [];
     }
 
     var booted = false;
