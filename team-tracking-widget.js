@@ -173,12 +173,6 @@
 
       svg.appendChild(svgEl("line", { class: "suivi-axis-line", x1: padL, x2: padL, y1: padT, y2: H - padB }));
 
-      // Ligne pointillée au niveau du maximum, pour le repérer d'un coup d'œil.
-      svg.appendChild(svgEl("line", {
-        x1: padL, x2: W - padR, y1: yAt(maxVal), y2: yAt(maxVal),
-        stroke: "rgba(199,194,219,.35)", "stroke-width": "1", "stroke-dasharray": "4,3"
-      }));
-
       series.forEach(function (d, i) {
         if (i % 2 !== 0 && i !== series.length - 1) return;
         var label = svgEl("text", { class: "suivi-x-label", x: xAt(i), y: H - padB + 14, "text-anchor": "middle" });
@@ -189,12 +183,14 @@
       var baseline = H - padB;
 
       categories.forEach(function (cat) {
-        // Petite ligne verticale sous chaque point, pour voir sa hauteur
-        // d'un coup d'œil sans avoir à viser l'axe de gauche.
+        // Petites lignes verticale + horizontale sous/à côté de chaque
+        // point, pour voir sa hauteur exacte d'un coup d'œil (pas
+        // seulement le maximum global).
         series.forEach(function (d, i) {
           if (d.counts[cat.key] <= 0) return;
           var x = xAt(i), y = yAt(d.counts[cat.key]);
           svg.appendChild(svgEl("line", { x1: x, x2: x, y1: y, y2: baseline, stroke: cat.color, "stroke-width": "1", opacity: "0.25" }));
+          svg.appendChild(svgEl("line", { x1: padL, x2: x, y1: y, y2: y, stroke: cat.color, "stroke-width": "1", opacity: "0.25" }));
         });
 
         var points = series.map(function (d, i) { return xAt(i).toFixed(1) + "," + yAt(d.counts[cat.key]).toFixed(1); }).join(" ");
