@@ -163,7 +163,11 @@
 
       var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "xMinYMid meet" });
 
-      [0, maxVal].forEach(function (v) {
+      var yValues = { 0: true };
+      series.forEach(function (d) {
+        categories.forEach(function (c) { if (d.counts[c.key] > 0) yValues[d.counts[c.key]] = true; });
+      });
+      Object.keys(yValues).map(Number).sort(function (a, b) { return a - b; }).forEach(function (v) {
         var y = yAt(v);
         svg.appendChild(svgEl("line", { class: v === 0 ? "suivi-axis-line" : "suivi-grid-line", x1: padL, x2: W - padR, y1: y, y2: y }));
         var label = svgEl("text", { class: "suivi-y-label", x: padL - 6, y: y + 3, "text-anchor": "end" });
