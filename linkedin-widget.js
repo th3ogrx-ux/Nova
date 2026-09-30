@@ -124,6 +124,7 @@
     var secteurInput = document.getElementById("linkedin-prospect-secteur");
     var secteurSuggestions = document.getElementById("linkedin-secteur-suggestions");
     var dateInput = document.getElementById("linkedin-prospect-date");
+    var statusField = document.getElementById("linkedin-prospect-status-field");
     var statusSelect = document.getElementById("linkedin-prospect-status");
     var errorEl = document.getElementById("linkedin-prospect-error");
     var cancelBtn = document.getElementById("btn-cancel-linkedin-prospect");
@@ -154,12 +155,14 @@
         secteurInput.value = prospect.secteur || "";
         dateInput.value = prospect.date;
         statusSelect.value = prospect.status;
+        if (statusField) statusField.style.display = "block";
       } else {
         modalTitle.textContent = "Ajouter un prospect";
         contactInput.value = "";
         secteurInput.value = "";
         dateInput.value = todayStr();
         statusSelect.value = "sent";
+        if (statusField) statusField.style.display = "none";
       }
       modal.classList.add("open");
       setTimeout(function () { contactInput.focus(); }, 50);
