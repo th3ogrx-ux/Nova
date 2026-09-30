@@ -186,6 +186,22 @@
     if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
     if (modal) modal.addEventListener("click", function (e) { if (e.target === modal) closeModal(); });
 
+    function notifyChefsAudit(prospect) {
+      if (!me) return;
+      supabase.from("profiles").select("id").eq("role", "chef").then(function (res) {
+        var chefs = (res && res.data) || [];
+        if (!chefs.length) return;
+        var lines = [
+          prospect.contact,
+          prospect.secteur || "Secteur non renseigné",
+          "Marqué par " + (me.pseudo || "quelqu'un")
+        ];
+        var content = "Demande d'audit sur Journal LinkedIn :\n\n" + lines.join("\n");
+        var rows = chefs.map(function (c) { return { sender_id: me.id, recipient_id: c.id, content: content }; });
+        supabase.from("boxmails").insert(rows).then(function () {});
+      });
+    }
+
     if (confirmBtn) {
       confirmBtn.addEventListener("click", function () {
         var contact = contactInput.value.trim();
@@ -196,12 +212,17 @@
         if (!date) { errorEl.textContent = "Choisis une date."; return; }
         errorEl.textContent = "";
 
+        var previous = editingId ? prospects.filter(function (p) { return p.id === editingId; })[0] : null;
+
         var save = editingId
           ? supabase.from("linkedin_prospects").update({ contact: contact, secteur: secteur, date: date, status: status }).eq("id", editingId)
           : supabase.from("linkedin_prospects").insert({ setter_id: me.id, contact: contact, secteur: secteur, date: date, status: status });
 
         save.then(function (res) {
           if (res && res.error) { errorEl.textContent = "Erreur d'enregistrement."; console.error(res.error); return; }
+          if (status === "audit_requested" && (!previous || previous.status !== "audit_requested")) {
+            notifyChefsAudit({ contact: contact, secteur: secteur });
+          }
           closeModal();
           loadProspects();
         });
