@@ -88,40 +88,14 @@
 
     if (!dmJournalEl && !activityListEl) return;
 
-    var statusSelect = document.getElementById("prospect-status");
-    var statusChecks = document.querySelectorAll(".prospect-status-check");
     var modalProspect = document.getElementById("modal-prospect");
-
-    var statusChecksWrap = document.getElementById("prospect-status-checks");
     var statusField = document.getElementById("prospect-status-field");
     var prospectModalTitle = document.getElementById("prospect-modal-title");
-
-    function syncChecksFromSelect() {
-      if (!statusSelect) return;
-      var val = statusSelect.value;
-      statusChecks.forEach(function (cb) {
-        cb.checked = cb.getAttribute("data-status-value") === val;
-      });
-    }
 
     function syncModalMode() {
       var isEdit = !!(prospectModalTitle && prospectModalTitle.textContent.indexOf("Modifier") !== -1);
       if (statusField) statusField.style.display = isEdit ? "block" : "none";
-      if (statusChecksWrap) statusChecksWrap.style.display = isEdit ? "flex" : "none";
-      syncChecksFromSelect();
     }
-
-    statusChecks.forEach(function (cb) {
-      cb.addEventListener("change", function () {
-        if (!statusSelect) return;
-        if (cb.checked) {
-          statusChecks.forEach(function (other) { if (other !== cb) other.checked = false; });
-          statusSelect.value = cb.getAttribute("data-status-value");
-        } else {
-          statusSelect.value = "sent";
-        }
-      });
-    });
 
     if (modalProspect) {
       new MutationObserver(function () {
