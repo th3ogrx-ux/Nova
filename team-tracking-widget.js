@@ -173,6 +173,12 @@
 
       svg.appendChild(svgEl("line", { class: "suivi-axis-line", x1: padL, x2: padL, y1: padT, y2: H - padB }));
 
+      // Ligne pointillée au niveau du maximum, pour le repérer d'un coup d'œil.
+      svg.appendChild(svgEl("line", {
+        x1: padL, x2: W - padR, y1: yAt(maxVal), y2: yAt(maxVal),
+        stroke: "rgba(199,194,219,.35)", "stroke-width": "1", "stroke-dasharray": "4,3"
+      }));
+
       series.forEach(function (d, i) {
         if (i % 2 !== 0 && i !== series.length - 1) return;
         var label = svgEl("text", { class: "suivi-x-label", x: xAt(i), y: H - padB + 14, "text-anchor": "middle" });
