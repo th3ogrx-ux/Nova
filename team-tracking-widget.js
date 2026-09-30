@@ -76,6 +76,7 @@
     { key: "not_interested", label: "Pas intéressé", color: "var(--danger)" }
   ];
   var RADAR_CATEGORIES = [
+    { key: "total", label: "Total généré", color: "var(--cool-1)" },
     { key: "pending", label: "En attente", color: "var(--warm-1)" },
     { key: "interested", label: "Intéressé", color: "#4FBF7A" },
     { key: "not_interested", label: "Non intéressé", color: "#D9534F" }
@@ -129,8 +130,12 @@
         ((res && res.data) || []).forEach(function (r) {
           var d = r[dateColumn];
           if (!Object.prototype.hasOwnProperty.call(byDate, d)) return;
-          var key = classify(r.status);
-          if (key && Object.prototype.hasOwnProperty.call(byDate[d], key)) byDate[d][key]++;
+          // classify() renvoie une ou plusieurs clés (ex: ["total","pending"])
+          // pour qu'une ligne puisse compter dans plusieurs courbes à la fois.
+          var keys = [].concat(classify(r.status) || []);
+          keys.forEach(function (key) {
+            if (Object.prototype.hasOwnProperty.call(byDate[d], key)) byDate[d][key]++;
+          });
         });
         cb(range.map(function (d) { return { date: d, counts: byDate[d] }; }));
       });
@@ -248,10 +253,12 @@
     }
 
     function classifyRadar(status) {
-      if (status === "interested") return "interested";
-      if (status === "not_interested") return "not_interested";
-      if (status === "pending") return "pending";
-      return null; // pas encore traité : ne compte dans aucune courbe
+      // "total" compte toujours, même les leads pas encore traités
+      // (status nul) ; la 2e clé ajoute le détail par statut si connu.
+      if (status === "interested") return ["total", "interested"];
+      if (status === "not_interested") return ["total", "not_interested"];
+      if (status === "pending") return ["total", "pending"];
+      return ["total"];
     }
 
     var booted = false;
