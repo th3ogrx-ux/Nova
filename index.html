@@ -60,10 +60,6 @@
     .boxmail-broadcast-toggle:hover{background:rgba(255,255,255,.08);}
     .boxmail-broadcast-toggle input{width:16px;height:16px;accent-color:var(--warm-1);cursor:pointer;}
 
-    /* Les cases "Statut" du modal prospect héritent sinon du style des
-       champs texte (width:100%, coins arrondis...) et deviennent d'énormes
-       rectangles qui chevauchent leur label. */
-    .prospect-status-check{width:16px;height:16px;flex-shrink:0;accent-color:var(--warm-1);cursor:pointer;}
     .boxmail-broadcast-toggle.checked{border-color:var(--warm-1);background:#bf5af226;color:var(--metal-2);}
 
     /* Logo tournant + barre de chargement affichés au démarrage (et à la
@@ -1023,7 +1019,7 @@
     </div>
     <div class="field" id="prospect-status-field">
       <label class="field-label">Statut</label>
-      <select id="prospect-status" style="display:none;">
+      <select id="prospect-status">
         <option value="sent">DM envoyé</option>
         <option value="replied">Réponse reçue</option>
         <option value="mini_analysis_requested">Demande mini analyse</option>
@@ -1031,23 +1027,6 @@
         <option value="sold">Vendu</option>
         <option value="not_interested">Pas intéressé</option>
       </select>
-      <div id="prospect-status-checks" style="display:flex;gap:16px;flex-wrap:wrap;padding-top:4px;">
-        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
-          <input type="checkbox" class="prospect-status-check" data-status-value="sold"> Vendu
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
-          <input type="checkbox" class="prospect-status-check" data-status-value="replied"> Réponse reçue
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
-          <input type="checkbox" class="prospect-status-check" data-status-value="mini_analysis_requested"> Demande mini analyse
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
-          <input type="checkbox" class="prospect-status-check" data-status-value="meeting"> Call pris
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
-          <input type="checkbox" class="prospect-status-check" data-status-value="not_interested"> Pas intéressé
-        </label>
-      </div>
     </div>
     <div class="error-msg" id="prospect-error"></div>
     <div class="modal-actions">
