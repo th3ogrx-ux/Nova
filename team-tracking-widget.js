@@ -245,15 +245,37 @@
       supabase.from("profiles").select("id,role").eq("id", userId).single().then(function (res) {
         if (!res || !res.data || res.data.role !== "chef") return;
 
-        loadDailySeries("prospects", "date", DM_CATEGORIES, classifyDm, function (series) {
-          renderMultiLineChart(containers.dms, series, DM_CATEGORIES);
-        });
-        loadDailySeries("linkedin_prospects", "date", LINKEDIN_CATEGORIES, classifyLinkedin, function (series) {
-          renderMultiLineChart(containers.linkedin, series, LINKEDIN_CATEGORIES);
-        });
-        loadDailySeries("radar_leads", "sent_date", RADAR_CATEGORIES, classifyRadar, function (series) {
-          renderMultiLineChart(containers.radar, series, RADAR_CATEGORIES);
-        });
+        function refreshDms() {
+          loadDailySeries("prospects", "date", DM_CATEGORIES, classifyDm, function (series) {
+            renderMultiLineChart(containers.dms, series, DM_CATEGORIES);
+          });
+        }
+        function refreshLinkedin() {
+          loadDailySeries("linkedin_prospects", "date", LINKEDIN_CATEGORIES, classifyLinkedin, function (series) {
+            renderMultiLineChart(containers.linkedin, series, LINKEDIN_CATEGORIES);
+          });
+        }
+        function refreshRadar() {
+          loadDailySeries("radar_leads", "sent_date", RADAR_CATEGORIES, classifyRadar, function (series) {
+            renderMultiLineChart(containers.radar, series, RADAR_CATEGORIES);
+          });
+        }
+
+        refreshDms();
+        refreshLinkedin();
+        refreshRadar();
+
+        // Se remet à jour tout seul dès qu'un prospect/lead est ajouté,
+        // modifié (changement de statut) ou supprimé, sans recharger la page.
+        supabase.channel("nova-suivi-prospects")
+          .on("postgres_changes", { event: "*", schema: "public", table: "prospects" }, refreshDms)
+          .subscribe();
+        supabase.channel("nova-suivi-linkedin")
+          .on("postgres_changes", { event: "*", schema: "public", table: "linkedin_prospects" }, refreshLinkedin)
+          .subscribe();
+        supabase.channel("nova-suivi-radar")
+          .on("postgres_changes", { event: "*", schema: "public", table: "radar_leads" }, refreshRadar)
+          .subscribe();
       });
     }
 
