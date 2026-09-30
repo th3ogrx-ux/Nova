@@ -60,13 +60,37 @@
 
   var DAYS = 14;
 
+  // Mêmes catégories/couleurs que dans "Activité de l'équipe" de chaque journal.
+  var DM_CATEGORIES = [
+    { key: "sent", label: "DM envoyé", color: "var(--cool-1)" },
+    { key: "replied", label: "Réponse reçue", color: "var(--ok)" },
+    { key: "sold", label: "Vendu", color: "#d4af37" },
+    { key: "not_interested", label: "Pas intéressé", color: "var(--danger)" }
+  ];
+  var LINKEDIN_CATEGORIES = [
+    { key: "sent", label: "Message envoyé", color: "var(--cool-1)" },
+    { key: "replied", label: "Réponse reçue", color: "var(--ok)" },
+    { key: "audit", label: "Demande audit", color: "#e0b3ff" },
+    { key: "meeting", label: "Call pris", color: "#5ac8fa" },
+    { key: "sold", label: "Vendu", color: "#d4af37" },
+    { key: "not_interested", label: "Pas intéressé", color: "var(--danger)" }
+  ];
+  var RADAR_CATEGORIES = [
+    { key: "pending", label: "En attente", color: "var(--warm-1)" },
+    { key: "interested", label: "Intéressé", color: "#4FBF7A" },
+    { key: "not_interested", label: "Non intéressé", color: "#D9534F" }
+  ];
+
   var CSS = "\n" +
     ".suivi-chart-wrap{margin-top:6px;}\n" +
     ".suivi-chart-wrap svg{width:100%;height:auto;display:block;}\n" +
     ".suivi-axis-line{stroke:rgba(199,194,219,.16);stroke-width:1;}\n" +
     ".suivi-grid-line{stroke:rgba(199,194,219,.08);stroke-width:1;}\n" +
     ".suivi-y-label{fill:var(--text-dim);font-size:9px;}\n" +
-    ".suivi-x-label{fill:var(--text-dim);font-size:9px;}\n";
+    ".suivi-x-label{fill:var(--text-dim);font-size:9px;}\n" +
+    ".suivi-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:11.5px;opacity:.8;}\n" +
+    ".suivi-legend-item{display:flex;align-items:center;gap:6px;}\n" +
+    ".suivi-legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -89,17 +113,26 @@
       return arr;
     }
 
-    function loadDailyCounts(table, dateColumn, days, cb) {
-      var range = buildDateRange(days);
+    // Récupère date+status sur la fenêtre, puis compte par jour selon une
+    // fonction de classement propre à chaque journal (même logique que son
+    // "Activité de l'équipe").
+    function loadDailySeries(table, dateColumn, categories, classify, cb) {
+      var range = buildDateRange(DAYS);
       var start = range[0];
-      supabase.from(table).select(dateColumn).gte(dateColumn, start).then(function (res) {
-        var counts = {};
-        range.forEach(function (d) { counts[d] = 0; });
+      supabase.from(table).select(dateColumn + ",status").gte(dateColumn, start).then(function (res) {
+        var byDate = {};
+        range.forEach(function (d) {
+          var counts = {};
+          categories.forEach(function (c) { counts[c.key] = 0; });
+          byDate[d] = counts;
+        });
         ((res && res.data) || []).forEach(function (r) {
           var d = r[dateColumn];
-          if (Object.prototype.hasOwnProperty.call(counts, d)) counts[d]++;
+          if (!Object.prototype.hasOwnProperty.call(byDate, d)) return;
+          var key = classify(r.status);
+          if (key && Object.prototype.hasOwnProperty.call(byDate[d], key)) byDate[d][key]++;
         });
-        cb(range.map(function (d) { return { date: d, count: counts[d] }; }));
+        cb(range.map(function (d) { return { date: d, counts: byDate[d] }; }));
       });
     }
 
@@ -109,7 +142,7 @@
       return e;
     }
 
-    function renderLineChart(container, series, color) {
+    function renderMultiLineChart(container, series, categories) {
       if (!container) return;
       container.innerHTML = "";
 
@@ -119,17 +152,17 @@
       var plotH = H - padT - padB;
 
       var maxVal = 0;
-      series.forEach(function (d) { if (d.count > maxVal) maxVal = d.count; });
+      series.forEach(function (d) {
+        categories.forEach(function (c) { if (d.counts[c.key] > maxVal) maxVal = d.counts[c.key]; });
+      });
       if (maxVal === 0) maxVal = 1;
 
       var stepX = series.length > 1 ? plotW / (series.length - 1) : 0;
-
       function xAt(i) { return padL + i * stepX; }
       function yAt(v) { return padT + plotH * (1 - v / maxVal); }
 
       var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "xMinYMid meet" });
 
-      // Grille + axe Y (0 et le maximum)
       [0, maxVal].forEach(function (v) {
         var y = yAt(v);
         svg.appendChild(svgEl("line", { class: v === 0 ? "suivi-axis-line" : "suivi-grid-line", x1: padL, x2: W - padR, y1: y, y2: y }));
@@ -138,10 +171,8 @@
         svg.appendChild(label);
       });
 
-      // Axe X
       svg.appendChild(svgEl("line", { class: "suivi-axis-line", x1: padL, x2: padL, y1: padT, y2: H - padB }));
 
-      // Dates en bas (un label sur deux pour ne pas surcharger)
       series.forEach(function (d, i) {
         if (i % 2 !== 0 && i !== series.length - 1) return;
         var label = svgEl("text", { class: "suivi-x-label", x: xAt(i), y: H - padB + 14, "text-anchor": "middle" });
@@ -149,26 +180,62 @@
         svg.appendChild(label);
       });
 
-      // Ligne
-      var points = series.map(function (d, i) { return xAt(i).toFixed(1) + "," + yAt(d.count).toFixed(1); }).join(" ");
-      svg.appendChild(svgEl("polyline", {
-        points: points,
-        fill: "none",
-        stroke: color,
-        "stroke-width": "2",
-        "stroke-linecap": "round",
-        "stroke-linejoin": "round"
-      }));
-
-      // Points
-      series.forEach(function (d, i) {
-        svg.appendChild(svgEl("circle", { cx: xAt(i), cy: yAt(d.count), r: 2.5, fill: color }));
+      categories.forEach(function (cat) {
+        var points = series.map(function (d, i) { return xAt(i).toFixed(1) + "," + yAt(d.counts[cat.key]).toFixed(1); }).join(" ");
+        svg.appendChild(svgEl("polyline", {
+          points: points,
+          fill: "none",
+          stroke: cat.color,
+          "stroke-width": "2",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }));
+        series.forEach(function (d, i) {
+          if (d.counts[cat.key] > 0) svg.appendChild(svgEl("circle", { cx: xAt(i), cy: yAt(d.counts[cat.key]), r: 2.5, fill: cat.color }));
+        });
       });
 
       var wrap = document.createElement("div");
       wrap.className = "suivi-chart-wrap";
       wrap.appendChild(svg);
       container.appendChild(wrap);
+
+      var legend = document.createElement("div");
+      legend.className = "suivi-legend";
+      categories.forEach(function (cat) {
+        var item = document.createElement("div");
+        item.className = "suivi-legend-item";
+        var dot = document.createElement("span");
+        dot.className = "suivi-legend-dot";
+        dot.style.background = cat.color;
+        item.appendChild(dot);
+        item.appendChild(document.createTextNode(cat.label));
+        legend.appendChild(item);
+      });
+      container.appendChild(legend);
+    }
+
+    function classifyDm(status) {
+      if (status === "sold") return "sold";
+      if (status === "not_interested") return "not_interested";
+      if (status === "replied") return "replied";
+      return "sent"; // sent, meeting, interested (ou pas de statut) comptent comme "envoyé"
+    }
+
+    function classifyLinkedin(status) {
+      if (status === "sold") return "sold";
+      if (status === "not_interested") return "not_interested";
+      if (status === "replied") return "replied";
+      if (status === "audit_requested") return "audit";
+      if (status === "meeting") return "meeting";
+      return "sent";
+    }
+
+    function classifyRadar(status) {
+      if (status === "interested") return "interested";
+      if (status === "not_interested") return "not_interested";
+      if (status === "pending") return "pending";
+      return null; // pas encore traité : ne compte dans aucune courbe
     }
 
     var booted = false;
@@ -178,14 +245,14 @@
       supabase.from("profiles").select("id,role").eq("id", userId).single().then(function (res) {
         if (!res || !res.data || res.data.role !== "chef") return;
 
-        loadDailyCounts("prospects", "date", DAYS, function (series) {
-          renderLineChart(containers.dms, series, "var(--cool-1)");
+        loadDailySeries("prospects", "date", DM_CATEGORIES, classifyDm, function (series) {
+          renderMultiLineChart(containers.dms, series, DM_CATEGORIES);
         });
-        loadDailyCounts("linkedin_prospects", "date", DAYS, function (series) {
-          renderLineChart(containers.linkedin, series, "#5ac8fa");
+        loadDailySeries("linkedin_prospects", "date", LINKEDIN_CATEGORIES, classifyLinkedin, function (series) {
+          renderMultiLineChart(containers.linkedin, series, LINKEDIN_CATEGORIES);
         });
-        loadDailyCounts("radar_leads", "sent_date", DAYS, function (series) {
-          renderLineChart(containers.radar, series, "var(--warm-1)");
+        loadDailySeries("radar_leads", "sent_date", RADAR_CATEGORIES, classifyRadar, function (series) {
+          renderMultiLineChart(containers.radar, series, RADAR_CATEGORIES);
         });
       });
     }
