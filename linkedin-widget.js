@@ -145,6 +145,8 @@
 
     var activityListEl = document.getElementById("linkedin-activity-list");
     var activityPeriodTabs = document.getElementById("linkedin-activity-period-tabs");
+    var activityPanel = document.getElementById("linkedin-activity-panel");
+    var filterRow = document.getElementById("linkedin-filter-row");
 
     var accessPanel = document.getElementById("linkedin-access-panel");
     var accessListEl = document.getElementById("linkedin-access-list");
@@ -468,6 +470,14 @@
         if (!res || !res.data) return;
         me = res.data;
         isChef = me.role === "chef";
+
+        // "chef-only" sur ces panneaux ne fait rien tout seul (ce
+        // mécanisme générique ne cible que les .nav-item) : on les
+        // cache explicitement pour les membres, qui ne doivent voir
+        // ni l'activité de l'équipe ni la gestion des accès.
+        if (activityPanel) activityPanel.style.display = isChef ? "" : "none";
+        if (accessPanel) accessPanel.style.display = isChef ? "" : "none";
+        if (filterRow) filterRow.style.display = isChef ? "" : "none";
 
         // Le chef atteint le journal LinkedIn via le dossier Équipe
         // (chef-only) ; ce lien autonome n'est destiné qu'aux membres
