@@ -67,8 +67,8 @@
   var STATUS_LABELS = {
     sent: "Message envoyé",
     replied: "Réponse reçue",
-    meeting: "RDV pris",
-    interested: "Intéressé",
+    audit_requested: "Demande audit",
+    meeting: "Call pris",
     sold: "Vendu",
     not_interested: "Pas intéressé"
   };
@@ -80,13 +80,11 @@
     ".li-row-contact{font-weight:600;min-width:120px;flex:1;}\n" +
     ".li-row-secteur{opacity:.65;font-size:12.5px;}\n" +
     ".li-row-status{font-size:11.5px;padding:3px 9px;border-radius:20px;border:1px solid rgba(199,194,219,.2);white-space:nowrap;}\n" +
-    ".li-row-status.st-interested{color:#e6ccff;border-color:#e0b3ff59;background:#e0b3ff14;}\n" +
+    ".li-row-status.st-audit_requested{color:#e6ccff;border-color:#e0b3ff59;background:#e0b3ff14;}\n" +
     ".li-row-status.st-sold{color:#f2c572;border-color:#d4af3759;background:#d4af3714;}\n" +
     ".li-row-status.st-replied,.li-row-status.st-meeting{color:#a8e0c4;border-color:#7fd6a759;background:#7fd6a714;}\n" +
     ".li-row-status.st-not_interested{color:#e8a3a3;border-color:#e6807959;background:#e6807914;}\n" +
-    ".li-row-actions{display:flex;gap:10px;flex-shrink:0;}\n" +
-    ".li-row-action{opacity:.5;cursor:pointer;font-size:14px;}\n" +
-    ".li-row-action:hover{opacity:1;}\n" +
+    ".li-row-actions{display:flex;gap:8px;flex-shrink:0;}\n" +
     ".li-access-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border-radius:8px;background:rgba(255,255,255,.04);margin-bottom:6px;font-size:13.5px;}\n" +
     ".li-access-remove{flex-shrink:0;opacity:.5;cursor:pointer;font-size:16px;padding:0 4px;}\n" +
     ".li-access-remove:hover{opacity:1;color:#e88783;}\n" +
@@ -242,9 +240,9 @@
           var canEdit = isChef || p.setterId === me.id;
           if (canEdit) {
             var actions = el("div", { class: "li-row-actions" });
-            var editBtn = el("span", { class: "li-row-action", title: "Modifier" }, "✎");
+            var editBtn = el("button", { class: "icon-btn", title: "Modifier" }, "✎");
             editBtn.addEventListener("click", function () { openModal(p); });
-            var delBtn = el("span", { class: "li-row-action", title: "Supprimer" }, "🗑");
+            var delBtn = el("button", { class: "icon-btn del", title: "Supprimer" }, "✕");
             delBtn.addEventListener("click", function () { deleteProspect(p.id); });
             actions.appendChild(editBtn);
             actions.appendChild(delBtn);
@@ -313,7 +311,7 @@
         if (!inPeriod(p.date, activityPeriod)) return;
         if (!byPerson[p.setterId]) byPerson[p.setterId] = { total: 0, replied: 0, sold: 0, not_interested: 0 };
         byPerson[p.setterId].total++;
-        if (p.status === "replied" || p.status === "meeting") byPerson[p.setterId].replied++;
+        if (p.status === "replied" || p.status === "audit_requested" || p.status === "meeting") byPerson[p.setterId].replied++;
         else if (p.status === "sold") byPerson[p.setterId].sold++;
         else if (p.status === "not_interested") byPerson[p.setterId].not_interested++;
       });

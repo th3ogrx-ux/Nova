@@ -13,7 +13,7 @@ create table if not exists public.linkedin_prospects (
   secteur    text,
   date       date not null default current_date,
   status     text not null default 'sent'
-             check (status in ('sent', 'replied', 'meeting', 'interested', 'sold', 'not_interested')),
+             check (status in ('sent', 'replied', 'audit_requested', 'meeting', 'sold', 'not_interested')),
   created_at timestamptz not null default now()
 );
 
