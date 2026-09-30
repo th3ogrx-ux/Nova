@@ -82,7 +82,8 @@
     ".li-row-status{font-size:11.5px;padding:3px 9px;border-radius:20px;border:1px solid rgba(199,194,219,.2);white-space:nowrap;}\n" +
     ".li-row-status.st-audit_requested{color:#e6ccff;border-color:#e0b3ff59;background:#e0b3ff14;}\n" +
     ".li-row-status.st-sold{color:#f2c572;border-color:#d4af3759;background:#d4af3714;}\n" +
-    ".li-row-status.st-replied,.li-row-status.st-meeting{color:#a8e0c4;border-color:#7fd6a759;background:#7fd6a714;}\n" +
+    ".li-row-status.st-replied{color:#a8e0c4;border-color:#7fd6a759;background:#7fd6a714;}\n" +
+    ".li-row-status.st-meeting{color:#a8d8f2;border-color:#5ac8fa59;background:#5ac8fa14;}\n" +
     ".li-row-status.st-not_interested{color:#e8a3a3;border-color:#e6807959;background:#e6807914;}\n" +
     ".li-row-actions{display:flex;gap:8px;flex-shrink:0;}\n" +
     ".li-access-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border-radius:8px;background:rgba(255,255,255,.04);margin-bottom:6px;font-size:13.5px;}\n" +
@@ -92,11 +93,22 @@
     ".li-funnel-seg{height:100%;}\n" +
     ".li-funnel-seg.sent{background:var(--cool-1);}\n" +
     ".li-funnel-seg.replied{background:var(--ok);}\n" +
+    ".li-funnel-seg.audit{background:#e0b3ff;}\n" +
+    ".li-funnel-seg.meeting{background:#5ac8fa;}\n" +
     ".li-funnel-seg.sold{background:#d4af37;}\n" +
     ".li-funnel-seg.not_interested{background:var(--danger);}\n" +
     ".li-activity-row{display:flex;align-items:center;gap:10px;padding:8px 4px;font-size:13px;}\n" +
     ".li-activity-name{width:120px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n" +
-    ".li-activity-count{width:56px;flex-shrink:0;font-size:12px;opacity:.8;}\n";
+    ".li-activity-count{width:88px;flex-shrink:0;font-size:11.5px;opacity:.8;white-space:nowrap;}\n" +
+    ".li-funnel-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(199,194,219,.12);font-size:12px;opacity:.75;}\n" +
+    ".li-funnel-legend-item{display:flex;align-items:center;gap:6px;}\n" +
+    ".li-funnel-legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0;}\n" +
+    ".li-funnel-legend-dot.sent{background:var(--cool-1);}\n" +
+    ".li-funnel-legend-dot.replied{background:var(--ok);}\n" +
+    ".li-funnel-legend-dot.audit{background:#e0b3ff;}\n" +
+    ".li-funnel-legend-dot.meeting{background:#5ac8fa;}\n" +
+    ".li-funnel-legend-dot.sold{background:#d4af37;}\n" +
+    ".li-funnel-legend-dot.not_interested{background:var(--danger);}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -306,18 +318,21 @@
 
     function renderActivity() {
       if (!activityListEl) return;
+      var EMPTY_COUNT = { total: 0, replied: 0, audit: 0, meeting: 0, sold: 0, not_interested: 0 };
       var byPerson = {};
       prospects.forEach(function (p) {
         if (!inPeriod(p.date, activityPeriod)) return;
-        if (!byPerson[p.setterId]) byPerson[p.setterId] = { total: 0, replied: 0, sold: 0, not_interested: 0 };
+        if (!byPerson[p.setterId]) byPerson[p.setterId] = { total: 0, replied: 0, audit: 0, meeting: 0, sold: 0, not_interested: 0 };
         byPerson[p.setterId].total++;
-        if (p.status === "replied" || p.status === "audit_requested" || p.status === "meeting") byPerson[p.setterId].replied++;
+        if (p.status === "replied") byPerson[p.setterId].replied++;
+        else if (p.status === "audit_requested") byPerson[p.setterId].audit++;
+        else if (p.status === "meeting") byPerson[p.setterId].meeting++;
         else if (p.status === "sold") byPerson[p.setterId].sold++;
         else if (p.status === "not_interested") byPerson[p.setterId].not_interested++;
       });
 
       var rows = allActiveProfiles
-        .map(function (p) { return { profile: p, c: byPerson[p.id] || { total: 0, replied: 0, sold: 0, not_interested: 0 } }; })
+        .map(function (p) { return { profile: p, c: byPerson[p.id] || EMPTY_COUNT }; })
         .filter(function (r) { return r.c.total > 0; })
         .sort(function (a, b) {
           if (b.c.sold !== a.c.sold) return b.c.sold - a.c.sold;
@@ -328,23 +343,46 @@
       activityListEl.innerHTML = "";
       if (!rows.length) {
         activityListEl.appendChild(el("div", { class: "empty-note" }, "Aucune activité sur cette période."));
+        ensureLegend();
         return;
       }
       rows.forEach(function (r) {
         var row = el("div", { class: "li-activity-row" });
         row.appendChild(el("div", { class: "li-activity-name" }, escapeHtml(r.profile.pseudo || "?")));
         var bar = el("div", { class: "li-funnel-bar" });
-        var remainder = r.c.total - r.c.replied - r.c.sold - r.c.not_interested;
-        [["sent", remainder], ["replied", r.c.replied], ["sold", r.c.sold], ["not_interested", r.c.not_interested]].forEach(function (pair) {
+        var remainder = r.c.total - r.c.replied - r.c.audit - r.c.meeting - r.c.sold - r.c.not_interested;
+        [["sent", remainder], ["replied", r.c.replied], ["audit", r.c.audit], ["meeting", r.c.meeting], ["sold", r.c.sold], ["not_interested", r.c.not_interested]].forEach(function (pair) {
           if (pair[1] > 0) {
             var pct = (pair[1] / r.c.total) * 100;
             bar.appendChild(el("div", { class: "li-funnel-seg " + pair[0], style: "width:" + pct + "%;" }));
           }
         });
         row.appendChild(bar);
-        row.appendChild(el("div", { class: "li-activity-count" }, r.c.total + "/" + r.c.replied + "/" + r.c.sold));
+        row.appendChild(el("div", { class: "li-activity-count" }, r.c.total + "/" + r.c.replied + "/" + r.c.audit + "/" + r.c.meeting + "/" + r.c.sold + "/" + r.c.not_interested));
         activityListEl.appendChild(row);
       });
+      ensureLegend();
+    }
+
+    function ensureLegend() {
+      if (!activityListEl || !activityListEl.parentElement) return;
+      if (document.getElementById("li-funnel-legend")) return;
+      var legend = el("div", { id: "li-funnel-legend", class: "li-funnel-legend" });
+      legend.appendChild(el("div", { style: "width:100%;opacity:.6;" }, "Chiffres : Message envoyé / Réponse reçue / Demande audit / Call pris / Vendu / Pas intéressé"));
+      [
+        { key: "sent", label: "Message envoyé" },
+        { key: "replied", label: "Réponse reçue" },
+        { key: "audit", label: "Demande audit" },
+        { key: "meeting", label: "Call pris" },
+        { key: "sold", label: "Vendu" },
+        { key: "not_interested", label: "Pas intéressé" }
+      ].forEach(function (it) {
+        var item = el("div", { class: "li-funnel-legend-item" });
+        item.appendChild(el("span", { class: "li-funnel-legend-dot " + it.key }));
+        item.appendChild(document.createTextNode(it.label));
+        legend.appendChild(item);
+      });
+      activityListEl.parentElement.appendChild(legend);
     }
 
     if (activityPeriodTabs) {
