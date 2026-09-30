@@ -20,6 +20,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Poppins:wght@500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <style>
+    /* Sans ça, le menu déroulant natif (mobile) s'ouvre avec le thème
+       clair du téléphone : texte blanc du site sur fond blanc du popup,
+       donc illisible. */
+    select{color-scheme:dark;}
+    select option{background:#0c0518;color:#f1eefb;}
     .brand-word{font-family:'Orbitron',sans-serif;font-weight:700;}
     .brand-mark{background:none!important;box-shadow:none!important;border-radius:0!important;object-fit:contain;}
     .brand-mark:after{content:none!important;}

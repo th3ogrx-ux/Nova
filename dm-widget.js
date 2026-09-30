@@ -61,7 +61,7 @@
     not_interested: "Pas intéressé"
   };
 
-  var CSS = "\n.status-tag-dm.st-mini_analysis_requested{color:#e6ccff;border-color:#e0b3ff59;background:#e0b3ff14;}\n.status-tag-dm.st-sold{color:#f2c572;border-color:#d4af3759;background:#d4af3714;}\n.status-tag-dm.st-meeting{color:#a8d8f2;border-color:#5ac8fa59;background:#5ac8fa14;}\n.nova-funnel-bar{display:flex;align-items:stretch;flex:1;min-width:40px;height:7px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.08);margin-left:8px;}\n.nova-funnel-seg{height:100%;}\n.nova-funnel-seg.sent{background:var(--cool-1);}\n.nova-funnel-seg.replied{background:var(--ok);}\n.nova-funnel-seg.sold{background:#d4af37;}\n.nova-funnel-seg.not_interested{background:var(--danger);}\n.nova-funnel-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(199,194,219,.12);font-size:12px;opacity:.75;}\n.nova-funnel-legend-item{display:flex;align-items:center;gap:6px;}\n.nova-funnel-legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0;}\n.nova-funnel-legend-dot.sent{background:var(--cool-1);}\n.nova-funnel-legend-dot.replied{background:var(--ok);}\n.nova-funnel-legend-dot.sold{background:#d4af37;}\n.nova-funnel-legend-dot.not_interested{background:var(--danger);}\n.activity-row-count{width:auto;min-width:56px;white-space:nowrap;font-size:12px;}\n.nova-activity-namewrap{width:100px;flex-shrink:0;min-width:0;display:flex;flex-direction:column;justify-content:center;}\n.nova-activity-namewrap .activity-row-name{width:auto;}\n.nova-activity-role{font-size:10.5px;opacity:.6;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}\n";
+  var CSS = "\n.status-tag-dm.st-mini_analysis_requested{color:#e6ccff;border-color:#e0b3ff59;background:#e0b3ff14;}\n.status-tag-dm.st-sold{color:#f2c572;border-color:#d4af3759;background:#d4af3714;}\n.status-tag-dm.st-meeting{color:#a8d8f2;border-color:#5ac8fa59;background:#5ac8fa14;}\n.nova-funnel-bar{display:flex;align-items:stretch;flex:1;min-width:40px;height:7px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.08);margin-left:8px;}\n.nova-funnel-seg{height:100%;}\n.nova-funnel-seg.sent{background:var(--cool-1);}\n.nova-funnel-seg.replied{background:var(--ok);}\n.nova-funnel-seg.mini_analysis{background:#e0b3ff;}\n.nova-funnel-seg.meeting{background:#5ac8fa;}\n.nova-funnel-seg.sold{background:#d4af37;}\n.nova-funnel-seg.not_interested{background:var(--danger);}\n.nova-funnel-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(199,194,219,.12);font-size:12px;opacity:.75;}\n.nova-funnel-legend-item{display:flex;align-items:center;gap:6px;}\n.nova-funnel-legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0;}\n.nova-funnel-legend-dot.sent{background:var(--cool-1);}\n.nova-funnel-legend-dot.replied{background:var(--ok);}\n.nova-funnel-legend-dot.mini_analysis{background:#e0b3ff;}\n.nova-funnel-legend-dot.meeting{background:#5ac8fa;}\n.nova-funnel-legend-dot.sold{background:#d4af37;}\n.nova-funnel-legend-dot.not_interested{background:var(--danger);}\n.activity-row-count{width:auto;min-width:56px;white-space:nowrap;font-size:12px;}\n.nova-activity-namewrap{width:100px;flex-shrink:0;min-width:0;display:flex;flex-direction:column;justify-content:center;}\n.nova-activity-namewrap .activity-row-name{width:auto;}\n.nova-activity-role{font-size:10.5px;opacity:.6;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -147,9 +147,11 @@
         var pseudo = idToPseudo[r.setter_id];
         if (!pseudo) return;
         var key = pseudo.trim().toLowerCase();
-        if (!counts[key]) counts[key] = { total: 0, replied: 0, sold: 0, not_interested: 0 };
+        if (!counts[key]) counts[key] = { total: 0, replied: 0, mini_analysis: 0, meeting: 0, sold: 0, not_interested: 0 };
         counts[key].total++; // chaque prospect compte toujours comme un DM envoyé
         if (r.status === "replied") counts[key].replied++;
+        else if (r.status === "mini_analysis_requested") counts[key].mini_analysis++;
+        else if (r.status === "meeting") counts[key].meeting++;
         else if (r.status === "sold") counts[key].sold++;
         else if (r.status === "not_interested") counts[key].not_interested++;
       });
@@ -160,9 +162,9 @@
       var c = funnelCounts[(pseudo || "").trim().toLowerCase()];
       var wrap = el("div", { class: "nova-funnel-bar" });
       if (!c || !c.total) return wrap;
-      var remainder = c.total - c.replied - c.sold - c.not_interested;
-      wrap.setAttribute("title", "DM envoyé : " + c.total + " · Réponse reçue : " + c.replied + " · Vendu : " + c.sold + " · Pas intéressé : " + c.not_interested);
-      [["sent", remainder], ["replied", c.replied], ["sold", c.sold], ["not_interested", c.not_interested]].forEach(function (pair) {
+      var remainder = c.total - c.replied - c.mini_analysis - c.meeting - c.sold - c.not_interested;
+      wrap.setAttribute("title", "DM envoyé : " + c.total + " · Réponse reçue : " + c.replied + " · Demande mini analyse : " + c.mini_analysis + " · Call pris : " + c.meeting + " · Vendu : " + c.sold + " · Pas intéressé : " + c.not_interested);
+      [["sent", remainder], ["replied", c.replied], ["mini_analysis", c.mini_analysis], ["meeting", c.meeting], ["sold", c.sold], ["not_interested", c.not_interested]].forEach(function (pair) {
         if (pair[1] > 0) {
           var pct = (pair[1] / c.total) * 100;
           wrap.appendChild(el("div", { class: "nova-funnel-seg " + pair[0], style: "width:" + pct + "%;" }));
@@ -175,11 +177,13 @@
       if (!activityListEl || !activityListEl.parentElement) return;
       if (document.getElementById("nova-funnel-legend")) return;
       var legend = el("div", { id: "nova-funnel-legend", class: "nova-funnel-legend" });
-      var formatNote = el("div", { style: "width:100%;opacity:.6;" }, "Chiffres : DM envoyé / Réponse reçue / Vendu");
+      var formatNote = el("div", { style: "width:100%;opacity:.6;" }, "Chiffres : DM envoyé / Réponse reçue / Demande mini analyse / Call pris / Vendu / Pas intéressé");
       legend.appendChild(formatNote);
       [
         { key: "sent", label: "DM envoyé" },
         { key: "replied", label: "Réponse reçue" },
+        { key: "mini_analysis", label: "Demande mini analyse" },
+        { key: "meeting", label: "Call pris" },
         { key: "sold", label: "Vendu" },
         { key: "not_interested", label: "Pas intéressé" }
       ].forEach(function (it) {
@@ -235,8 +239,8 @@
 
           var countEl = row.querySelector(".activity-row-count");
           if (countEl) {
-            var c = funnelCounts[nameEl.textContent.trim().toLowerCase()] || { total: 0, replied: 0, sold: 0 };
-            countEl.textContent = c.total + "/" + c.replied + "/" + c.sold;
+            var c = funnelCounts[nameEl.textContent.trim().toLowerCase()] || { total: 0, replied: 0, mini_analysis: 0, meeting: 0, sold: 0, not_interested: 0 };
+            countEl.textContent = c.total + "/" + c.replied + "/" + c.mini_analysis + "/" + c.meeting + "/" + c.sold + "/" + c.not_interested;
           }
         });
 
