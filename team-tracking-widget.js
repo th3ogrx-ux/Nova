@@ -180,7 +180,17 @@
         svg.appendChild(label);
       });
 
+      var baseline = H - padB;
+
       categories.forEach(function (cat) {
+        // Petite ligne verticale sous chaque point, pour voir sa hauteur
+        // d'un coup d'œil sans avoir à viser l'axe de gauche.
+        series.forEach(function (d, i) {
+          if (d.counts[cat.key] <= 0) return;
+          var x = xAt(i), y = yAt(d.counts[cat.key]);
+          svg.appendChild(svgEl("line", { x1: x, x2: x, y1: y, y2: baseline, stroke: cat.color, "stroke-width": "1", opacity: "0.25" }));
+        });
+
         var points = series.map(function (d, i) { return xAt(i).toFixed(1) + "," + yAt(d.counts[cat.key]).toFixed(1); }).join(" ");
         svg.appendChild(svgEl("polyline", {
           points: points,
