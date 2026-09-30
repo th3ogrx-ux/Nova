@@ -64,6 +64,8 @@
   var DM_CATEGORIES = [
     { key: "sent", label: "DM envoyé", color: "var(--cool-1)" },
     { key: "replied", label: "Réponse reçue", color: "var(--ok)" },
+    { key: "mini_analysis", label: "Demande mini analyse", color: "#e0b3ff" },
+    { key: "meeting", label: "Call pris", color: "#5ac8fa" },
     { key: "sold", label: "Vendu", color: "#d4af37" },
     { key: "not_interested", label: "Pas intéressé", color: "var(--danger)" }
   ];
@@ -240,7 +242,9 @@
       if (status === "sold") return "sold";
       if (status === "not_interested") return "not_interested";
       if (status === "replied") return "replied";
-      return "sent"; // sent, meeting, interested (ou pas de statut) comptent comme "envoyé"
+      if (status === "mini_analysis_requested") return "mini_analysis";
+      if (status === "meeting") return "meeting";
+      return "sent";
     }
 
     function classifyLinkedin(status) {
