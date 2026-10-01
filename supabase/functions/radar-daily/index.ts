@@ -79,47 +79,36 @@ const MAX_ATTEMPTS = 35;
 // Empêche un seul métier (ex: salles de sport) de remplir tout le quota
 // du jour si sa recherche renvoie beaucoup de résultats contactables d'un
 // coup — force un minimum de diversité entre métiers chaque jour.
-const MAX_PER_TRADE = 3;
+// Monté à 4 (au lieu de 3) car la liste de métiers est plus courte
+// maintenant — sinon on ne pourrait plus atteindre DAILY_TARGET.
+const MAX_PER_TRADE = 4;
 
 const MAILTO_RE = /mailto:([^"'?\s]+)/i;
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
 
-// Les 31 métiers de la liste du chef qui correspondent à une vraie
-// catégorie Geoapify Places (les ~20 autres métiers indépendants —
-// plombiers, kinés, wedding planners, etc. — n'existent pas comme
-// catégorie de lieu cherchable dans les données OpenStreetMap).
+// Liste ciblée demandée par le chef (artisans du bâtiment, médical,
+// juridique/comptable, immobilier, restauration, beauté, hébergement
+// touristique). Les métiers purement indépendants sans fiche de lieu
+// repérable dans OpenStreetMap (plombiers, couvreurs, pisciniers,
+// cuisinistes, coachs/formateurs/consultants, mandataires immobiliers,
+// diagnostiqueurs) ont été laissés de côté : Zenoa Radar cherche des
+// *lieux*, donc ces métiers ne renverraient jamais de résultat.
 const TRADES: { label: string; category: string }[] = [
-  { label: "Coiffeurs / barbiers", category: "service.beauty.hairdresser" },
-  { label: "Instituts de beauté / onglerie", category: "service.beauty.spa,service.beauty.massage,service.beauty.tanning_salon" },
-  { label: "Restaurants", category: "catering.restaurant" },
-  { label: "Pizzerias / snacks", category: "catering.restaurant.pizza,catering.fast_food" },
-  { label: "Boulangers / pâtissiers", category: "commercial.food_and_drink.bakery" },
-  { label: "Fleuristes", category: "commercial.florist" },
-  { label: "Primeurs / épiceries de quartier", category: "commercial.food_and_drink.fruit_and_vegetable,commercial.convenience" },
-  { label: "Bouchers / poissonniers", category: "commercial.food_and_drink.butcher,commercial.food_and_drink.seafood" },
-  { label: "Électriciens", category: "service.electrician" },
-  { label: "Menuisiers / ébénistes", category: "service.carpenter" },
-  { label: "Garages / mécaniciens auto", category: "service.vehicle.repair.car" },
-  { label: "Loueurs de véhicules indépendants", category: "rental.car" },
   { label: "Dentistes indépendants", category: "healthcare.dentist" },
-  { label: "Vétérinaires", category: "pet.veterinary" },
-  { label: "Salles de sport locales", category: "sport.fitness.gym,sport.fitness.fitness_centre" },
-  { label: "Auto-écoles", category: "education.driving_school" },
-  { label: "Agences immobilières locales", category: "office.estate_agent" },
+  { label: "Kinés / ostéopathes / psychologues / diététiciens", category: "healthcare.clinic_or_praxis" },
   { label: "Avocats indépendants", category: "office.lawyer" },
   { label: "Notaires", category: "office.notary" },
   { label: "Experts-comptables indépendants", category: "office.accountant" },
-  { label: "Architectes indépendants", category: "office.architect" },
-  { label: "Hôtels indépendants", category: "accommodation.hotel" },
-  { label: "Gîtes / chambres d'hôtes", category: "accommodation.guest_house" },
-  { label: "Campings indépendants", category: "camping.camp_site" },
-  { label: "Photographes", category: "service.photographer" },
+  { label: "Agences immobilières locales", category: "office.estate_agent" },
+  { label: "Restaurants", category: "catering.restaurant" },
+  { label: "Traiteurs / food trucks / snacks", category: "catering.restaurant.pizza,catering.fast_food" },
+  { label: "Coiffeurs / barbiers", category: "service.beauty.hairdresser" },
+  { label: "Instituts de beauté / spas", category: "service.beauty.spa,service.beauty.massage,service.beauty.tanning_salon" },
   { label: "Salons de tatouage", category: "service.beauty.tattoo" },
-  { label: "Serruriers", category: "service.locksmith" },
-  { label: "Taxis / VTC indépendants", category: "service.taxi" },
-  { label: "Librairies indépendantes", category: "commercial.books" },
-  { label: "Magasins de vélos", category: "commercial.outdoor_and_sport.bicycle" },
-  { label: "Cabinets de recrutement indépendants", category: "office.employment_agency" }
+  { label: "Électriciens", category: "service.electrician" },
+  { label: "Menuisiers / ébénistes", category: "service.carpenter" },
+  { label: "Hôtels indépendants", category: "accommodation.hotel" },
+  { label: "Gîtes / chambres d'hôtes", category: "accommodation.guest_house" }
 ];
 
 // Grandes et moyennes villes françaises réparties sur tout le territoire,
