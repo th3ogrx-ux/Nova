@@ -148,7 +148,7 @@ function shuffle<T>(arr: T[]): T[] {
 // quasi toujours dans les premiers Ko d'une page (header/footer), donc
 // pas besoin de charger et scruter des pages entières de plusieurs Mo :
 // ça évite de saturer le CPU de la fonction sur un tirage à 100 leads.
-const MAX_SCRAPE_BYTES = 150000;
+const MAX_SCRAPE_BYTES = 50000;
 
 async function scrapeEmail(websiteUrl: string): Promise<string | null> {
   try {
@@ -246,6 +246,12 @@ Deno.serve(async (req) => {
     // Combien de sites web on scrute en parallèle max par lot — limite la
     // charge mémoire/CPU de la fonction (évite un WORKER_RESOURCE_LIMIT).
     const SCRAPE_CHUNK = 5;
+    // Plafond dur sur le nombre total de sites scrutés sur tout le
+    // tirage, quel que soit le nombre de métiers/tentatives — garantit
+    // que la fonction ne dépasse jamais son budget CPU même dans le pire
+    // des cas (beaucoup de fiches avec site web mais sans téléphone).
+    const MAX_TOTAL_SCRAPES = 60;
+    let totalScrapes = 0;
 
     while (inserted.length < DAILY_TARGET && attempts < MAX_ATTEMPTS) {
       attempts++;
@@ -294,13 +300,17 @@ Deno.serve(async (req) => {
       // contactables pour ce tour ("need"), au lieu de tout scruter d'un
       // coup — ça évite de saturer la fonction en ressources.
       const candidateRows: any[] = [];
-      for (let i = 0; i < freshFeatures.length && candidateRows.length < need; i += SCRAPE_CHUNK) {
+      for (let i = 0; i < freshFeatures.length && candidateRows.length < need && totalScrapes < MAX_TOTAL_SCRAPES; i += SCRAPE_CHUNK) {
         const chunk = freshFeatures.slice(i, i + SCRAPE_CHUNK);
         const chunkRows = (await Promise.all(chunk.map(async (f: any) => {
           const p = f.properties || {};
           const website = p.website || null;
           const phone = p.phone || (p.contact && p.contact.phone) || null;
-          const email = website ? await scrapeEmail(website) : null;
+          var email: string | null = null;
+          if (website && totalScrapes < MAX_TOTAL_SCRAPES) {
+            totalScrapes++;
+            email = await scrapeEmail(website);
+          }
           if (!phone && !email) return null;
           return {
             place_id: p.place_id,
