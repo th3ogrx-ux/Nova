@@ -25,6 +25,25 @@
        donc illisible. */
     select{color-scheme:dark;}
     select option{background:#0c0518;color:#f1eefb;}
+
+    /* Look premium : contours violets lumineux sur les cartes, boutons,
+       modales et la barre latérale, au lieu des bordures grises quasi
+       invisibles d'origine. */
+    .glass-card{
+      border-color:rgba(191,90,242,.4);
+      box-shadow:0 0 0 1px rgba(191,90,242,.1),0 0 28px rgba(191,90,242,.16),0 20px 60px rgba(0,0,0,.5);
+    }
+    .btn{border-color:rgba(191,90,242,.4);}
+    .btn:hover{box-shadow:0 0 22px rgba(191,90,242,.4),0 8px 30px rgba(48,10,102,.4);}
+    .btn.primary{box-shadow:0 0 18px rgba(191,90,242,.3);}
+    .icon-btn{border-color:rgba(191,90,242,.22);}
+    .sidebar{
+      border-right:1px solid rgba(191,90,242,.3);
+      box-shadow:4px 0 30px rgba(191,90,242,.1);
+    }
+    .topbar{border-bottom:1px solid rgba(191,90,242,.18);}
+    input,textarea,select{border-color:rgba(191,90,242,.22);}
+    input:focus,textarea:focus,select:focus{box-shadow:0 0 0 3px rgba(191,90,242,.18);}
     .brand-word{font-family:'Orbitron',sans-serif;font-weight:700;}
     .brand-mark{background:none!important;box-shadow:none!important;border-radius:0!important;object-fit:contain;}
     .brand-mark:after{content:none!important;}
