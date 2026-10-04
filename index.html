@@ -25,60 +25,6 @@
        donc illisible. */
     select{color-scheme:dark;}
     select option{background:#0c0518;color:#f1eefb;}
-
-    :root{--bg-deep:#000!important;}
-    body{background:#000!important;}
-    .sidebar{background:#000!important;}
-    /* "Full noir" : plus de lueurs violettes floues ni de grain en fond,
-       juste du noir pur. */
-    body:before,body:after{display:none!important;}
-    .noise{display:none!important;}
-    .topbar{background:#000!important;}
-
-    /* Look premium : contours violets lumineux sur les cartes, boutons,
-       modales et la barre latérale, au lieu des bordures grises quasi
-       invisibles d'origine. */
-    @keyframes novaLaserPulse{
-      0%,100%{box-shadow:0 0 0 1.5px rgba(191,90,242,.8),0 0 35px rgba(191,90,242,.32),0 0 75px rgba(191,90,242,.14),0 25px 70px rgba(0,0,0,.6);}
-      50%{box-shadow:0 0 0 1.5px rgba(191,90,242,1),0 0 55px rgba(191,90,242,.6),0 0 110px rgba(191,90,242,.26),0 25px 70px rgba(0,0,0,.6);}
-    }
-    @keyframes novaLaserPulseBtn{
-      0%,100%{box-shadow:0 0 14px rgba(191,90,242,.35);}
-      50%{box-shadow:0 0 26px rgba(191,90,242,.65);}
-    }
-    .glass-card{
-      border:1.5px solid rgba(191,90,242,.85)!important;
-      animation:novaLaserPulse 2.8s ease-in-out infinite;
-      transform-style:preserve-3d;
-      transition:transform .22s ease;
-    }
-    .glass-card:active{transform:translateY(-3px) scale(1.012);}
-    .btn{border:1.5px solid rgba(191,90,242,.7)!important;animation:novaLaserPulseBtn 2.8s ease-in-out infinite;transition:transform .18s ease;}
-    .btn:active{transform:translateY(-1px) scale(.98);}
-    .btn:hover{box-shadow:0 0 30px rgba(191,90,242,.55),0 8px 30px rgba(48,10,102,.5)!important;}
-    .btn.primary{box-shadow:0 0 28px rgba(191,90,242,.5)!important;border-color:transparent!important;}
-    .icon-btn{border-color:rgba(191,90,242,.5)!important;}
-    @keyframes novaLaserPulseNav{
-      0%,100%{box-shadow:0 0 10px rgba(191,90,242,.22);}
-      50%{box-shadow:0 0 20px rgba(191,90,242,.45);}
-    }
-    .nav-item,.nav-subitem{
-      border:1px solid rgba(191,90,242,.2)!important;
-      transition:transform .18s ease,border-color .2s ease;
-    }
-    .nav-item.active,.nav-subitem.active{
-      border-color:rgba(191,90,242,.95)!important;
-      animation:novaLaserPulseNav 2.8s ease-in-out infinite;
-    }
-    .nav-item:active,.nav-subitem:active{transform:translateY(-1px) scale(.985);}
-    .sidebar{
-      border-right:2px solid rgba(191,90,242,.6)!important;
-      box-shadow:6px 0 45px rgba(191,90,242,.25)!important;
-    }
-    .topbar{border-bottom:1.5px solid rgba(191,90,242,.4)!important;}
-    input,textarea,select{border:1.5px solid rgba(191,90,242,.45)!important;}
-    input:focus,textarea:focus,select:focus{box-shadow:0 0 0 4px rgba(191,90,242,.3)!important;}
-    .nav-item.active{box-shadow:0 0 20px rgba(191,90,242,.3)!important;}
     .brand-word{font-family:'Orbitron',sans-serif;font-weight:700;}
     .brand-mark{background:none!important;box-shadow:none!important;border-radius:0!important;object-fit:contain;}
     .brand-mark:after{content:none!important;}
