@@ -51,12 +51,7 @@
 
   function pad2(n) { return n < 10 ? "0" + n : "" + n; }
 
-  function todayStr() {
-    var t = new Date();
-    return t.getFullYear() + "-" + pad2(t.getMonth() + 1) + "-" + pad2(t.getDate());
-  }
-
-  var CSS = "\n.home-hero{margin-bottom:30px;}\n.home-hero-greeting{font-size:13.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);}\n.home-hero-name{font-family:'Playfair Display',Georgia,serif;font-size:34px;font-weight:700;line-height:1.2;margin:4px 0 8px;background:linear-gradient(120deg,var(--metal-2) 20%,var(--warm-2) 60%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}\n.home-hero-date{font-size:13px;color:var(--text-mid);text-transform:capitalize;}\n.home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;}\n.home-tile{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:10px;text-align:left;padding:22px;border-radius:18px;background:radial-gradient(ellipse at 100% 0%,#bf5af21a,transparent 60%),rgba(255,255,255,.045);border:1px solid rgba(199,194,219,.14);cursor:default;}\n.home-tile-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--warm-1),var(--cool-1));color:#fff;flex-shrink:0;}\n.home-tile-icon svg{width:19px;height:19px;}\n.home-tile-label{font-size:13.5px;opacity:.7;font-weight:600;}\n.home-tile-value{font-size:30px;font-weight:700;background:linear-gradient(180deg,var(--metal-2) 0%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}\n.home-tile-stack{gap:8px;width:100%;}\n.home-tile-stat-row{display:flex;align-items:baseline;gap:8px;width:100%;}\n.home-tile-stat-row span{font-size:20px;font-weight:700;background:linear-gradient(180deg,var(--metal-2) 0%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;min-width:26px;text-align:right;}\n.home-tile-stat-row small{font-size:12px;opacity:.65;}\n";
+  var CSS = "\n.home-hero{margin-bottom:30px;}\n.home-hero-greeting{font-size:13.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);}\n.home-hero-name{font-family:'Playfair Display',Georgia,serif;font-size:34px;font-weight:700;line-height:1.2;margin:4px 0 8px;background:linear-gradient(120deg,var(--metal-2) 20%,var(--warm-2) 60%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}\n.home-hero-date{font-size:13px;color:var(--text-mid);text-transform:capitalize;}\n.home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;}\n.home-tile{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:10px;text-align:left;padding:22px;border-radius:18px;background:radial-gradient(ellipse at 100% 0%,#bf5af21a,transparent 60%),rgba(255,255,255,.045);border:1px solid rgba(199,194,219,.14);cursor:default;}\n.home-tile-label{font-size:13.5px;opacity:.7;font-weight:600;}\n.home-tile-value{font-size:30px;font-weight:700;background:linear-gradient(180deg,var(--metal-2) 0%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}\n.home-tile-chart{max-width:420px;}\n.home-tile-chart-wrap{margin-top:4px;width:100%;}\n.home-tile-chart-wrap svg{width:100%;height:auto;display:block;}\n.home-chart-axis{stroke:rgba(199,194,219,.14);stroke-width:1;}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -68,18 +63,49 @@
     var me = null;
     var homeGrid = document.getElementById("home-grid");
     var caValueEl = document.getElementById("home-ca-value");
-    var activityDmEl = document.getElementById("home-activity-dm");
-    var activityRepliedEl = document.getElementById("home-activity-replied");
-    var activitySoldEl = document.getElementById("home-activity-sold");
-    var boxmailValueEl = document.getElementById("home-boxmail-value");
+    var caChartEl = document.getElementById("home-ca-chart");
     var greetingEl = document.getElementById("home-greeting");
     var heroNameEl = document.getElementById("home-hero-name");
     var heroDateEl = document.getElementById("home-hero-date");
-    var radarInterestedEl = document.getElementById("home-radar-interested");
-    var radarNotInterestedEl = document.getElementById("home-radar-not-interested");
-    var radarPendingEl = document.getElementById("home-radar-pending");
 
     if (!homeGrid) return;
+
+    function svgEl(tag, attrs) {
+      var e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+      if (attrs) for (var k in attrs) e.setAttribute(k, attrs[k]);
+      return e;
+    }
+
+    function renderCaChart(dayTotals) {
+      if (!caChartEl) return;
+      var days = Object.keys(dayTotals).sort();
+      var W = 420, H = 120, padL = 4, padR = 4, padT = 10, padB = 4;
+      var plotW = W - padL - padR, plotH = H - padT - padB;
+      var maxVal = Math.max(1, Math.max.apply(null, days.map(function (d) { return dayTotals[d]; })));
+      var stepX = days.length > 1 ? plotW / (days.length - 1) : 0;
+      function xAt(i) { return padL + i * stepX; }
+      function yAt(v) { return padT + plotH * (1 - v / maxVal); }
+
+      caChartEl.innerHTML = "";
+      var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "xMinYMid meet" });
+      svg.appendChild(svgEl("line", { class: "home-chart-axis", x1: padL, x2: W - padR, y1: H - padB, y2: H - padB }));
+
+      var points = days.map(function (d, i) { return xAt(i).toFixed(1) + "," + yAt(dayTotals[d]).toFixed(1); }).join(" ");
+      svg.appendChild(svgEl("polyline", {
+        points: points,
+        fill: "none",
+        stroke: "#bf5af2",
+        "stroke-width": "2.2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round",
+        style: "filter:drop-shadow(0 0 6px #bf5af2);"
+      }));
+      if (days.length) {
+        var lastX = xAt(days.length - 1), lastY = yAt(dayTotals[days[days.length - 1]]);
+        svg.appendChild(svgEl("circle", { cx: lastX, cy: lastY, r: 3.2, fill: "#f1eefb" }));
+      }
+      caChartEl.appendChild(svg);
+    }
 
     function renderHero(pseudo) {
       if (greetingEl) {
@@ -98,75 +124,43 @@
       if (!caValueEl) return;
       Promise.all([
         supabase.from("clients").select("entries"),
-        supabase.from("one_shot_sales").select("amount")
+        supabase.from("one_shot_sales").select("amount,sale_date")
       ]).then(function (results) {
         var clientRows = (results[0] && results[0].data) || [];
         var saleRows = (results[1] && results[1].data) || [];
         var total = 0;
+        var dayTotals = {};
         clientRows.forEach(function (c) {
-          (c.entries || []).forEach(function (e) { total += Number(e.amount) || 0; });
+          (c.entries || []).forEach(function (e) {
+            var amt = Number(e.amount) || 0;
+            total += amt;
+            if (e.date) dayTotals[e.date] = (dayTotals[e.date] || 0) + amt;
+          });
         });
-        saleRows.forEach(function (s) { total += Number(s.amount) || 0; });
+        saleRows.forEach(function (s) {
+          var amt = Number(s.amount) || 0;
+          total += amt;
+          if (s.sale_date) dayTotals[s.sale_date] = (dayTotals[s.sale_date] || 0) + amt;
+        });
         caValueEl.textContent = fmtEUR(total);
-      });
-    }
 
-    function loadActivity() {
-      if (!activityDmEl) return;
-      var midnight = new Date();
-      midnight.setHours(0, 0, 0, 0);
-      Promise.all([
-        supabase.from("prospects").select("status,setter_id").gte("created_at", midnight.toISOString()),
-        loadActiveProfileIds()
-      ]).then(function (results) {
-        var activeIds = results[1];
-        var rows = ((results[0] && results[0].data) || []).filter(function (r) { return activeIds[r.setter_id]; });
-        var replied = 0, sold = 0;
-        rows.forEach(function (r) {
-          if (r.status === "replied") replied++;
-          else if (r.status === "sold") sold++;
+        // courbe = 14 derniers jours, cumul progressif (évolution du total).
+        var range = [];
+        for (var i = 13; i >= 0; i--) {
+          var d = new Date();
+          d.setDate(d.getDate() - i);
+          range.push(d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()));
+        }
+        var since = range[0];
+        var before = 0;
+        Object.keys(dayTotals).forEach(function (d) { if (d < since) before += dayTotals[d]; });
+        var running = before;
+        var cumul = {};
+        range.forEach(function (d) {
+          running += dayTotals[d] || 0;
+          cumul[d] = running;
         });
-        activityDmEl.textContent = rows.length;
-        activityRepliedEl.textContent = replied;
-        activitySoldEl.textContent = sold;
-      });
-    }
-
-    function loadBoxmail() {
-      if (!boxmailValueEl || !me) return;
-      supabase.from("boxmails").select("id", { count: "exact", head: true })
-        .eq("recipient_id", me.id).is("read_at", null).is("validated_at", null)
-        .then(function (res) {
-          var count = (res && res.count) || 0;
-          boxmailValueEl.textContent = count + (count > 1 ? " non lus" : " non lu");
-        });
-    }
-
-    function loadActiveProfileIds() {
-      return supabase.from("profiles").select("id").eq("is_active", true).then(function (res) {
-        var ids = {};
-        ((res && res.data) || []).forEach(function (p) { ids[p.id] = true; });
-        return ids;
-      });
-    }
-
-    function loadRadarStatus() {
-      if (!radarInterestedEl) return;
-      Promise.all([
-        supabase.from("radar_leads").select("status,status_set_by").eq("sent_date", todayStr()),
-        loadActiveProfileIds()
-      ]).then(function (results) {
-        var activeIds = results[1];
-        var rows = ((results[0] && results[0].data) || []).filter(function (r) { return activeIds[r.status_set_by]; });
-        var interested = 0, notInterested = 0, pending = 0;
-        rows.forEach(function (r) {
-          if (r.status === "interested") interested++;
-          else if (r.status === "not_interested") notInterested++;
-          else if (r.status === "pending") pending++;
-        });
-        radarInterestedEl.textContent = interested;
-        radarNotInterestedEl.textContent = notInterested;
-        radarPendingEl.textContent = pending;
+        renderCaChart(cumul);
       });
     }
 
@@ -175,8 +169,7 @@
       var next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5, 0);
       setTimeout(function () {
         renderHero(me && me.pseudo);
-        loadActivity();
-        loadRadarStatus();
+        loadCaTotal();
         scheduleMidnightReset();
       }, next.getTime() - now.getTime());
     }
@@ -204,9 +197,6 @@
         }
 
         loadCaTotal();
-        loadActivity();
-        loadBoxmail();
-        loadRadarStatus();
         scheduleMidnightReset();
       });
     }
