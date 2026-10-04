@@ -30,11 +30,18 @@
        transparentes/glassy) avec une bordure violette discrète, au lieu
        du fond quasi invisible #c7c2db0b d'origine. */
     .glass-card{
-      background:#14121d;
+      background:#000;
       border:1px solid rgba(191,90,242,.28);
       box-shadow:0 14px 40px rgba(0,0,0,.55);
     }
     .btn.primary{box-shadow:0 6px 22px rgba(191,90,242,.35);}
+
+    /* Fond full noir partout, sans les lueurs violettes floues de fond. */
+    :root{--bg-deep:#000;}
+    body{background:#000;}
+    body:before,body:after{display:none;}
+    .topbar{background:#000;}
+    .sidebar{background:#000;}
 
     .brand-word{font-family:'Orbitron',sans-serif;font-weight:700;}
     .brand-mark{background:none!important;box-shadow:none!important;border-radius:0!important;object-fit:contain;}
