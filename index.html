@@ -82,6 +82,9 @@
 
     /* Empêche la sélection de texte accidentelle au clic/tap partout dans l'app */
     html,body{-webkit-user-select:none;-moz-user-select:none;user-select:none;-webkit-touch-callout:none;}
+    /* Le flash bleu par défaut au tap (Android/Chrome) remplacé par du violet,
+       cohérent avec le thème — ex: en appuyant sur un item du menu. */
+    *{-webkit-tap-highlight-color:rgba(191,90,242,.35);}
     input,textarea,[contenteditable="true"]{-webkit-user-select:text;-moz-user-select:text;user-select:text;-webkit-touch-callout:default;}
 
     /* Barre de défilement stylée (violet/noir, au lieu de la barre blanche par défaut) */
