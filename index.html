@@ -85,6 +85,11 @@
     /* Le flash bleu par défaut au tap (Android/Chrome) remplacé par du violet,
        cohérent avec le thème — ex: en appuyant sur un item du menu. */
     *{-webkit-tap-highlight-color:rgba(191,90,242,.35);}
+
+    /* Item de menu actif en bloc plein violet (au lieu du fond quasi
+       invisible d'origine), même esprit que la référence envoyée. */
+    .nav-item.active{background:var(--warm-1);color:#fff;}
+    .nav-item.active .dot{background:#fff;opacity:1;box-shadow:none;}
     input,textarea,[contenteditable="true"]{-webkit-user-select:text;-moz-user-select:text;user-select:text;-webkit-touch-callout:default;}
 
     /* Barre de défilement stylée (violet/noir, au lieu de la barre blanche par défaut) */
