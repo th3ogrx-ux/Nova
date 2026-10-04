@@ -51,7 +51,7 @@
 
   function pad2(n) { return n < 10 ? "0" + n : "" + n; }
 
-  var CSS = "\n.home-hero{margin-bottom:30px;}\n.home-hero-greeting{font-size:13.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);}\n.home-hero-name{font-family:'Playfair Display',Georgia,serif;font-size:34px;font-weight:700;line-height:1.2;margin:4px 0 8px;background:linear-gradient(120deg,var(--metal-2) 20%,var(--warm-2) 60%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}\n.home-hero-date{font-size:13px;color:var(--text-mid);text-transform:capitalize;}\n.home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;}\n.home-tile{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:10px;text-align:left;padding:22px;border-radius:18px;background:radial-gradient(ellipse at 100% 0%,#bf5af21a,transparent 60%),rgba(255,255,255,.045);border:1px solid rgba(199,194,219,.14);cursor:default;}\n.home-tile-label{font-size:13.5px;opacity:.7;font-weight:600;}\n.home-tile-value{font-size:30px;font-weight:700;background:linear-gradient(180deg,var(--metal-2) 0%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}\n.home-tile-chart{max-width:420px;}\n.home-tile-chart-wrap{margin-top:4px;width:100%;}\n.home-tile-chart-wrap svg{width:100%;height:auto;display:block;}\n.home-chart-axis{stroke:rgba(199,194,219,.14);stroke-width:1;}\n";
+  var CSS = "\n.home-hero{margin-bottom:30px;}\n.home-hero-greeting{font-size:13.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);}\n.home-hero-name{font-family:'Playfair Display',Georgia,serif;font-size:34px;font-weight:700;line-height:1.2;margin:4px 0 8px;background:linear-gradient(120deg,var(--metal-2) 20%,var(--warm-2) 60%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}\n.home-hero-date{font-size:13px;color:var(--text-mid);text-transform:capitalize;}\n.home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;}\n.home-tile{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:10px;text-align:left;padding:22px;border-radius:18px;background:radial-gradient(ellipse at 100% 0%,#bf5af21a,transparent 60%),rgba(255,255,255,.045);border:1px solid rgba(199,194,219,.14);cursor:default;}\n.home-tile-label{font-size:13.5px;opacity:.7;font-weight:600;}\n.home-tile-value{font-size:30px;font-weight:700;color:#3dff8a;text-shadow:0 0 10px rgba(61,255,138,.65),0 0 22px rgba(61,255,138,.35);}\n.home-tile-chart{max-width:640px;width:100%;gap:6px;}\n.home-tile-chart-wrap{margin-top:8px;width:100%;}\n.home-tile-chart-wrap svg{width:100%;height:auto;display:block;}\n.home-chart-axis{stroke:rgba(199,194,219,.14);stroke-width:1;}\n.home-compta-title{font-size:13.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-mid);margin-bottom:2px;}\n.home-compta-marge{font-size:12.5px;color:var(--text-dim);margin-top:-4px;}\n.home-compta-flow-row{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--text-mid);margin-top:2px;}\n.home-compta-flow{display:flex;align-items:center;gap:6px;}\n.home-compta-flow b{color:var(--metal-2);font-weight:700;}\n.home-compta-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:#3dff8a;box-shadow:0 0 6px #3dff8a;}\n.home-compta-flow.sortie .home-compta-dot{background:var(--danger);box-shadow:0 0 6px var(--danger);}\n.home-compta-add-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:100%;margin-top:12px;padding-top:14px;border-top:1px solid rgba(199,194,219,.12);}\n.home-compta-tabs{display:flex;border-radius:9px;overflow:hidden;border:1px solid rgba(199,194,219,.18);flex-shrink:0;}\n.home-compta-tab{border:none;background:transparent;color:var(--text-mid);font-size:12px;font-weight:600;padding:8px 12px;cursor:pointer;}\n.home-compta-tab.active{background:var(--warm-1);color:#fff;}\n.home-compta-amount{width:84px;min-width:0;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.18);border-radius:9px;color:var(--metal-2);font-size:13px;padding:8px 10px;}\n.home-compta-name{flex:1;min-width:100px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.18);border-radius:9px;color:var(--metal-2);font-size:13px;padding:8px 10px;}\n.home-compta-add-btn{margin-left:auto;padding:8px 16px;font-size:13px;white-space:nowrap;}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -64,6 +64,14 @@
     var homeGrid = document.getElementById("home-grid");
     var caValueEl = document.getElementById("home-ca-value");
     var caChartEl = document.getElementById("home-ca-chart");
+    var margeEl = document.getElementById("home-ca-marge");
+    var entreesEl = document.getElementById("home-ca-entrees");
+    var sortiesEl = document.getElementById("home-ca-sorties");
+    var tabRevenuEl = document.getElementById("home-compta-tab-revenu");
+    var tabDepenseEl = document.getElementById("home-compta-tab-depense");
+    var amountInputEl = document.getElementById("home-compta-amount");
+    var nameInputEl = document.getElementById("home-compta-name");
+    var addBtnEl = document.getElementById("home-compta-add-btn");
     var greetingEl = document.getElementById("home-greeting");
     var heroNameEl = document.getElementById("home-hero-name");
     var heroDateEl = document.getElementById("home-hero-date");
@@ -79,16 +87,19 @@
     function renderCaChart(dayTotals) {
       if (!caChartEl) return;
       var days = Object.keys(dayTotals).sort();
-      var W = 420, H = 120, padL = 4, padR = 4, padT = 10, padB = 4;
+      var W = 560, H = 150, padL = 4, padR = 4, padT = 10, padB = 4;
       var plotW = W - padL - padR, plotH = H - padT - padB;
-      var maxVal = Math.max(1, Math.max.apply(null, days.map(function (d) { return dayTotals[d]; })));
+      var values = days.map(function (d) { return dayTotals[d]; });
+      var minVal = Math.min(0, Math.min.apply(null, values));
+      var maxVal = Math.max(1, Math.max.apply(null, values));
+      var range = (maxVal - minVal) || 1;
       var stepX = days.length > 1 ? plotW / (days.length - 1) : 0;
       function xAt(i) { return padL + i * stepX; }
-      function yAt(v) { return padT + plotH * (1 - v / maxVal); }
+      function yAt(v) { return padT + plotH * (1 - (v - minVal) / range); }
 
       caChartEl.innerHTML = "";
       var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "xMinYMid meet" });
-      svg.appendChild(svgEl("line", { class: "home-chart-axis", x1: padL, x2: W - padR, y1: H - padB, y2: H - padB }));
+      svg.appendChild(svgEl("line", { class: "home-chart-axis", x1: padL, x2: W - padR, y1: yAt(0), y2: yAt(0) }));
 
       var points = days.map(function (d, i) { return xAt(i).toFixed(1) + "," + yAt(dayTotals[d]).toFixed(1); }).join(" ");
       svg.appendChild(svgEl("polyline", {
@@ -124,27 +135,39 @@
       if (!caValueEl) return;
       Promise.all([
         supabase.from("clients").select("entries"),
-        supabase.from("one_shot_sales").select("amount,sale_date")
+        supabase.from("one_shot_sales").select("amount,sale_date"),
+        supabase.from("home_expenses").select("amount,entry_date")
       ]).then(function (results) {
         var clientRows = (results[0] && results[0].data) || [];
         var saleRows = (results[1] && results[1].data) || [];
-        var total = 0;
-        var dayTotals = {};
+        var expenseRows = (results[2] && results[2].data) || [];
+        var entreesTotal = 0, sortiesTotal = 0;
+        var inDay = {}, outDay = {};
         clientRows.forEach(function (c) {
           (c.entries || []).forEach(function (e) {
             var amt = Number(e.amount) || 0;
-            total += amt;
-            if (e.date) dayTotals[e.date] = (dayTotals[e.date] || 0) + amt;
+            entreesTotal += amt;
+            if (e.date) inDay[e.date] = (inDay[e.date] || 0) + amt;
           });
         });
         saleRows.forEach(function (s) {
           var amt = Number(s.amount) || 0;
-          total += amt;
-          if (s.sale_date) dayTotals[s.sale_date] = (dayTotals[s.sale_date] || 0) + amt;
+          entreesTotal += amt;
+          if (s.sale_date) inDay[s.sale_date] = (inDay[s.sale_date] || 0) + amt;
         });
-        caValueEl.textContent = fmtEUR(total);
+        expenseRows.forEach(function (x) {
+          var amt = Number(x.amount) || 0;
+          sortiesTotal += amt;
+          if (x.entry_date) outDay[x.entry_date] = (outDay[x.entry_date] || 0) + amt;
+        });
 
-        // courbe = 14 derniers jours, cumul progressif (évolution du total).
+        var net = entreesTotal - sortiesTotal;
+        caValueEl.textContent = fmtEUR(net);
+        if (margeEl) margeEl.textContent = "Marge " + (entreesTotal > 0 ? Math.round((net / entreesTotal) * 100) : 100) + " %";
+        if (entreesEl) entreesEl.textContent = "+" + fmtEUR(entreesTotal);
+        if (sortiesEl) sortiesEl.textContent = "-" + fmtEUR(sortiesTotal);
+
+        // courbe = 14 derniers jours, bénéfice net cumulé jour par jour.
         var range = [];
         for (var i = 13; i >= 0; i--) {
           var d = new Date();
@@ -153,14 +176,52 @@
         }
         var since = range[0];
         var before = 0;
-        Object.keys(dayTotals).forEach(function (d) { if (d < since) before += dayTotals[d]; });
+        Object.keys(inDay).forEach(function (d) { if (d < since) before += inDay[d]; });
+        Object.keys(outDay).forEach(function (d) { if (d < since) before -= outDay[d]; });
         var running = before;
         var cumul = {};
         range.forEach(function (d) {
-          running += dayTotals[d] || 0;
+          running += (inDay[d] || 0) - (outDay[d] || 0);
           cumul[d] = running;
         });
         renderCaChart(cumul);
+      });
+    }
+
+    var addType = "revenu";
+    if (tabRevenuEl && tabDepenseEl) {
+      tabRevenuEl.addEventListener("click", function () {
+        addType = "revenu";
+        tabRevenuEl.classList.add("active");
+        tabDepenseEl.classList.remove("active");
+      });
+      tabDepenseEl.addEventListener("click", function () {
+        addType = "depense";
+        tabDepenseEl.classList.add("active");
+        tabRevenuEl.classList.remove("active");
+      });
+    }
+
+    if (addBtnEl) {
+      addBtnEl.addEventListener("click", function () {
+        if (!me) return;
+        var amount = Number(amountInputEl && amountInputEl.value);
+        var name = ((nameInputEl && nameInputEl.value) || "").trim();
+        if (!amount || amount <= 0) { if (amountInputEl) amountInputEl.focus(); return; }
+        if (!name) { if (nameInputEl) nameInputEl.focus(); return; }
+
+        addBtnEl.disabled = true;
+        var insert = addType === "depense"
+          ? supabase.from("home_expenses").insert({ name: name, amount: amount, created_by: me.id })
+          : supabase.from("one_shot_sales").insert({ client_name: name, amount: amount, created_by: me.id });
+
+        insert.then(function (res) {
+          addBtnEl.disabled = false;
+          if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+          if (amountInputEl) amountInputEl.value = "";
+          if (nameInputEl) nameInputEl.value = "";
+          loadCaTotal();
+        });
       });
     }
 
@@ -198,6 +259,12 @@
 
         loadCaTotal();
         scheduleMidnightReset();
+
+        supabase.channel("nova-home-compta")
+          .on("postgres_changes", { event: "*", schema: "public", table: "one_shot_sales" }, loadCaTotal)
+          .on("postgres_changes", { event: "*", schema: "public", table: "home_expenses" }, loadCaTotal)
+          .on("postgres_changes", { event: "*", schema: "public", table: "clients" }, loadCaTotal)
+          .subscribe();
       });
     }
 
