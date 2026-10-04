@@ -327,14 +327,13 @@
         me = res.data;
         if (me.role !== "chef") return;
         renderTotal();
+        renderOneshot();
         setupResultsSubmenu();
 
         supabase.channel("nova-oneshot-sales")
           .on("postgres_changes", { event: "*", schema: "public", table: "one_shot_sales" }, function () {
-            var activeTab = modeTabs.querySelector(".period-tab.active");
-            var mode = activeTab ? activeTab.getAttribute("data-mode") : "total";
-            if (mode === "total") renderTotal();
-            if (mode === "oneshot") renderOneshot();
+            renderTotal();
+            renderOneshot();
           })
           .subscribe();
       });

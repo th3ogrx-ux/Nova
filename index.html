@@ -383,24 +383,7 @@
 
           <!-- sous-onglet : résultat total (déplacé dans Rubriques > Résultat) -->
 
-          <!-- sous-onglet : ventes one-shot -->
-          <div id="results-oneshot-panel" style="display:none;">
-            <div class="glass-card global-stat">
-              <div>
-                <div class="global-stat-label">Total ventes one-shot</div>
-                <div class="global-stat-value" id="oneshot-total-value">0 €</div>
-              </div>
-            </div>
-            <div class="dash-toolbar">
-              <div class="period-tabs" id="oneshot-period-tabs">
-                <div class="period-tab" data-period="7">7 jours</div>
-                <div class="period-tab" data-period="30">30 jours</div>
-                <div class="period-tab active" data-period="365">1 an</div>
-              </div>
-              <button class="btn primary btn-sm" id="btn-add-oneshot">+ Ajouter client</button>
-            </div>
-            <div id="oneshot-list"></div>
-          </div>
+          <!-- sous-onglet : ventes one-shot (déplacé dans Rubriques > Résultat) -->
 
           <!-- sous-onglet : clients récurrents (existant) -->
           <div id="results-recurring-panel" style="display:none;">
@@ -699,6 +682,23 @@
             </div>
             <h3 style="margin:18px 0 10px;">Clients</h3>
             <div id="results-total-clients"></div>
+          </div>
+          <div id="results-oneshot-panel" style="margin-top:18px;">
+            <div class="glass-card global-stat">
+              <div>
+                <div class="global-stat-label">Total ventes one-shot</div>
+                <div class="global-stat-value" id="oneshot-total-value">0 €</div>
+              </div>
+            </div>
+            <div class="dash-toolbar">
+              <div class="period-tabs" id="oneshot-period-tabs">
+                <div class="period-tab" data-period="7">7 jours</div>
+                <div class="period-tab" data-period="30">30 jours</div>
+                <div class="period-tab active" data-period="365">1 an</div>
+              </div>
+              <button class="btn primary btn-sm" id="btn-add-oneshot">+ Ajouter client</button>
+            </div>
+            <div id="oneshot-list"></div>
           </div>
         </div>
 
