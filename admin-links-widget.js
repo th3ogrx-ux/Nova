@@ -145,7 +145,8 @@
           normalize(link.note).indexOf(query) !== -1;
       });
 
-      var scrollY = window.scrollY;
+      var scrollEl = document.querySelector(".main");
+      var scrollY = scrollEl ? scrollEl.scrollTop : 0;
       linksList.innerHTML = "";
       if (!matches.length) {
         linksList.appendChild(el("div", { class: "empty-note" }, currentLinks.length ? "Aucun résultat pour cette recherche." : "Aucun lien enregistré."));
@@ -156,10 +157,12 @@
     }
 
     function restoreScroll(y) {
-      window.scrollTo(0, y);
+      var scrollEl = document.querySelector(".main");
+      if (!scrollEl) return;
+      scrollEl.scrollTop = y;
       requestAnimationFrame(function () {
-        window.scrollTo(0, y);
-        requestAnimationFrame(function () { window.scrollTo(0, y); });
+        scrollEl.scrollTop = y;
+        requestAnimationFrame(function () { scrollEl.scrollTop = y; });
       });
     }
 

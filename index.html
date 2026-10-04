@@ -42,13 +42,15 @@
     body:before,body:after{display:none;}
     .noise{display:none;}
     .topbar{background:#000;}
-    /* Sur mobile, "100vh" se recalcule à chaque repli/dépli de la barre
-       d'adresse pendant le scroll, ce qui redimensionne body/#app/.screen
-       et fait "sauter" les éléments position:fixed (comme la topbar) au
-       même moment. "100dvh" (hauteur de viewport dynamique) ne bouge pas
-       pendant le scroll et règle ce souci à la racine. Ignoré sans casse
-       par les navigateurs qui ne le supportent pas (repli sur 100vh). */
-    body,#app,.screen,.main{min-height:100dvh;}
+    /* La page elle-même (body) ne défile plus jamais : c'est .main, seul,
+       qui défile en interne. Comme la topbar (position:fixed) n'est plus
+       nichée dans un ancêtre qui bouge, elle ne peut plus "suivre" le
+       scroll, quelle qu'en soit la cause — plus de pari sur 100vh/dvh ou
+       les subtilités de position:fixed d'un navigateur à l'autre. */
+    body{overflow-y:hidden;}
+    .screen.active{height:100dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+    #screen-app{height:100dvh;overflow-y:hidden;}
+    .main{height:100dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
     .topbar{transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform;}
     .sidebar{background:#000;}
 
