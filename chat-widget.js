@@ -616,6 +616,16 @@ function fetchPartnershipNotifs() {
         var v = document.getElementById("view-rubrique-resultat");
         if (v) v.classList.add("active");
         if (window.ZenoaNav) window.ZenoaNav.setLastView("rubrique-resultat");
+        // Le rendu de la grille clients attend une requête réseau (fetch
+        // Supabase) avant de s'écrire dans le DOM ; on force l'affichage
+        // du panneau une fois ce délai passé, au cas où un autre script
+        // l'aurait masqué entre-temps.
+        setTimeout(function () {
+          var dgp = document.getElementById("dash-global-panel");
+          var ddp = document.getElementById("dash-detail-panel");
+          if (dgp) dgp.style.display = "block";
+          if (ddp) ddp.style.display = "none";
+        }, 400);
       });
     }
 
