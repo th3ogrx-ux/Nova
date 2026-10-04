@@ -385,130 +385,7 @@
 
           <!-- sous-onglet : ventes one-shot (déplacé dans Rubriques > Résultat) -->
 
-          <!-- sous-onglet : clients récurrents (existant) -->
-          <div id="results-recurring-panel" style="display:none;">
-
-          <!-- dashboard global -->
-          <div id="dash-global-panel">
-            <div class="glass-card global-stat">
-              <div>
-                <div class="global-stat-label">CA total — tous clients</div>
-                <div class="global-stat-value" id="global-ca-total">0 €</div>
-              </div>
-              <div class="global-stat-meta" id="global-client-count">0 client</div>
-            </div>
-
-            <div class="dash-toolbar">
-              <h1 class="metal-title">Clients</h1>
-              <button class="btn primary btn-sm" id="btn-add-client">+ Ajouter un client</button>
-            </div>
-
-            <div class="client-grid" id="client-grid"></div>
-          </div>
-
-          <!-- vue détail client -->
-          <div id="dash-detail-panel" style="display:none;">
-            <div class="detail-head">
-              <div class="back-btn" id="btn-back-to-clients">←</div>
-              <div class="client-avatar" id="detail-avatar"></div>
-              <div>
-                <div class="detail-head-name" id="detail-name"></div>
-                <div class="detail-head-sub" id="detail-sub"></div>
-              </div>
-              <button class="btn btn-sm danger detail-delete" id="btn-delete-client">Supprimer le client</button>
-            </div>
-
-            <div class="detail-stats">
-              <div class="badge glass-card">
-                <span class="badge-label">Dernière semaine</span>
-                <span class="badge-value" id="detail-week">0 €</span>
-              </div>
-              <div class="badge glass-card">
-                <span class="badge-label">Dernier mois</span>
-                <span class="badge-value" id="detail-month">0 €</span>
-              </div>
-              <div class="badge glass-card">
-                <span class="badge-label">CA total client</span>
-                <span class="badge-value" id="detail-total">0 €</span>
-              </div>
-            </div>
-
-            <div class="entry-toolbar">
-              <h3>Historique des saisies</h3>
-              <button class="btn btn-sm" id="btn-add-entry">+ Ajouter une saisie</button>
-            </div>
-            <div id="entry-list"></div>
-
-            <div class="glow-divider" style="margin:30px 0;"></div>
-
-            <div class="glass-card panel-section">
-              <div class="panel-title">Statut & collaboration</div>
-              <div class="panel-grid">
-                <div class="field">
-                  <label class="field-label">Statut</label>
-                  <select id="client-status">
-                    <option value="actif">Actif</option>
-                    <option value="pause">En pause</option>
-                    <option value="churn">Churné</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label class="field-label">Début de collaboration</label>
-                  <input type="date" id="client-start-date">
-                </div>
-              </div>
-              <div class="field" id="client-end-date-field" style="margin-top:16px; display:none;">
-                <label class="field-label">Date de fin</label>
-                <input type="date" id="client-end-date">
-              </div>
-            </div>
-
-            <div class="glass-card panel-section">
-              <div class="panel-title">Objectif mensuel</div>
-              <div class="panel-grid single">
-                <div class="field">
-                  <label class="field-label">Objectif (€ / mois)</label>
-                  <input type="number" id="client-objective" min="0" step="50" placeholder="Ex : 5000">
-                </div>
-              </div>
-              <div class="progress-track">
-                <div class="progress-fill" id="objective-progress-fill" style="width:0%;"></div>
-              </div>
-              <div class="progress-label">
-                <span id="objective-current">0 €</span>
-                <span id="objective-target">/ 0 €</span>
-              </div>
-            </div>
-
-            <div class="glass-card panel-section">
-              <div class="panel-title">Forfait & rémunération</div>
-              <div class="field">
-                <label class="field-label">Type de forfait</label>
-                <select id="client-plan-type">
-                  <option value="fixe">Fixe</option>
-                  <option value="commission">% Commission</option>
-                  <option value="hybride">Hybride</option>
-                </select>
-              </div>
-              <div class="plan-fields">
-                <div class="field" id="plan-fixed-field">
-                  <label class="field-label">Montant fixe (€/mois)</label>
-                  <input type="number" id="client-plan-fixed" min="0" step="10">
-                </div>
-                <div class="field" id="plan-percent-field">
-                  <label class="field-label">Commission (%)</label>
-                  <input type="number" id="client-plan-percent" min="0" max="100" step="0.5">
-                </div>
-              </div>
-              <div class="commission-result">
-                <span class="label">Ta commission générée ce mois-ci</span>
-                <span class="value" id="commission-result-value">0 €</span>
-              </div>
-            </div>
-
-          </div>
-
-          </div>
+          <!-- sous-onglet : clients récurrents (déplacé dans Rubriques > Résultat) -->
 
         </div>
         <div class="view" id="view-suivi">
@@ -699,6 +576,130 @@
               <button class="btn primary btn-sm" id="btn-add-oneshot">+ Ajouter client</button>
             </div>
             <div id="oneshot-list"></div>
+          </div>
+          <!-- sous-onglet : clients récurrents (existant) -->
+          <div id="results-recurring-panel" style="margin-top:18px;">
+
+          <!-- dashboard global -->
+          <div id="dash-global-panel">
+            <div class="glass-card global-stat">
+              <div>
+                <div class="global-stat-label">CA total — tous clients</div>
+                <div class="global-stat-value" id="global-ca-total">0 €</div>
+              </div>
+              <div class="global-stat-meta" id="global-client-count">0 client</div>
+            </div>
+
+            <div class="dash-toolbar">
+              <h1 class="metal-title">Clients</h1>
+              <button class="btn primary btn-sm" id="btn-add-client">+ Ajouter un client</button>
+            </div>
+
+            <div class="client-grid" id="client-grid"></div>
+          </div>
+
+          <!-- vue détail client -->
+          <div id="dash-detail-panel" style="display:none;">
+            <div class="detail-head">
+              <div class="back-btn" id="btn-back-to-clients">←</div>
+              <div class="client-avatar" id="detail-avatar"></div>
+              <div>
+                <div class="detail-head-name" id="detail-name"></div>
+                <div class="detail-head-sub" id="detail-sub"></div>
+              </div>
+              <button class="btn btn-sm danger detail-delete" id="btn-delete-client">Supprimer le client</button>
+            </div>
+
+            <div class="detail-stats">
+              <div class="badge glass-card">
+                <span class="badge-label">Dernière semaine</span>
+                <span class="badge-value" id="detail-week">0 €</span>
+              </div>
+              <div class="badge glass-card">
+                <span class="badge-label">Dernier mois</span>
+                <span class="badge-value" id="detail-month">0 €</span>
+              </div>
+              <div class="badge glass-card">
+                <span class="badge-label">CA total client</span>
+                <span class="badge-value" id="detail-total">0 €</span>
+              </div>
+            </div>
+
+            <div class="entry-toolbar">
+              <h3>Historique des saisies</h3>
+              <button class="btn btn-sm" id="btn-add-entry">+ Ajouter une saisie</button>
+            </div>
+            <div id="entry-list"></div>
+
+            <div class="glow-divider" style="margin:30px 0;"></div>
+
+            <div class="glass-card panel-section">
+              <div class="panel-title">Statut & collaboration</div>
+              <div class="panel-grid">
+                <div class="field">
+                  <label class="field-label">Statut</label>
+                  <select id="client-status">
+                    <option value="actif">Actif</option>
+                    <option value="pause">En pause</option>
+                    <option value="churn">Churné</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="field-label">Début de collaboration</label>
+                  <input type="date" id="client-start-date">
+                </div>
+              </div>
+              <div class="field" id="client-end-date-field" style="margin-top:16px; display:none;">
+                <label class="field-label">Date de fin</label>
+                <input type="date" id="client-end-date">
+              </div>
+            </div>
+
+            <div class="glass-card panel-section">
+              <div class="panel-title">Objectif mensuel</div>
+              <div class="panel-grid single">
+                <div class="field">
+                  <label class="field-label">Objectif (€ / mois)</label>
+                  <input type="number" id="client-objective" min="0" step="50" placeholder="Ex : 5000">
+                </div>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" id="objective-progress-fill" style="width:0%;"></div>
+              </div>
+              <div class="progress-label">
+                <span id="objective-current">0 €</span>
+                <span id="objective-target">/ 0 €</span>
+              </div>
+            </div>
+
+            <div class="glass-card panel-section">
+              <div class="panel-title">Forfait & rémunération</div>
+              <div class="field">
+                <label class="field-label">Type de forfait</label>
+                <select id="client-plan-type">
+                  <option value="fixe">Fixe</option>
+                  <option value="commission">% Commission</option>
+                  <option value="hybride">Hybride</option>
+                </select>
+              </div>
+              <div class="plan-fields">
+                <div class="field" id="plan-fixed-field">
+                  <label class="field-label">Montant fixe (€/mois)</label>
+                  <input type="number" id="client-plan-fixed" min="0" step="10">
+                </div>
+                <div class="field" id="plan-percent-field">
+                  <label class="field-label">Commission (%)</label>
+                  <input type="number" id="client-plan-percent" min="0" max="100" step="0.5">
+                </div>
+              </div>
+              <div class="commission-result">
+                <span class="label">Ta commission générée ce mois-ci</span>
+                <span class="value" id="commission-result-value">0 €</span>
+              </div>
+            </div>
+
+          </div>
+
           </div>
         </div>
 

@@ -600,6 +600,24 @@ function fetchPartnershipNotifs() {
         if (navRubriquesCaret) navRubriquesCaret.classList.toggle("open", isOpen);
       });
     }
+    var navRubriqueResultat = document.getElementById("nav-rubrique-resultat");
+    var navResultsForClients = document.getElementById("nav-results");
+    if (navRubriqueResultat && navResultsForClients) {
+      navRubriqueResultat.addEventListener("click", function () {
+        // Le dashboard "Clients récurrents" (grille + stats) vient du
+        // bundle compilé et ne se peuple que quand on "visite" la vue
+        // Résultats d'origine. On simule ce clic pour déclencher son
+        // rendu (les éléments visés vivent maintenant dans cette page),
+        // puis on remet l'état de navigation correct par-dessus.
+        navResultsForClients.click();
+        document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
+        navRubriqueResultat.classList.add("active");
+        document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+        var v = document.getElementById("view-rubrique-resultat");
+        if (v) v.classList.add("active");
+        if (window.ZenoaNav) window.ZenoaNav.setLastView("rubrique-resultat");
+      });
+    }
 
     document.querySelectorAll(".nav-item").forEach(function (navEl) {
       if (navEl === navResources) return;
