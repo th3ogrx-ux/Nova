@@ -328,7 +328,10 @@
         if (me.role !== "chef") return;
         renderTotal();
         renderOneshot();
-        setupResultsSubmenu();
+        // setupResultsSubmenu() désactivé : l'ancien item "Résultats" est
+        // caché (son contenu vit maintenant dans Rubriques > Résultat), son
+        // clic simulé déclenchait en plus le handler ci-dessous qui entrait
+        // en conflit avec la navigation de la nouvelle page.
 
         supabase.channel("nova-oneshot-sales")
           .on("postgres_changes", { event: "*", schema: "public", table: "one_shot_sales" }, function () {
