@@ -211,7 +211,8 @@
           stroke: cat.color,
           "stroke-width": "2",
           "stroke-linecap": "round",
-          "stroke-linejoin": "round"
+          "stroke-linejoin": "round",
+          style: "filter:drop-shadow(0 0 5px " + cat.color + ");"
         }));
         series.forEach(function (d, i) {
           if (d.counts[cat.key] > 0) svg.appendChild(svgEl("circle", { cx: xAt(i), cy: yAt(d.counts[cat.key]), r: 2.5, fill: cat.color }));
