@@ -25,6 +25,17 @@
        donc illisible. */
     select{color-scheme:dark;}
     select option{background:#0c0518;color:#f1eefb;}
+
+    /* Look "dashboard SaaS premium" : cartes sombres pleines (pas
+       transparentes/glassy) avec une bordure violette discrète, au lieu
+       du fond quasi invisible #c7c2db0b d'origine. */
+    .glass-card{
+      background:#14121d;
+      border:1px solid rgba(191,90,242,.28);
+      box-shadow:0 14px 40px rgba(0,0,0,.55);
+    }
+    .btn.primary{box-shadow:0 6px 22px rgba(191,90,242,.35);}
+
     .brand-word{font-family:'Orbitron',sans-serif;font-weight:700;}
     .brand-mark{background:none!important;box-shadow:none!important;border-radius:0!important;object-fit:contain;}
     .brand-mark:after{content:none!important;}
