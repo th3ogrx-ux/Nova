@@ -58,6 +58,19 @@
     .btn:hover{box-shadow:0 0 30px rgba(191,90,242,.55),0 8px 30px rgba(48,10,102,.5)!important;}
     .btn.primary{box-shadow:0 0 28px rgba(191,90,242,.5)!important;border-color:transparent!important;}
     .icon-btn{border-color:rgba(191,90,242,.5)!important;}
+    @keyframes novaLaserPulseNav{
+      0%,100%{box-shadow:0 0 10px rgba(191,90,242,.22);}
+      50%{box-shadow:0 0 20px rgba(191,90,242,.45);}
+    }
+    .nav-item,.nav-subitem{
+      border:1px solid rgba(191,90,242,.4)!important;
+      animation:novaLaserPulseNav 3.2s ease-in-out infinite;
+      transition:transform .18s ease;
+    }
+    .nav-item.active,.nav-subitem.active{
+      border-color:rgba(191,90,242,.95)!important;
+    }
+    .nav-item:active,.nav-subitem:active{transform:translateY(-1px) scale(.985);}
     .sidebar{
       border-right:2px solid rgba(191,90,242,.6)!important;
       box-shadow:6px 0 45px rgba(191,90,242,.25)!important;
