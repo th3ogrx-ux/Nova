@@ -43,6 +43,16 @@
     .noise{display:none;}
     .topbar{background:#000;}
     .sidebar{background:#000;}
+
+    /* Menu toujours ouvert sur le côté, plus besoin d'appuyer sur les
+       3 traits pour le faire sortir. */
+    .hamburger{display:none!important;}
+    .sidebar-overlay{display:none!important;}
+    .sidebar{transform:translate(0)!important;}
+    .main{margin-left:290px!important;}
+    @media (max-width:520px){
+      .main{margin-left:82vw!important;}
+    }
     .main{background:#000;}
 
     .brand-word{font-family:'Orbitron',sans-serif;font-weight:700;}
