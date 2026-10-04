@@ -42,9 +42,13 @@
     body:before,body:after{display:none;}
     .noise{display:none;}
     .topbar{background:#000;}
-    /* Sur certains mobiles (repli de la barre d'adresse pendant le scroll),
-       un position:fixed seul peut visuellement "suivre" le scroll. Forcer
-       sa propre couche de composition règle ce souci. */
+    /* Sur mobile, "100vh" se recalcule à chaque repli/dépli de la barre
+       d'adresse pendant le scroll, ce qui redimensionne body/#app/.screen
+       et fait "sauter" les éléments position:fixed (comme la topbar) au
+       même moment. "100dvh" (hauteur de viewport dynamique) ne bouge pas
+       pendant le scroll et règle ce souci à la racine. Ignoré sans casse
+       par les navigateurs qui ne le supportent pas (repli sur 100vh). */
+    body,#app,.screen,.main{min-height:100dvh;}
     .topbar{transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform;}
     .sidebar{background:#000;}
 
