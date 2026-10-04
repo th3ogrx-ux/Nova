@@ -120,17 +120,6 @@
 
     .boxmail-broadcast-toggle.checked{border-color:var(--warm-1);background:#bf5af226;color:var(--metal-2);}
 
-    /* Logo tournant + barre de chargement affichés au démarrage (et à la
-       reconnexion silencieuse) — durée minimum garantie de 2,5s côté JS
-       (voir H() dans le bundle), pas de flash de l'écran code. */
-    #zenoa-bootloader{position:fixed;inset:0;z-index:120;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:#04010a;}
-    #zenoa-bootloader.zenoa-bootloader-hide{display:none;}
-    #zenoa-bootloader img{width:56px;height:56px;animation:zenoa-boot-spin 1s linear infinite;filter:drop-shadow(0 0 14px rgba(191,90,242,.55));}
-    #zenoa-boot-bar{width:140px;height:4px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden;}
-    #zenoa-boot-bar-fill{height:100%;width:0%;border-radius:4px;background:linear-gradient(90deg,var(--warm-1),var(--warm-2));animation:zenoa-boot-fill 2.5s ease-out forwards;}
-    @keyframes zenoa-boot-spin{to{transform:rotate(360deg);}}
-    @keyframes zenoa-boot-fill{from{width:0%;}to{width:100%;}}
-
     /* Interrupteur (notifications, etc.) */
     .settings-tile-switch{cursor:default;}
     .settings-tile-switch::after{content:none!important;}
@@ -160,8 +149,6 @@
 </head>
 <body>
 <div class="noise"></div>
-<div id="zenoa-bootloader"><img src="/zenoa-icon.png" alt=""><div id="zenoa-boot-bar"><div id="zenoa-boot-bar-fill"></div></div></div>
-<script>window.__zenoaBootStart = Date.now();</script>
 <div id="app">
 
   <!-- ============ SCREEN: ACCESS CODE ============ -->
