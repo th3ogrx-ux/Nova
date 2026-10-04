@@ -177,10 +177,15 @@
       return e;
     }
 
-    // Spline cubique monotone (Fritsch-Carlson) : lisse la courbe SANS
-    // jamais la faire dépasser (descendre puis remonter) entre deux points
-    // qui montent réellement — contrairement à Catmull-Rom, qui peut créer
-    // ce faux creux.
+    // Spline cubique monotone (Fritsch-Carlson), appliquée SEGMENT PAR
+    // SEGMENT : chaque segment a ses deux tangentes bornées indépendamment
+    // (au lieu de forcer la même tangente partagée des deux côtés d'un
+    // point). Ça garantit toujours qu'aucun segment ne dépasse ses deux
+    // points (pas de faux creux), tout en laissant un point qui sort d'un
+    // palier plat repartir avec une tangente différente de celle qui
+    // termine ce palier — un petit angle contrôlé à cet endroit précis,
+    // adouci au rendu par stroke-linejoin:round, plutôt que la courbe
+    // tendue "en angle droit" obtenue en forçant une tangente commune.
     function monotonePath(pts) {
       var n = pts.length;
       if (n < 2) return "";
@@ -193,28 +198,31 @@
         dx[i] = pts[i + 1][0] - pts[i][0];
         slope[i] = dx[i] ? (pts[i + 1][1] - pts[i][1]) / dx[i] : 0;
       }
-      var m = [slope[0]];
-      for (i = 1; i < n - 1; i++) m[i] = (slope[i - 1] + slope[i]) / 2;
-      m[n - 1] = slope[n - 2];
-      for (i = 0; i < n - 1; i++) {
-        if (slope[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
-        var a = m[i] / slope[i], b = m[i + 1] / slope[i];
-        if (a < 0) m[i] = 0;
-        if (b < 0) m[i + 1] = 0;
-        a = m[i] / slope[i]; b = m[i + 1] / slope[i];
-        var h = a * a + b * b;
-        if (h > 9) {
-          var t = 3 / Math.sqrt(h);
-          m[i] = t * a * slope[i];
-          m[i + 1] = t * b * slope[i];
-        }
-      }
+      var avg = [slope[0]];
+      for (i = 1; i < n - 1; i++) avg[i] = (slope[i - 1] + slope[i]) / 2;
+      avg[n - 1] = slope[n - 2];
+
       var d = "M" + pts[0][0].toFixed(1) + "," + pts[0][1].toFixed(1);
       for (i = 0; i < n - 1; i++) {
+        var mStart = avg[i], mEnd = avg[i + 1];
+        if (slope[i] === 0) {
+          mStart = 0; mEnd = 0;
+        } else {
+          var a = mStart / slope[i], b = mEnd / slope[i];
+          if (a < 0) a = 0;
+          if (b < 0) b = 0;
+          var h = a * a + b * b;
+          if (h > 9) {
+            var t = 3 / Math.sqrt(h);
+            a *= t; b *= t;
+          }
+          mStart = a * slope[i];
+          mEnd = b * slope[i];
+        }
         var c1x = pts[i][0] + dx[i] / 3;
-        var c1y = pts[i][1] + m[i] * dx[i] / 3;
+        var c1y = pts[i][1] + mStart * dx[i] / 3;
         var c2x = pts[i + 1][0] - dx[i] / 3;
-        var c2y = pts[i + 1][1] - m[i + 1] * dx[i] / 3;
+        var c2y = pts[i + 1][1] - mEnd * dx[i] / 3;
         d += "C" + c1x.toFixed(1) + "," + c1y.toFixed(1) + " " + c2x.toFixed(1) + "," + c2y.toFixed(1) + " " + pts[i + 1][0].toFixed(1) + "," + pts[i + 1][1].toFixed(1);
       }
       return d;
