@@ -77,6 +77,9 @@
     var navAgentIa = document.getElementById("nav-agent-ia");
     var navAgentIaSublist = document.getElementById("nav-agent-ia-sublist");
     var navAgentIaCaret = document.getElementById("nav-agent-ia-caret");
+    var navRubriques = document.getElementById("nav-rubriques");
+    var navRubriquesSublist = document.getElementById("nav-rubriques-sublist");
+    var navRubriquesCaret = document.getElementById("nav-rubriques-caret");
     var resGrid = document.getElementById("res-grid");
     var resPinnedWrap = document.getElementById("res-pinned-wrap");
     var resSetterTourWrap = document.getElementById("res-setter-tour-wrap");
@@ -584,6 +587,17 @@ function fetchPartnershipNotifs() {
         window.ZenoaNav.reopenSidebar();
         var isOpen = navAgentIaSublist.classList.toggle("open");
         if (navAgentIaCaret) navAgentIaCaret.classList.toggle("open", isOpen);
+      });
+    }
+    if (navRubriques && navRubriquesSublist) {
+      navRubriques.addEventListener("click", function (e) {
+        e.stopPropagation();
+        // Comme Résultats/Gestion : un clic sur "Rubriques" ne fait que
+        // déplier son sous-menu, la vraie navigation passe par un sous-élément.
+        window.ZenoaNav.restoreView(window.ZenoaNav.getLastView());
+        window.ZenoaNav.reopenSidebar();
+        var isOpen = navRubriquesSublist.classList.toggle("open");
+        if (navRubriquesCaret) navRubriquesCaret.classList.toggle("open", isOpen);
       });
     }
 
