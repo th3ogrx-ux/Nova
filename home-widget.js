@@ -51,7 +51,7 @@
 
   function pad2(n) { return n < 10 ? "0" + n : "" + n; }
 
-  var CSS = "\n.home-hero{margin-bottom:30px;}\n.home-hero-greeting{font-size:13.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);}\n.home-hero-name{font-family:'Playfair Display',Georgia,serif;font-size:34px;font-weight:700;line-height:1.2;margin:4px 0 8px;background:linear-gradient(120deg,var(--metal-2) 20%,var(--warm-2) 60%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}\n.home-hero-date{font-size:13px;color:var(--text-mid);text-transform:capitalize;}\n.home-grid{display:grid;grid-template-columns:1fr;gap:18px;}\n.home-tile{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:6px;text-align:left;padding:14px 22px;border-radius:18px;background:radial-gradient(ellipse at 100% 0%,#bf5af21a,transparent 60%),rgba(255,255,255,.045);border:1px solid rgba(199,194,219,.14);cursor:default;width:100%;}\n.home-tile-label{font-size:13.5px;opacity:.7;font-weight:600;}\n.home-tile-value{font-size:26px;font-weight:700;color:#3dff8a;text-shadow:0 0 10px rgba(61,255,138,.65),0 0 22px rgba(61,255,138,.35);}\n.home-tile-chart{width:100%;gap:3px;}\n.home-tile-chart-wrap{margin-top:2px;width:100%;}\n.home-tile-chart-wrap svg{width:100%;height:auto;display:block;}\n.home-chart-axis{stroke:rgba(199,194,219,.14);stroke-width:1;}\n.home-chart-x-label{fill:var(--text-dim);font-size:8.5px;}\n.home-compta-title{font-size:13.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-mid);margin-bottom:0;}\n.home-compta-marge{font-size:12.5px;color:var(--text-dim);margin-top:-4px;}\n.home-compta-flow-row{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--text-mid);margin-top:0;}\n.home-compta-flow{display:flex;align-items:center;gap:6px;}\n.home-compta-flow b{color:var(--metal-2);font-weight:700;}\n.home-compta-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:#3dff8a;box-shadow:0 0 6px #3dff8a;}\n.home-compta-flow.sortie .home-compta-dot{background:var(--danger);box-shadow:0 0 6px var(--danger);}\n.home-compta-add-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:100%;margin-top:6px;padding-top:8px;border-top:1px solid rgba(199,194,219,.12);}\n.home-compta-tabs{display:flex;border-radius:9px;overflow:hidden;border:1px solid rgba(199,194,219,.18);flex-shrink:0;}\n.home-compta-tab{border:none;background:transparent;color:var(--text-mid);font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;}\n.home-compta-tab.active{background:var(--warm-1);color:#fff;}\n.home-compta-amount{width:84px;min-width:0;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.18);border-radius:9px;color:var(--metal-2);font-size:13px;padding:6px 10px;}\n.home-compta-name{flex:1;min-width:100px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.18);border-radius:9px;color:var(--metal-2);font-size:13px;padding:6px 10px;}\n.home-compta-add-btn{margin-left:auto;padding:6px 16px;font-size:13px;white-space:nowrap;}\n";
+  var CSS = "\n.home-hero{margin-bottom:30px;}\n.home-hero-greeting{font-size:13.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);}\n.home-hero-name{font-family:'Playfair Display',Georgia,serif;font-size:34px;font-weight:700;line-height:1.2;margin:4px 0 8px;background:linear-gradient(120deg,var(--metal-2) 20%,var(--warm-2) 60%,var(--warm-1) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}\n.home-hero-date{font-size:13px;color:var(--text-mid);text-transform:capitalize;}\n.home-grid{display:grid;grid-template-columns:1fr;gap:18px;}\n.home-tile{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:6px;text-align:left;padding:14px 22px;border-radius:18px;background:radial-gradient(ellipse at 100% 0%,#bf5af21a,transparent 60%),rgba(255,255,255,.045);border:1px solid rgba(199,194,219,.14);cursor:default;width:50%;min-width:240px;}\n.home-tile-label{font-size:13.5px;opacity:.7;font-weight:600;}\n.home-tile-value{font-size:26px;font-weight:700;color:#3dff8a;text-shadow:0 0 10px rgba(61,255,138,.65),0 0 22px rgba(61,255,138,.35);}\n.home-tile-chart{width:100%;gap:3px;}\n.home-tile-chart-wrap{margin-top:2px;width:100%;}\n.home-tile-chart-wrap svg{width:100%;height:auto;display:block;}\n.home-chart-axis{stroke:rgba(199,194,219,.14);stroke-width:1;}\n.home-chart-x-label{fill:var(--text-dim);font-size:8.5px;}\n.home-compta-title{font-size:13.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-mid);margin-bottom:0;}\n.home-compta-marge{font-size:12.5px;color:var(--text-dim);margin-top:-4px;}\n.home-compta-flow-row{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--text-mid);margin-top:0;}\n.home-compta-flow{display:flex;align-items:center;gap:6px;}\n.home-compta-flow b{color:var(--metal-2);font-weight:700;}\n.home-compta-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:#3dff8a;box-shadow:0 0 6px #3dff8a;}\n.home-compta-flow.sortie .home-compta-dot{background:var(--danger);box-shadow:0 0 6px var(--danger);}\n.home-compta-add-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:100%;margin-top:6px;padding-top:8px;border-top:1px solid rgba(199,194,219,.12);}\n.home-compta-tabs{display:flex;border-radius:9px;overflow:hidden;border:1px solid rgba(199,194,219,.18);flex-shrink:0;}\n.home-compta-tab{border:none;background:transparent;color:var(--text-mid);font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;}\n.home-compta-tab.active{background:var(--warm-1);color:#fff;}\n.home-compta-amount{width:84px;min-width:0;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.18);border-radius:9px;color:var(--metal-2);font-size:13px;padding:6px 10px;}\n.home-compta-name{flex:1;min-width:100px;background:rgba(255,255,255,.05);border:1px solid rgba(199,194,219,.18);border-radius:9px;color:var(--metal-2);font-size:13px;padding:6px 10px;}\n.home-compta-add-btn{margin-left:auto;padding:6px 16px;font-size:13px;white-space:nowrap;}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -84,21 +84,45 @@
       return e;
     }
 
-    // Catmull-Rom -> Bezier : courbe lisse et arrondie qui passe par tous
-    // les points, sans angles pointus (effet "laser" fluide comme la réf.).
-    function smoothPath(pts) {
-      if (pts.length < 2) return "";
+    // Spline cubique monotone (Fritsch-Carlson) : lisse la courbe SANS
+    // jamais la faire dépasser (descendre puis remonter) entre deux points
+    // qui montent réellement — contrairement à Catmull-Rom, qui peut créer
+    // ce faux creux.
+    function monotonePath(pts) {
+      var n = pts.length;
+      if (n < 2) return "";
+      if (n === 2) {
+        return "M" + pts[0][0].toFixed(1) + "," + pts[0][1].toFixed(1) +
+          "L" + pts[1][0].toFixed(1) + "," + pts[1][1].toFixed(1);
+      }
+      var dx = [], slope = [];
+      for (var i = 0; i < n - 1; i++) {
+        dx[i] = pts[i + 1][0] - pts[i][0];
+        slope[i] = dx[i] ? (pts[i + 1][1] - pts[i][1]) / dx[i] : 0;
+      }
+      var m = [slope[0]];
+      for (i = 1; i < n - 1; i++) m[i] = (slope[i - 1] + slope[i]) / 2;
+      m[n - 1] = slope[n - 2];
+      for (i = 0; i < n - 1; i++) {
+        if (slope[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
+        var a = m[i] / slope[i], b = m[i + 1] / slope[i];
+        if (a < 0) m[i] = 0;
+        if (b < 0) m[i + 1] = 0;
+        a = m[i] / slope[i]; b = m[i + 1] / slope[i];
+        var h = a * a + b * b;
+        if (h > 9) {
+          var t = 3 / Math.sqrt(h);
+          m[i] = t * a * slope[i];
+          m[i + 1] = t * b * slope[i];
+        }
+      }
       var d = "M" + pts[0][0].toFixed(1) + "," + pts[0][1].toFixed(1);
-      for (var i = 0; i < pts.length - 1; i++) {
-        var p0 = pts[i === 0 ? 0 : i - 1];
-        var p1 = pts[i];
-        var p2 = pts[i + 1];
-        var p3 = pts[i + 2 < pts.length ? i + 2 : i + 1];
-        var c1x = p1[0] + (p2[0] - p0[0]) / 6;
-        var c1y = p1[1] + (p2[1] - p0[1]) / 6;
-        var c2x = p2[0] - (p3[0] - p1[0]) / 6;
-        var c2y = p2[1] - (p3[1] - p1[1]) / 6;
-        d += "C" + c1x.toFixed(1) + "," + c1y.toFixed(1) + " " + c2x.toFixed(1) + "," + c2y.toFixed(1) + " " + p2[0].toFixed(1) + "," + p2[1].toFixed(1);
+      for (i = 0; i < n - 1; i++) {
+        var c1x = pts[i][0] + dx[i] / 3;
+        var c1y = pts[i][1] + m[i] * dx[i] / 3;
+        var c2x = pts[i + 1][0] - dx[i] / 3;
+        var c2y = pts[i + 1][1] - m[i + 1] * dx[i] / 3;
+        d += "C" + c1x.toFixed(1) + "," + c1y.toFixed(1) + " " + c2x.toFixed(1) + "," + c2y.toFixed(1) + " " + pts[i + 1][0].toFixed(1) + "," + pts[i + 1][1].toFixed(1);
       }
       return d;
     }
@@ -133,7 +157,7 @@
       });
 
       var pts = days.map(function (d, i) { return [xAt(i), yAt(dayTotals[d])]; });
-      var d = smoothPath(pts);
+      var d = monotonePath(pts);
 
       // tube "laser" : halo large et flou derrière, trait fin et lumineux devant.
       svg.appendChild(svgEl("path", {
