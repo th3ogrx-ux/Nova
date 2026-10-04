@@ -63,12 +63,12 @@
       50%{box-shadow:0 0 20px rgba(191,90,242,.45);}
     }
     .nav-item,.nav-subitem{
-      border:1px solid rgba(191,90,242,.4)!important;
-      animation:novaLaserPulseNav 3.2s ease-in-out infinite;
-      transition:transform .18s ease;
+      border:1px solid rgba(191,90,242,.2)!important;
+      transition:transform .18s ease,border-color .2s ease;
     }
     .nav-item.active,.nav-subitem.active{
       border-color:rgba(191,90,242,.95)!important;
+      animation:novaLaserPulseNav 2.8s ease-in-out infinite;
     }
     .nav-item:active,.nav-subitem:active{transform:translateY(-1px) scale(.985);}
     .sidebar{
