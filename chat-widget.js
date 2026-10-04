@@ -603,29 +603,33 @@ function fetchPartnershipNotifs() {
     var navRubriqueResultat = document.getElementById("nav-rubrique-resultat");
     var navResultsForClients = document.getElementById("nav-results");
     if (navRubriqueResultat && navResultsForClients) {
-      navRubriqueResultat.addEventListener("click", function () {
-        // Le dashboard "Clients récurrents" (grille + stats) vient du
-        // bundle compilé et ne se peuple que quand on "visite" la vue
-        // Résultats d'origine. On simule ce clic pour déclencher son
-        // rendu (les éléments visés vivent maintenant dans cette page),
-        // puis on remet l'état de navigation correct par-dessus.
-        navResultsForClients.click();
+      var fixRubriqueResultatView = function () {
         document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
         navRubriqueResultat.classList.add("active");
         document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
         var v = document.getElementById("view-rubrique-resultat");
         if (v) v.classList.add("active");
         if (window.ZenoaNav) window.ZenoaNav.setLastView("rubrique-resultat");
-        // Le rendu de la grille clients attend une requête réseau (fetch
-        // Supabase) avant de s'écrire dans le DOM ; on force l'affichage
-        // du panneau une fois ce délai passé, au cas où un autre script
-        // l'aurait masqué entre-temps.
-        setTimeout(function () {
-          var dgp = document.getElementById("dash-global-panel");
-          var ddp = document.getElementById("dash-detail-panel");
-          if (dgp) dgp.style.display = "block";
-          if (ddp) ddp.style.display = "none";
-        }, 400);
+        var dgp = document.getElementById("dash-global-panel");
+        var ddp = document.getElementById("dash-detail-panel");
+        if (dgp) dgp.style.display = "block";
+        if (ddp) ddp.style.display = "none";
+      };
+      navRubriqueResultat.addEventListener("click", function () {
+        // Le dashboard "Clients récurrents" (grille + stats) vient du
+        // bundle compilé et ne se peuple que quand on "visite" la vue
+        // Résultats d'origine. On simule ce clic pour déclencher son
+        // rendu (les éléments visés vivent maintenant dans cette page).
+        // setTimeout(...,0) : on remet l'état de navigation correct
+        // APRÈS que tous les autres gestionnaires de clic déclenchés par
+        // ce clic simulé (y compris celui de results-widget.js) aient
+        // fini de s'exécuter, pour ne pas se faire écraser par eux.
+        navResultsForClients.click();
+        setTimeout(fixRubriqueResultatView, 0);
+        // Le rendu de la grille clients attend en plus une requête
+        // réseau (fetch Supabase) avant de s'écrire dans le DOM ; on
+        // réaffiche le panneau une fois ce délai passé par sécurité.
+        setTimeout(fixRubriqueResultatView, 400);
       });
     }
 
