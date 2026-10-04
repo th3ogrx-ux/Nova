@@ -42,6 +42,10 @@
     body:before,body:after{display:none;}
     .noise{display:none;}
     .topbar{background:#000;}
+    /* Sur certains mobiles (repli de la barre d'adresse pendant le scroll),
+       un position:fixed seul peut visuellement "suivre" le scroll. Forcer
+       sa propre couche de composition règle ce souci. */
+    .topbar{transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform;}
     .sidebar{background:#000;}
 
     /* Menu toujours ouvert sur le côté, plus besoin d'appuyer sur les
