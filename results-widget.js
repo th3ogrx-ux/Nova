@@ -217,17 +217,19 @@
           row.appendChild(left);
           var right = el("div", { style: "display:flex;align-items:center;gap:12px;" });
           right.appendChild(el("div", { class: "oneshot-row-amount" }, fmtEUR(r.amount)));
-          var del = el("span", { class: "res-del", style: "position:static;cursor:pointer;opacity:.6;" }, "✕");
-          del.addEventListener("click", function () {
-            zenoaConfirm("Supprimer cette vente one-shot ?").then(function (ok) {
-              if (!ok) return;
-              supabase.from("one_shot_sales").delete().eq("id", r.id).then(function (res) {
-                if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-                renderOneshot();
+          if (me && me.role === "chef") {
+            var del = el("span", { class: "res-del", style: "position:static;cursor:pointer;opacity:.6;" }, "✕");
+            del.addEventListener("click", function () {
+              zenoaConfirm("Supprimer cette vente one-shot ?").then(function (ok) {
+                if (!ok) return;
+                supabase.from("one_shot_sales").delete().eq("id", r.id).then(function (res) {
+                  if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+                  renderOneshot();
+                });
               });
             });
-          });
-          right.appendChild(del);
+            right.appendChild(del);
+          }
           row.appendChild(right);
           oneshotListEl.appendChild(row);
         });
@@ -325,7 +327,7 @@
       supabase.from("profiles").select("id,role").eq("id", userId).single().then(function (res) {
         if (!res || !res.data) return;
         me = res.data;
-        if (me.role !== "chef") return;
+        if (btnAddOneshot) btnAddOneshot.style.display = me.role === "chef" ? "" : "none";
         renderTotal();
         renderOneshot();
         // setupResultsSubmenu() désactivé : l'ancien item "Résultats" est

@@ -1153,6 +1153,21 @@ function fetchPartnershipNotifs() {
         applyMyCustomRole(me.custom_role);
         if (settingsManageRoles) settingsManageRoles.style.display = me.role === "chef" ? "" : "none";
 
+        // Rubriques > Résultat, sous-partie "Clients récurrents" (venant du
+        // bundle compilé) : les membres voient la liste/CA en lecture seule,
+        // mais pas la fiche détail d'un client (historique, commission...).
+        if (me.role !== "chef") {
+          var btnAddClientEl = document.getElementById("btn-add-client");
+          if (btnAddClientEl) btnAddClientEl.style.display = "none";
+          var clientGridEl = document.getElementById("client-grid");
+          if (clientGridEl) {
+            clientGridEl.addEventListener("click", function (e) {
+              e.stopPropagation();
+              e.preventDefault();
+            }, true);
+          }
+        }
+
         supabase.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("id", me.id).then(function () {});
         setInterval(function () {
           supabase.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("id", me.id).then(function () {});
