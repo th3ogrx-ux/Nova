@@ -125,12 +125,13 @@
       return t.getFullYear() + "-" + pad2(t.getMonth() + 1) + "-" + pad2(t.getDate());
     }
 
-    function setLeadStatus(leadId, val) {
+    function setLeadStatus(leadId, val, cb) {
       supabase.from("radar_leads").update({
         status: val,
         status_set_by: me && me.id
       }).eq("id", leadId).then(function (res) {
         if (res && res.error) alert("Erreur : " + res.error.message);
+        if (cb) cb();
       });
     }
 
@@ -183,9 +184,8 @@
     }
 
     function commitLeadInterested(r, row) {
-      setLeadStatus(r.id, "interested");
       removeLeadRow(row);
-      loadInterestedLeads();
+      setLeadStatus(r.id, "interested", loadInterestedLeads);
     }
 
     function attachDragToInterested(row, r) {
@@ -572,7 +572,10 @@
           .subscribe();
 
         supabase.channel("nova-home-leads")
-          .on("postgres_changes", { event: "*", schema: "public", table: "radar_leads" }, loadLeads)
+          .on("postgres_changes", { event: "*", schema: "public", table: "radar_leads" }, function () {
+            loadLeads();
+            loadInterestedLeads();
+          })
           .subscribe();
       });
     }
