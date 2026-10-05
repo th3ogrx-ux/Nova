@@ -143,14 +143,22 @@
         : STATUS_OPTIONS;
       results.forEach(function (r) {
         var card = el("div", { class: "radar-card" + (viewMode !== "history" && r.status ? " done" : "") });
-        card.appendChild(el("div", { class: "radar-card-name" }, escapeHtml(r.name)));
-        if (r.category_label) card.appendChild(el("div", { class: "radar-card-row" }, "🏷️ " + escapeHtml(r.category_label) + (r.city ? " — " + escapeHtml(r.city) : "")));
-        if (r.address) card.appendChild(el("div", { class: "radar-card-row" }, "📍 " + escapeHtml(r.address)));
-        if (r.phone) card.appendChild(el("div", { class: "radar-card-row" }, "📞 " + escapeHtml(r.phone)));
-        if (r.website) {
-          card.appendChild(el("div", { class: "radar-card-row" }, '🌐 <a href="' + escapeHtml(r.website) + '" target="_blank" rel="noopener">' + escapeHtml(r.website) + "</a>"));
+        card.appendChild(el("div", { class: "home-lead-name" }, escapeHtml(r.name)));
+
+        var badge = el("span", { class: "home-lead-badge " + (r.website ? "has-site" : "no-site") });
+        badge.textContent = r.website ? "A un site" : "Pas de site";
+        card.appendChild(badge);
+
+        var metaParts = [r.city, r.category_label].filter(Boolean);
+        if (metaParts.length) {
+          card.appendChild(el("div", { class: "home-lead-meta" }, escapeHtml(metaParts.join(" · "))));
         }
-        card.appendChild(el("div", { class: "radar-card-row" }, "✉️ " + (r.email ? escapeHtml(r.email) : "Non trouvé")));
+
+        if (r.website) {
+          card.appendChild(el("div", { class: "home-lead-link" }, '<a href="' + escapeHtml(r.website) + '" target="_blank" rel="noopener">' + escapeHtml(r.website) + "</a>"));
+        }
+
+        if (r.phone) card.appendChild(el("div", { class: "home-lead-phone" }, escapeHtml(r.phone)));
 
         var statusRow = el("div", { class: "radar-card-status" });
         statusOptions.forEach(function (opt) {
@@ -166,6 +174,23 @@
           statusRow.appendChild(btn);
         });
         card.appendChild(statusRow);
+
+        if (viewMode === "history") {
+          var noteEl = document.createElement("textarea");
+          noteEl.className = "home-lead-note";
+          noteEl.placeholder = "Note (ce qu'il faut faire…)";
+          noteEl.value = r.note || "";
+          var noteTimer = null;
+          noteEl.addEventListener("input", function () {
+            clearTimeout(noteTimer);
+            noteTimer = setTimeout(function () {
+              supabase.from("radar_leads").update({ note: noteEl.value || null }).eq("id", r.id).then(function (res) {
+                if (res && res.error) alert("Erreur : " + res.error.message);
+              });
+            }, 500);
+          });
+          card.appendChild(noteEl);
+        }
 
         container.appendChild(card);
       });
