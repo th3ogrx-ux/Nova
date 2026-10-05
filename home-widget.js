@@ -555,9 +555,10 @@
       supabase.from("profiles").select("id,role").eq("id", userId).single().then(function (res) {
         if (!res || !res.data) return;
         me = res.data;
-
-        if (me.role === "chef") {
-          switchToAccueil();
+        switchToAccueil();
+        if (me.role !== "chef") {
+          var comptaAddRow = document.querySelector(".home-compta-add-row");
+          if (comptaAddRow) comptaAddRow.style.display = "none";
         }
 
         loadCaTotal();
