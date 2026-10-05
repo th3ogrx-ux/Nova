@@ -259,9 +259,9 @@
             var row = el("div", { class: "home-lead-row" });
             buildLeadInfo(row, r);
 
-            var dismissBtn = el("button", { type: "button", class: "home-lead-x-btn", title: "Marquer comme traité" }, "✕");
+            var dismissBtn = el("button", { type: "button", class: "home-lead-x-btn", title: "Marquer comme non intéressé" }, "✕");
             dismissBtn.addEventListener("click", function () {
-              setLeadStatus(r.id, "dismissed");
+              setLeadStatus(r.id, "not_interested");
               row.classList.add("dismissed");
               setTimeout(function () { removeLeadRow(row); }, 300);
             });
