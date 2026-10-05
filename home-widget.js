@@ -78,6 +78,7 @@
     var leadsInterestedCountEl = document.getElementById("home-leads-interested-count");
     var openRubriqueCaEl = document.getElementById("home-ca-open-rubrique");
     var openRubriqueLeadsEl = document.getElementById("home-leads-open-rubrique");
+    var openRubriqueLeadsInterestedEl = document.getElementById("home-leads-interested-open-rubrique");
 
     if (!homeGrid) return;
 
@@ -99,6 +100,16 @@
       openRubriqueLeadsEl.addEventListener("click", function (e) {
         e.preventDefault();
         openNavItem("nav-radar-chef");
+      });
+    }
+    if (openRubriqueLeadsInterestedEl) {
+      openRubriqueLeadsInterestedEl.addEventListener("click", function (e) {
+        e.preventDefault();
+        openNavItem("nav-radar-chef");
+        setTimeout(function () {
+          var toggle = document.getElementById("radar-history-toggle");
+          if (toggle && toggle.textContent.trim() === "Intéressé") toggle.click();
+        }, 0);
       });
     }
 
