@@ -187,7 +187,7 @@
       radarDailyCount.textContent = displayedResults.length ? "(" + displayedResults.length + ")" : "";
       var emptyText = viewMode === "today"
         ? "Aucun prospect généré aujourd'hui pour l'instant — repasse après minuit."
-        : "Aucun prospect en attente.";
+        : "Aucun lead intéressé pour l'instant.";
       renderCards(radarDailyResults, displayedResults, emptyText);
     }
 
@@ -195,7 +195,7 @@
       if (!radarDailyResults) return;
       var query = viewMode === "today"
         ? supabase.from("radar_leads").select("*").eq("sent_date", todayStr()).order("created_at", { ascending: false })
-        : supabase.from("radar_leads").select("*").eq("status", "pending").order("created_at", { ascending: false });
+        : supabase.from("radar_leads").select("*").eq("status", "interested").order("created_at", { ascending: false });
       query.then(function (res) {
         currentResults = (res && res.data) || [];
         renderCurrent();
@@ -206,9 +206,9 @@
       radarHistoryToggle.addEventListener("click", function () {
         viewMode = viewMode === "today" ? "history" : "today";
         radarHistoryToggle.classList.toggle("primary", viewMode === "history");
-        radarHistoryToggle.textContent = viewMode === "history" ? "Aujourd'hui" : "Historique";
+        radarHistoryToggle.textContent = viewMode === "history" ? "Aujourd'hui" : "Intéressé";
         if (radarSectionTitle) {
-          radarSectionTitle.firstChild.textContent = viewMode === "history" ? "En attente " : "Prospects du jour ";
+          radarSectionTitle.firstChild.textContent = viewMode === "history" ? "Intéressé " : "Prospects du jour ";
         }
         if (radarSearchField) radarSearchField.style.display = viewMode === "history" ? "block" : "none";
         if (radarSearch) radarSearch.value = "";
