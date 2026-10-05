@@ -331,7 +331,8 @@
         <div class="view" id="view-accueil">
           <h1 class="home-hero-name" style="position:sticky;top:0;z-index:5;background:#000;padding:10px 0;margin:0;">Zenoa <span class="home-hero-workspace">Workspace</span></h1>
           <div class="home-grid" id="home-grid">
-            <div class="home-tile home-tile-chart" id="home-tile-ca">
+            <div class="home-tile home-tile-chart" id="home-tile-ca" style="position:relative;">
+              <a href="#" id="home-ca-open-rubrique" class="home-tile-rubrique-link" style="position:absolute;top:14px;right:18px;">Ouvrir Rubrique →</a>
               <div class="home-compta-title">Compta</div>
               <div class="home-tile-label">Bénéfice net</div>
               <div class="home-tile-value" id="home-ca-value">—</div>
@@ -340,7 +341,6 @@
                 <span class="home-compta-flow entree"><span class="home-compta-dot"></span>Entrées <b id="home-ca-entrees">+0,00&nbsp;€</b></span>
                 <span class="home-compta-flow sortie"><span class="home-compta-dot"></span>Sorties <b id="home-ca-sorties">-0,00&nbsp;€</b></span>
               </div>
-              <div style="width:100%;text-align:right;"><a href="#" id="home-ca-open-rubrique" class="home-tile-rubrique-link">Ouvrir Rubrique →</a></div>
               <div class="home-tile-chart-wrap" id="home-ca-chart"></div>
               <div class="home-compta-add-row">
                 <div class="home-compta-tabs">
@@ -356,8 +356,8 @@
               <div class="home-leads-header">
                 <div class="home-compta-title">Leads</div>
                 <div class="home-leads-count" id="home-leads-count">0</div>
+                <a href="#" id="home-leads-open-rubrique" class="home-tile-rubrique-link" style="justify-self:end;">Ouvrir Rubrique →</a>
               </div>
-              <div style="width:100%;text-align:right;margin-top:-6px;"><a href="#" id="home-leads-open-rubrique" class="home-tile-rubrique-link">Ouvrir Rubrique →</a></div>
               <div class="home-leads-list" id="home-leads-list"></div>
             </div>
           </div>
