@@ -141,9 +141,12 @@
     .welcome-video-frame video{width:100%;display:block;aspect-ratio:16/9;border-radius:18px;background:#04010a;}
     .welcome-video-wrap .btn{width:100%;padding:15px;}
 
+    /* Topbar vide depuis que le titre a été déplacé dans la page Workspace
+       et que le hamburger est caché (menu toujours ouvert) : elle ne
+       servait plus qu'à laisser une bande noire fixe en haut de l'écran. */
+    .topbar{display:none!important;}
     /* Zones sûres (encoche / barre d'accueil) en mode PWA plein écran */
-    .topbar{padding-top:env(safe-area-inset-top);height:calc(64px + env(safe-area-inset-top));}
-    .main{padding-top:calc(64px + env(safe-area-inset-top));padding-bottom:env(safe-area-inset-bottom);}
+    .main{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);}
     .sidebar{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);}
     #toast{bottom:calc(26px + env(safe-area-inset-bottom));}
   </style>
@@ -330,7 +333,7 @@
       <div class="main-inner">
 
         <div class="view" id="view-accueil">
-          <h1 class="home-hero-name" style="margin:0;">Zenoa <span class="home-hero-workspace">Workspace</span></h1>
+          <h1 class="home-hero-name" style="margin:0 0 18px;">Zenoa <span class="home-hero-workspace">Workspace</span></h1>
           <div class="home-grid" id="home-grid">
             <div class="home-tile home-tile-chart" id="home-tile-ca" style="position:relative;">
               <a href="#" id="home-ca-open-rubrique" class="home-tile-rubrique-link" style="position:absolute;top:14px;right:18px;">Ouvrir Rubrique →</a>
