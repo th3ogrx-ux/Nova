@@ -353,13 +353,22 @@
                 <button type="button" class="btn primary home-compta-add-btn" id="home-compta-add-btn">Ajouter</button>
               </div>
             </div>
-            <div class="home-tile home-tile-leads" id="home-tile-leads">
-              <div class="home-leads-header">
-                <div class="home-compta-title">Leads</div>
-                <div class="home-leads-count" id="home-leads-count">0</div>
-                <a href="#" id="home-leads-open-rubrique" class="home-tile-rubrique-link" style="justify-self:end;">Ouvrir Rubrique →</a>
+            <div style="display:flex;gap:14px;width:100%;flex-wrap:wrap;">
+              <div class="home-tile home-tile-leads" id="home-tile-leads" style="width:auto;flex:1;min-width:220px;">
+                <div class="home-leads-header">
+                  <div class="home-compta-title">Leads</div>
+                  <div class="home-leads-count" id="home-leads-count">0</div>
+                  <a href="#" id="home-leads-open-rubrique" class="home-tile-rubrique-link" style="justify-self:end;">Ouvrir Rubrique →</a>
+                </div>
+                <div class="home-leads-list" id="home-leads-list"></div>
               </div>
-              <div class="home-leads-list" id="home-leads-list"></div>
+              <div class="home-tile home-tile-leads" id="home-tile-leads-interested" style="width:auto;flex:1;min-width:220px;">
+                <div class="home-leads-header">
+                  <div class="home-compta-title">Leads intéressés</div>
+                  <div class="home-leads-count" id="home-leads-interested-count">0</div>
+                </div>
+                <div class="home-leads-list" id="home-leads-interested-list"></div>
+              </div>
             </div>
           </div>
         </div>

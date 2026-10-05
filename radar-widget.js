@@ -104,8 +104,7 @@
 
     var STATUS_OPTIONS = [
       { value: "interested", label: "Intéressé" },
-      { value: "not_interested", label: "Non intéressé" },
-      { value: "pending", label: "En attente" }
+      { value: "not_interested", label: "Non intéressé" }
     ];
 
     function notifyChefsInterested(lead) {
