@@ -120,6 +120,21 @@
       return e;
     }
 
+    function bindTap(btn, handler) {
+      var handled = false;
+      function run(e) {
+        if (handled) return;
+        handled = true;
+        if (e.cancelable) e.preventDefault();
+        handler();
+      }
+      btn.addEventListener("pointerup", run);
+      btn.addEventListener("click", function (e) {
+        if (handled) { e.preventDefault(); e.stopPropagation(); return; }
+        run(e);
+      });
+    }
+
     function todayStr() {
       var t = new Date();
       return t.getFullYear() + "-" + pad2(t.getMonth() + 1) + "-" + pad2(t.getDate());
@@ -200,13 +215,13 @@
             var actions = el("div", { class: "home-lead-actions" });
 
             var validateBtn = el("button", { type: "button", class: "home-lead-check-btn", title: "Marquer comme intéressé" }, "✓");
-            validateBtn.addEventListener("click", function () {
+            bindTap(validateBtn, function () {
               commitLeadInterested(r, row);
             });
             actions.appendChild(validateBtn);
 
             var dismissBtn = el("button", { type: "button", class: "home-lead-x-btn", title: "Marquer comme non intéressé" }, "✕");
-            dismissBtn.addEventListener("click", function () {
+            bindTap(dismissBtn, function () {
               setLeadStatus(r.id, "not_interested");
               row.classList.add("dismissed");
               setTimeout(function () { removeLeadRow(row); }, 300);
@@ -254,7 +269,7 @@
 
             var interestedActions = el("div", { class: "home-lead-actions" });
             var deleteBtn = el("button", { type: "button", class: "home-lead-x-btn", title: "Supprimer ce lead" }, "✕");
-            deleteBtn.addEventListener("click", function () {
+            bindTap(deleteBtn, function () {
               window.zenoaConfirm("Es-tu sûr de vouloir supprimer ce lead ?").then(function (ok) {
                 if (!ok) return;
                 supabase.from("radar_leads").delete().eq("id", r.id).then(function (res2) {
