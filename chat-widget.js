@@ -633,8 +633,24 @@ function fetchPartnershipNotifs() {
       });
     }
 
+    var navRubriqueRessources = document.getElementById("nav-rubrique-ressources");
+    if (navRubriqueRessources && navResources) {
+      var fixRubriqueRessourcesView = function () {
+        document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
+        navRubriqueRessources.classList.add("active");
+        if (window.ZenoaNav) window.ZenoaNav.setLastView("resources");
+      };
+      navRubriqueRessources.addEventListener("click", function () {
+        // Même principe que Rubriques > Résultat : on simule le clic sur
+        // l'ancien nav "Ressources" (masqué) pour déclencher tout son
+        // chargement (vidéo épinglée, grille), puis on corrige l'état actif.
+        navResources.click();
+        setTimeout(fixRubriqueRessourcesView, 0);
+      });
+    }
+
     document.querySelectorAll(".nav-item").forEach(function (navEl) {
-      if (navEl === navResources) return;
+      if (navEl === navResources || navEl === navRubriqueRessources) return;
       navEl.addEventListener("click", function () { stopPinnedVideo(); });
     });
 
