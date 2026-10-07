@@ -20,7 +20,7 @@
     return e;
   }
 
-  var CSS = "\n.res-book-card{width:150px;cursor:pointer;}\n.res-book-cover{width:100%;aspect-ratio:595/842;border-radius:10px;overflow:hidden;box-shadow:0 14px 34px rgba(0,0,0,.55);border:1px solid rgba(199,194,219,.16);transition:transform .2s ease,box-shadow .2s ease;}\n.res-book-card:hover .res-book-cover{transform:translateY(-3px);box-shadow:0 20px 44px rgba(0,0,0,.65);}\n.res-book-cover img{width:100%;height:100%;object-fit:cover;display:block;}\n.res-book-title{margin-top:9px;font-size:12.5px;font-weight:600;color:var(--metal-2);text-align:center;line-height:1.3;}\n.book-overlay{position:fixed;inset:0;z-index:999;background:rgba(4,1,10,.92);display:flex;align-items:center;justify-content:center;flex-direction:column;padding:22px 16px;}\n.book-overlay.hidden{display:none;}\n.book-top-row{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;max-width:460px;margin-bottom:14px;}\n.book-title{font-family:'Playfair Display',Georgia,serif;font-size:16px;color:#fff;font-weight:600;}\n.book-close{width:32px;height:32px;border-radius:50%;flex-shrink:0;border:1px solid rgba(199,194,219,.3);background:rgba(255,255,255,.06);color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;}\n.book-close:hover{background:rgba(255,255,255,.14);}\n.book-stage-row{display:flex;align-items:center;gap:12px;width:100%;max-width:460px;}\n.book-arrow{width:40px;height:40px;border-radius:50%;flex-shrink:0;border:1px solid rgba(199,194,219,.3);background:rgba(255,255,255,.06);color:#fff;font-size:19px;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:background .15s ease;}\n.book-arrow:hover{background:rgba(255,255,255,.14);}\n.book-arrow.disabled{opacity:.22;pointer-events:none;}\n.book-stage{position:relative;flex:1;aspect-ratio:595/842;perspective:1800px;border-radius:10px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.7);background:#0c0518;}\n.book-page-static{position:absolute;inset:0;}\n.book-page-static img{width:100%;height:100%;object-fit:cover;display:block;}\n.book-flip{position:absolute;inset:0;transform-style:preserve-3d;transform-origin:left center;will-change:transform;}\n.book-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;will-change:transform;}\n.book-face img{width:100%;height:100%;object-fit:cover;display:block;}\n.book-face-back{transform:rotateY(180deg);background:linear-gradient(120deg,#150e24,#1f1436);}\n.book-shade{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:5;}\n.book-counter{margin-top:14px;font-size:12px;letter-spacing:.04em;color:var(--text-dim);}\n";
+  var CSS = "\n.res-book-card{width:150px;cursor:pointer;}\n.res-book-cover{width:100%;aspect-ratio:595/842;border-radius:10px;overflow:hidden;box-shadow:0 14px 34px rgba(0,0,0,.55);border:1px solid rgba(199,194,219,.16);transition:transform .2s ease,box-shadow .2s ease;}\n.res-book-card:hover .res-book-cover{transform:translateY(-3px);box-shadow:0 20px 44px rgba(0,0,0,.65);}\n.res-book-cover img{width:100%;height:100%;object-fit:cover;display:block;}\n.res-book-title{margin-top:9px;font-size:12.5px;font-weight:600;color:var(--metal-2);text-align:center;line-height:1.3;}\n.res-book-empty{display:none;font-size:13px;color:var(--text-dim);opacity:.7;padding:10px 2px;}\n.book-overlay{position:fixed;inset:0;z-index:999;background:rgba(4,1,10,.92);display:flex;align-items:center;justify-content:center;flex-direction:column;padding:22px 16px;}\n.book-overlay.hidden{display:none;}\n.book-top-row{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;max-width:460px;margin-bottom:14px;}\n.book-title{font-family:'Playfair Display',Georgia,serif;font-size:16px;color:#fff;font-weight:600;}\n.book-close{width:32px;height:32px;border-radius:50%;flex-shrink:0;border:1px solid rgba(199,194,219,.3);background:rgba(255,255,255,.06);color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;}\n.book-close:hover{background:rgba(255,255,255,.14);}\n.book-stage-row{display:flex;align-items:center;gap:12px;width:100%;max-width:460px;}\n.book-arrow{width:40px;height:40px;border-radius:50%;flex-shrink:0;border:1px solid rgba(199,194,219,.3);background:rgba(255,255,255,.06);color:#fff;font-size:19px;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:background .15s ease;}\n.book-arrow:hover{background:rgba(255,255,255,.14);}\n.book-arrow.disabled{opacity:.22;pointer-events:none;}\n.book-stage{position:relative;flex:1;aspect-ratio:595/842;perspective:1800px;border-radius:10px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.7);background:#0c0518;}\n.book-page-static{position:absolute;inset:0;}\n.book-page-static img{width:100%;height:100%;object-fit:cover;display:block;}\n.book-flip{position:absolute;inset:0;transform-style:preserve-3d;transform-origin:left center;will-change:transform;}\n.book-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;will-change:transform;}\n.book-face img{width:100%;height:100%;object-fit:cover;display:block;}\n.book-face-back{transform:rotateY(180deg);background:linear-gradient(120deg,#150e24,#1f1436);}\n.book-shade{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:5;}\n.book-counter{margin-top:14px;font-size:12px;letter-spacing:.04em;color:var(--text-dim);}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -30,6 +30,11 @@
     var grid = document.getElementById("res-book-grid");
     if (!grid) return;
 
+    function normalize(s) {
+      return (s || "").toString().normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    }
+
+    var bookCards = [];
     BOOKS.forEach(function (book) {
       var card = el("div", { class: "res-book-card" });
       var cover = el("div", { class: "res-book-cover" });
@@ -38,7 +43,25 @@
       card.appendChild(el("div", { class: "res-book-title" }, book.title));
       card.addEventListener("click", function () { openBook(book); });
       grid.appendChild(card);
+      bookCards.push({ book: book, card: card });
     });
+
+    var searchInput = document.getElementById("res-book-search");
+    var emptyMsg = el("div", { class: "res-book-empty" }, "Aucun guide ne correspond à ta recherche.");
+    grid.parentNode.insertBefore(emptyMsg, grid.nextSibling);
+
+    function applySearch() {
+      var q = normalize(searchInput ? searchInput.value.trim() : "");
+      var visible = 0;
+      bookCards.forEach(function (entry) {
+        var match = !q || normalize(entry.book.title).indexOf(q) !== -1;
+        entry.card.style.display = match ? "" : "none";
+        if (match) visible++;
+      });
+      emptyMsg.style.display = q && visible === 0 ? "block" : "none";
+    }
+
+    if (searchInput) searchInput.addEventListener("input", applySearch);
 
     var overlay, stage, pageStaticImg, flipDiv, flipFrontImg, shadeDiv, counterEl, prevBtn, nextBtn, closeBtn, titleEl;
     var currentBook = null, currentIndex = 0, animating = false;
