@@ -20,7 +20,7 @@
     return e;
   }
 
-  var CSS = "\n.res-book-card{width:150px;cursor:pointer;}\n.res-book-cover{width:100%;aspect-ratio:595/842;border-radius:10px;overflow:hidden;box-shadow:0 14px 34px rgba(0,0,0,.55);border:1px solid rgba(199,194,219,.16);transition:transform .2s ease,box-shadow .2s ease;}\n.res-book-card:hover .res-book-cover{transform:translateY(-3px);box-shadow:0 20px 44px rgba(0,0,0,.65);}\n.res-book-cover img{width:100%;height:100%;object-fit:cover;display:block;}\n.res-book-title{margin-top:9px;font-size:12.5px;font-weight:600;color:var(--metal-2);text-align:center;line-height:1.3;}\n.book-overlay{position:fixed;inset:0;z-index:999;background:rgba(4,1,10,.92);display:flex;align-items:center;justify-content:center;flex-direction:column;padding:22px 16px;}\n.book-overlay.hidden{display:none;}\n.book-top-row{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;max-width:460px;margin-bottom:14px;}\n.book-title{font-family:'Playfair Display',Georgia,serif;font-size:16px;color:#fff;font-weight:600;}\n.book-close{width:32px;height:32px;border-radius:50%;flex-shrink:0;border:1px solid rgba(199,194,219,.3);background:rgba(255,255,255,.06);color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;}\n.book-close:hover{background:rgba(255,255,255,.14);}\n.book-stage-row{display:flex;align-items:center;gap:12px;width:100%;max-width:460px;}\n.book-arrow{width:40px;height:40px;border-radius:50%;flex-shrink:0;border:1px solid rgba(199,194,219,.3);background:rgba(255,255,255,.06);color:#fff;font-size:19px;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:background .15s ease;}\n.book-arrow:hover{background:rgba(255,255,255,.14);}\n.book-arrow.disabled{opacity:.22;pointer-events:none;}\n.book-stage{position:relative;flex:1;aspect-ratio:595/842;perspective:1800px;border-radius:10px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.7);background:#0c0518;}\n.book-page-static{position:absolute;inset:0;}\n.book-page-static img{width:100%;height:100%;object-fit:cover;display:block;}\n.book-flip{position:absolute;inset:0;transform-style:preserve-3d;transform-origin:left center;transition:transform .55s cubic-bezier(.4,.1,.2,1);}\n.book-flip.no-anim{transition:none;}\n.book-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;}\n.book-face img{width:100%;height:100%;object-fit:cover;display:block;}\n.book-face-back{transform:rotateY(180deg);background:linear-gradient(120deg,#150e24,#1f1436);}\n.book-counter{margin-top:14px;font-size:12px;letter-spacing:.04em;color:var(--text-dim);}\n";
+  var CSS = "\n.res-book-card{width:150px;cursor:pointer;}\n.res-book-cover{width:100%;aspect-ratio:595/842;border-radius:10px;overflow:hidden;box-shadow:0 14px 34px rgba(0,0,0,.55);border:1px solid rgba(199,194,219,.16);transition:transform .2s ease,box-shadow .2s ease;}\n.res-book-card:hover .res-book-cover{transform:translateY(-3px);box-shadow:0 20px 44px rgba(0,0,0,.65);}\n.res-book-cover img{width:100%;height:100%;object-fit:cover;display:block;}\n.res-book-title{margin-top:9px;font-size:12.5px;font-weight:600;color:var(--metal-2);text-align:center;line-height:1.3;}\n.book-overlay{position:fixed;inset:0;z-index:999;background:rgba(4,1,10,.92);display:flex;align-items:center;justify-content:center;flex-direction:column;padding:22px 16px;}\n.book-overlay.hidden{display:none;}\n.book-top-row{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;max-width:460px;margin-bottom:14px;}\n.book-title{font-family:'Playfair Display',Georgia,serif;font-size:16px;color:#fff;font-weight:600;}\n.book-close{width:32px;height:32px;border-radius:50%;flex-shrink:0;border:1px solid rgba(199,194,219,.3);background:rgba(255,255,255,.06);color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;}\n.book-close:hover{background:rgba(255,255,255,.14);}\n.book-stage-row{display:flex;align-items:center;gap:12px;width:100%;max-width:460px;}\n.book-arrow{width:40px;height:40px;border-radius:50%;flex-shrink:0;border:1px solid rgba(199,194,219,.3);background:rgba(255,255,255,.06);color:#fff;font-size:19px;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:background .15s ease;}\n.book-arrow:hover{background:rgba(255,255,255,.14);}\n.book-arrow.disabled{opacity:.22;pointer-events:none;}\n.book-stage{position:relative;flex:1;aspect-ratio:595/842;perspective:1800px;border-radius:10px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.7);background:#0c0518;}\n.book-page-static{position:absolute;inset:0;}\n.book-page-static img{width:100%;height:100%;object-fit:cover;display:block;}\n.book-flip{position:absolute;inset:0;transform-style:preserve-3d;transform-origin:left center;transition:transform .55s cubic-bezier(.4,.1,.2,1);will-change:transform;}\n.book-flip.no-anim{transition:none;}\n.book-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;will-change:transform;}\n.book-face img{width:100%;height:100%;object-fit:cover;display:block;}\n.book-face-back{transform:rotateY(180deg);background:linear-gradient(120deg,#150e24,#1f1436);}\n.book-counter{margin-top:14px;font-size:12px;letter-spacing:.04em;color:var(--text-dim);}\n";
 
   function init() {
     var style = document.createElement("style");
@@ -33,7 +33,7 @@
     BOOKS.forEach(function (book) {
       var card = el("div", { class: "res-book-card" });
       var cover = el("div", { class: "res-book-cover" });
-      cover.appendChild(el("img", { src: book.pagePath(1), alt: book.title }));
+      cover.appendChild(el("img", { src: book.pagePath(1), alt: book.title, decoding: "async" }));
       card.appendChild(cover);
       card.appendChild(el("div", { class: "res-book-title" }, book.title));
       card.addEventListener("click", function () { openBook(book); });
@@ -42,6 +42,23 @@
 
     var overlay, pageStaticImg, flipDiv, flipFrontImg, counterEl, prevBtn, nextBtn, closeBtn, titleEl;
     var currentBook = null, currentIndex = 0, animating = false;
+    var preloadCache = {};
+
+    function preloadPage(book, index) {
+      if (index < 0 || index >= book.pageCount) return;
+      var src = book.pagePath(index + 1);
+      if (preloadCache[src]) return;
+      var img = new Image();
+      img.decoding = "async";
+      img.src = src;
+      preloadCache[src] = img;
+    }
+
+    function preloadAround(book, index) {
+      preloadPage(book, index - 1);
+      preloadPage(book, index);
+      preloadPage(book, index + 1);
+    }
 
     function buildOverlay() {
       overlay = el("div", { class: "book-overlay hidden" });
@@ -58,12 +75,12 @@
 
       var stage = el("div", { class: "book-stage" });
       var pageStatic = el("div", { class: "book-page-static" });
-      pageStaticImg = el("img", {});
+      pageStaticImg = el("img", { decoding: "async" });
       pageStatic.appendChild(pageStaticImg);
 
       flipDiv = el("div", { class: "book-flip" });
       var faceFront = el("div", { class: "book-face book-face-front" });
-      flipFrontImg = el("img", {});
+      flipFrontImg = el("img", { decoding: "async" });
       faceFront.appendChild(flipFrontImg);
       var faceBack = el("div", { class: "book-face book-face-back" });
       flipDiv.appendChild(faceFront);
@@ -114,6 +131,7 @@
       updateUI();
       overlay.classList.remove("hidden");
       document.body.style.overflow = "hidden";
+      preloadAround(book, 0);
     }
 
     function closeBook() {
@@ -127,24 +145,41 @@
       if (targetIndex < 0 || targetIndex >= currentBook.pageCount) return;
       animating = true;
 
-      pageStaticImg.src = currentBook.pagePath(targetIndex + 1);
-      flipFrontImg.src = currentBook.pagePath(currentIndex + 1);
+      var book = currentBook;
+      var targetSrc = book.pagePath(targetIndex + 1);
+      var currentSrc = book.pagePath(currentIndex + 1);
 
-      flipDiv.style.transformOrigin = dir > 0 ? "left center" : "right center";
-      flipDiv.classList.add("no-anim");
-      flipDiv.style.transform = "rotateY(0deg)";
-      void flipDiv.offsetWidth;
-      flipDiv.classList.remove("no-anim");
-      flipDiv.style.transform = dir > 0 ? "rotateY(-180deg)" : "rotateY(180deg)";
+      function startAnim() {
+        pageStaticImg.src = targetSrc;
+        flipFrontImg.src = currentSrc;
 
-      setTimeout(function () {
-        currentIndex = targetIndex;
+        flipDiv.style.transformOrigin = dir > 0 ? "left center" : "right center";
         flipDiv.classList.add("no-anim");
         flipDiv.style.transform = "rotateY(0deg)";
-        flipFrontImg.src = currentBook.pagePath(currentIndex + 1);
-        updateUI();
-        animating = false;
-      }, 560);
+        void flipDiv.offsetWidth;
+        flipDiv.classList.remove("no-anim");
+        flipDiv.style.transform = dir > 0 ? "rotateY(-180deg)" : "rotateY(180deg)";
+
+        setTimeout(function () {
+          currentIndex = targetIndex;
+          flipDiv.classList.add("no-anim");
+          flipDiv.style.transform = "rotateY(0deg)";
+          flipFrontImg.src = book.pagePath(currentIndex + 1);
+          updateUI();
+          animating = false;
+          preloadAround(book, currentIndex);
+        }, 560);
+      }
+
+      // Si la page cible est déjà préchargée, on attend qu'elle soit
+      // décodée avant de lancer l'animation : ça évite le décodage de
+      // l'image de pile au milieu du flip, qui saccadait la rotation.
+      var cached = preloadCache[targetSrc];
+      if (cached && cached.decode) {
+        cached.decode().then(startAnim).catch(startAnim);
+      } else {
+        startAnim();
+      }
     }
   }
 
