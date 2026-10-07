@@ -674,6 +674,7 @@ function fetchPartnershipNotifs() {
 
     function backToGrid() {
       stopPinnedVideo();
+      if (!resDetail || !resGrid) return;
       resDetail.style.display = "none";
       resGrid.style.display = "grid";
       renderResourceGrid();
