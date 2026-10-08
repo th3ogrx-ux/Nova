@@ -170,6 +170,30 @@
     .main{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);}
     .sidebar{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);}
     #toast{bottom:calc(26px + env(safe-area-inset-bottom));}
+
+    /* Menu à gauche noir/texte blanc (déjà en place), zone de contenu à
+       droite en thème clair : fond blanc, texte sombre. La sidebar et
+       les écrans de connexion ne sont pas concernés (hors de .main). */
+    .main{background:#fff;color:#1c1430;}
+    .main .home-hero-name{font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#1c1430;text-shadow:none;}
+    .main .view-head p,.main .global-stat-meta{color:#6b6478;}
+    .main .field-label{color:#6b6478;}
+    .main .glass-card{background:#f7f5fb;border:1px solid rgba(28,20,48,.12);box-shadow:0 10px 30px rgba(28,20,48,.07);}
+    .main input,.main textarea,.main select{background:#fff;border-color:rgba(28,20,48,.18);color:#1c1430;}
+    .main input::placeholder,.main textarea::placeholder{color:#a79fb5;}
+    .main select{background-image:linear-gradient(45deg,transparent 50%,#6b6478 50%),linear-gradient(135deg,#6b6478 50%,transparent 50%);}
+    .main .settings-tile{background:#f7f5fb;border:1px solid rgba(28,20,48,.1);color:#1c1430;}
+    .main .settings-tile:hover{background:#efebf5;}
+    .main .settings-tile-danger{border-color:#d9534f4d;color:#b3413d;}
+    .main .settings-tile-danger:hover{background:#d9534f14;}
+    .main .settings-tile::after{color:#1c1430;opacity:.3;}
+    .main .back-btn{color:#1c1430;border-color:rgba(28,20,48,.15);}
+    .main .back-btn:hover{background:rgba(28,20,48,.06);}
+    .main .btn{color:#1c1430;border-color:rgba(28,20,48,.2);}
+    .main .btn:hover{color:#1c1430;}
+    .main .btn.ghost:hover{color:#1c1430;background:rgba(28,20,48,.05);}
+    .main .zenoa-switch-track{background:rgba(28,20,48,.12);border-color:rgba(28,20,48,.18);}
+    .main .zenoa-switch-track:before{background:#fff;}
   </style>
 </head>
 <body>
