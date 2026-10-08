@@ -60,11 +60,38 @@
     var settingsEditPhoto = document.getElementById("settings-edit-photo");
     var myAvatarInput = document.getElementById("my-avatar-input");
     var myRoleDisplayEl = document.getElementById("my-role-display");
+    var settingsBtn = document.getElementById("settings-btn");
+    var btnBackSettings = document.getElementById("btn-back-settings");
 
     function switchToView(viewName) {
       document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
       var v = document.getElementById("view-" + viewName);
       if (v) v.classList.add("active");
+    }
+
+    // Navigation élève (Accueil, Mon projet, Ressources, Cours,
+    // Progression, Calendrier) : visible uniquement pour les comptes
+    // non-chef, affichée/masquée dans boot() une fois le rôle connu.
+    document.querySelectorAll(".eleve-only[data-view]").forEach(function (navEl) {
+      navEl.addEventListener("click", function () {
+        document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
+        navEl.classList.add("active");
+        switchToView(navEl.getAttribute("data-view"));
+      });
+    });
+
+    var previousViewBeforeSettings = "accueil";
+    if (settingsBtn) {
+      settingsBtn.addEventListener("click", function () {
+        var activeNav = document.querySelector(".nav-item.active[data-view]");
+        previousViewBeforeSettings = activeNav ? activeNav.getAttribute("data-view") : "accueil";
+        switchToView("settings");
+      });
+    }
+    if (btnBackSettings) {
+      btnBackSettings.addEventListener("click", function () {
+        switchToView(previousViewBeforeSettings);
+      });
     }
 
     if (settingsLogout) {
@@ -144,9 +171,14 @@
         if (!res || !res.data) return;
         me = res.data;
         applyMyCustomRole(me.custom_role);
-        // Le site ne garde plus que Paramètres : on y atterrit directement
-        // après connexion, quel que soit le rôle.
-        switchToView("settings");
+        // Les élèves (tout rôle non-chef) ont leur propre navigation à
+        // gauche et atterrissent sur Accueil ; le chef n'a toujours que
+        // Paramètres (accessible via l'icône réglages).
+        var isEleve = me.role !== "chef";
+        document.querySelectorAll(".eleve-only").forEach(function (el) {
+          el.style.display = isEleve ? "flex" : "none";
+        });
+        switchToView(isEleve ? "accueil" : "settings");
       });
     }
 
