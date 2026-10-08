@@ -50,7 +50,11 @@
     body{overflow-y:hidden;}
     .screen.active{height:100dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
     #screen-app{height:100dvh;overflow-y:hidden;}
-    .main{height:100dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+    /* -webkit-overflow-scrolling:touch retiré volontairement : combiné à
+       border-radius + overflow-y:auto sur un élément position:fixed, il
+       pousse Safari iOS à créer un calque qui ignore l'arrondi du
+       conteneur (3 des 4 coins s'affichaient carrés au lieu d'arrondis). */
+    .main{height:100dvh;overflow-y:auto;}
     .topbar{transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform;}
     .sidebar{background:#000;}
 
@@ -148,7 +152,11 @@
 
     /* Lueur blanche en bas de la sidebar (même esprit que la lueur verte
        de la capture envoyée, en blanc). */
-    .sidebar:after{content:"";position:absolute;left:0;right:0;bottom:0;height:180px;background:radial-gradient(ellipse 140% 100% at 50% 100%,rgba(255,255,255,.14),transparent 70%);pointer-events:none;z-index:0;}
+    /* La boîte dépasse volontairement le bord droit de la sidebar
+       (right:-60px) pour que le dégradé continue dans le noir au lieu de
+       s'arrêter net sur le bord — maintenant que le trait de séparation
+       est enlevé, on doit voir le fondu se prolonger dans l'écart. */
+    .sidebar:after{content:"";position:absolute;left:0;right:-60px;bottom:-20px;height:220px;background:radial-gradient(ellipse 65% 70% at 62% 100%,rgba(255,255,255,.16),transparent 78%);pointer-events:none;z-index:0;}
     /* .sidebar-toggle n'est volontairement PAS dans cette liste : il a
        déjà son propre z-index (règle plus haut) et le mettre ici lui
        ré-impose position:relative, ce qui casse son ancrage
