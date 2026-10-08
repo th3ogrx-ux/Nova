@@ -98,7 +98,11 @@
     ::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--cool-1),var(--cool-2));border-radius:10px;}
     ::-webkit-scrollbar-thumb:hover{background:var(--cool-2);}
 
-    #nav-results,#nav-equipe,#nav-dms,#nav-linkedin,#nav-radar{display:none!important;}
+    /* #nav-results / #view-results / #view-rubrique-resultat : conservés
+       uniquement pour éviter un crash JS (le bundle compilé lit/peuple
+       ces ids directement — dashboard clients, $e()/Ct()...), mais plus
+       aucune navigation ne mène ici, donc on les force invisibles. */
+    #nav-results,#view-results,#view-rubrique-resultat{display:none!important;}
 
     /* Look "sidebar SaaS pro" façon Shopify admin : icônes sobres
        petites + texte, liste dense, plus de pastille (l'icône ou le
@@ -153,6 +157,10 @@
     .welcome-video-frame{padding:10px;margin-bottom:24px;border-radius:26px;box-shadow:0 24px 70px rgba(0,0,0,.5),0 0 50px rgba(191,90,242,.16);}
     .welcome-video-frame video{width:100%;display:block;aspect-ratio:16/9;border-radius:18px;background:#04010a;}
     .welcome-video-wrap .btn{width:100%;padding:15px;}
+    /* La vidéo elle-même est retirée (voir le script de skip automatique
+       plus bas) : on masque son cadre au cas où l'écran s'affiche une
+       fraction de seconde avant que ce script ne la saute. */
+    .welcome-video-frame{display:none!important;}
 
     /* Topbar vide depuis que le titre a été déplacé dans la page Workspace
        et que le hamburger est caché (menu toujours ouvert) : elle ne
@@ -248,6 +256,13 @@
   </div>
 
   <!-- ============ SCREEN: WELCOME VIDEO ============ -->
+  <!-- La vidéo est retirée, mais l'écran (et le bouton qu'il contient)
+       reste dans le DOM : le bundle compilé pilote toute cette étape
+       (il active cet écran après la création du compte et écoute la
+       fin de la vidéo pour déverrouiller #welcome-video-continue), donc
+       le supprimer casserait l'inscription. Le script juste en dessous
+       déverrouille et clique ce bouton tout seul dès que l'écran
+       s'affiche, pour passer directement à l'app sans vidéo. -->
   <div class="screen" id="screen-welcome-video">
     <div class="welcome-video-wrap">
       <h1 class="metal-title">Découvre Zenoa</h1>
@@ -258,6 +273,20 @@
       <button class="btn primary" id="welcome-video-continue" disabled>Accéder à l'app</button>
     </div>
   </div>
+  <script>
+  (function () {
+    var screen = document.getElementById("screen-welcome-video");
+    var btn = document.getElementById("welcome-video-continue");
+    if (!screen || !btn) return;
+    function skip() {
+      if (!screen.classList.contains("active")) return;
+      btn.disabled = false;
+      btn.click();
+    }
+    new MutationObserver(skip).observe(screen, { attributes: true, attributeFilter: ["class"] });
+    skip();
+  })();
+  </script>
 
   <!-- ============ SCREEN: APP SHELL ============ -->
   <div class="screen" id="screen-app">
@@ -292,39 +321,13 @@
         <div class="glow-divider" style="margin:10px 0 0; width:auto;"></div>
       </div>
       <div class="nav-list">
-        <div class="nav-item" id="nav-accueil" data-view="accueil"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span>Workspace</div>
-        <div class="nav-item" id="nav-boxmail" data-view="boxmail"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span>BoxMail<span class="nova-boxmail-badge" id="boxmail-nav-badge" style="display:none;"></span></div>
-        <div class="nav-item" id="nav-rubriques" data-view="rubriques" data-accordion="1"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="16" width="18" height="4" rx="1"/></svg></span>Rubriques<span class="nav-caret" id="nav-rubriques-caret">▾</span></div>
-        <div class="nav-sublist" id="nav-rubriques-sublist">
-          <div class="nav-item" id="nav-rubrique-resultat" data-view="rubrique-resultat"><span class="dot"></span>Résultat</div>
-          <div class="nav-item" id="nav-radar-chef" data-view="radar"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"/></svg></span>Zenoa Radar</div>
-          <div class="nav-item" id="nav-rubrique-ressources" data-view="resources"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5C4 3.7 4.7 3 5.5 3H12v18H5.5c-.8 0-1.5-.7-1.5-1.5v-15z"/><path d="M20 4.5c0-.8-.7-1.5-1.5-1.5H12v18h6.5c.8 0 1.5-.7 1.5-1.5v-15z"/></svg></span>Ressources</div>
-        </div>
-        <div class="nav-item" id="nav-results" data-view="results" style="display:none;"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="12"/><line x1="10" y1="20" x2="10" y2="6"/><line x1="16" y1="20" x2="16" y2="14"/><line x1="20" y1="20" x2="20" y2="9"/></svg></span>Résultats<span class="nav-caret" id="nav-results-caret">▾</span></div>
-        <div class="nav-sublist" id="nav-results-sublist" style="display:none!important;"></div>
-        <div class="nav-item" data-view="suivi" style="display:none;"><span class="dot"></span>Suivi business</div>
-        <div class="nav-item chef-only" id="nav-equipe" data-view="equipe" data-accordion="1" style="display:none;"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14c2.6.3 4.5 2.5 4.5 6"/></svg></span>Équipe<span class="nav-caret" id="nav-equipe-caret">▾</span></div>
-        <div class="nav-sublist" id="nav-equipe-sublist">
-          <div class="nav-item chef-only" id="nav-suivi-equipe" data-view="suivi-equipe"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span>Suivi</div>
-          <div class="nav-item chef-only" id="nav-dms-chef" data-view="dms"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H8l-4 4V4z"/></svg></span>Journal Insta</div>
-          <div class="nav-item chef-only" id="nav-linkedin-chef" data-view="linkedin"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 10v7M7 7v.01M11 17v-4.5c0-1.4 1-2.5 2.5-2.5S16 11.1 16 12.5V17"/></svg></span>Journal LinkedIn</div>
-          <div class="nav-item chef-only" id="nav-radar-journal" data-view="radar-journal"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"/></svg></span>Journal de Zenoa Radar</div>
-        </div>
-        <div class="nav-item" id="nav-dms" data-view="dms"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H8l-4 4V4z"/></svg></span>Journal Insta</div>
-        <div class="nav-item" id="nav-linkedin" data-view="linkedin" style="display:none;"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 10v7M7 7v.01M11 17v-4.5c0-1.4 1-2.5 2.5-2.5S16 11.1 16 12.5V17"/></svg></span>Journal LinkedIn</div>
-        <div class="nav-item" id="nav-resources" data-view="resources" style="display:none;"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5C4 3.7 4.7 3 5.5 3H12v18H5.5c-.8 0-1.5-.7-1.5-1.5v-15z"/><path d="M20 4.5c0-.8-.7-1.5-1.5-1.5H12v18h6.5c.8 0 1.5-.7 1.5-1.5v-15z"/></svg></span>Ressources</div>
-        <div class="nav-item" id="nav-radar" data-view="radar"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z"/></svg></span>Zenoa Radar</div>
-        <div class="nav-item chef-only" id="nav-partenariat" data-view="partenariat" data-accordion="1"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 15l6-6"/><path d="M10 6l1.5-1.5a3.5 3.5 0 0 1 5 5L15 11"/><path d="M14 18l-1.5 1.5a3.5 3.5 0 0 1-5-5L9 13"/></svg></span>Partenariat<span class="nav-caret" id="nav-partenariat-caret">▾</span></div>
-        <div class="nav-sublist" id="nav-partenariat-sublist">
-          <div class="nav-subitem" id="nav-partenariat-reponses" data-subview="partenariat-reponses"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg></span>Réponse questionnaire</div>
-        </div>
-        <div class="nav-item" data-view="classement" style="display:none;"><span class="dot"></span>Classement</div>
-        <div class="nav-item admin-item" id="nav-admin" data-view="admin" data-accordion="1" style="display:none;"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg></span>Gestion<span class="nav-caret" id="nav-gestion-caret">▾</span></div>
-        <div class="nav-sublist" id="nav-gestion-sublist">
-          <div class="nav-subitem" id="nav-gestion-equipe" data-subview="admin"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14c2.6.3 4.5 2.5 4.5 6"/></svg></span>Gérer l'équipe</div>
-          <div class="nav-subitem" id="nav-administratif" data-subview="administratif"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg></span>Administratif</div>
-          <div class="nav-subitem" id="nav-gestion-ressources" data-subview="gestion-ressources"><span class="dot"></span><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5C4 3.7 4.7 3 5.5 3H12v18H5.5c-.8 0-1.5-.7-1.5-1.5v-15z"/><path d="M20 4.5c0-.8-.7-1.5-1.5-1.5H12v18h6.5c.8 0 1.5-.7 1.5-1.5v-15z"/></svg></span>Ressources</div>
-        </div>
+        <!-- Éléments conservés uniquement pour éviter un crash JS : le
+             bundle compilé lit/clique ces ids précis au boot, sans
+             vérifier qu'ils existent (même mécanisme que
+             #btn-back-to-stats plus bas). Le site ne garde plus que
+             Paramètres, donc il n'y a plus de vraie navigation ici. -->
+        <div id="nav-boxmail" style="display:none;" aria-hidden="true"></div>
+        <div id="nav-admin" style="display:none;" aria-hidden="true"></div>
       </div>
       <div class="glow-divider" style="margin:0 18px; width:auto;"></div>
       <div class="sidebar-profile">
@@ -346,49 +349,6 @@
     <div class="main">
       <div class="main-inner">
 
-        <div class="view" id="view-accueil">
-          <h1 class="home-hero-name" style="margin:0 0 18px;">Zenoa <span class="home-hero-workspace">Workspace</span></h1>
-          <div class="home-grid" id="home-grid">
-            <div class="home-tile home-tile-chart" id="home-tile-ca" style="position:relative;">
-              <a href="#" id="home-ca-open-rubrique" class="home-tile-rubrique-link" style="position:absolute;top:14px;right:18px;">Ouvrir Rubrique →</a>
-              <div class="home-compta-title">Compta</div>
-              <div class="home-tile-label">Bénéfice net</div>
-              <div class="home-tile-value" id="home-ca-value">—</div>
-              <div class="home-compta-marge" id="home-ca-marge">Marge —</div>
-              <div class="home-compta-flow-row">
-                <span class="home-compta-flow entree"><span class="home-compta-dot"></span>Entrées <b id="home-ca-entrees">+0,00&nbsp;€</b></span>
-              </div>
-              <div class="home-tile-chart-wrap" id="home-ca-chart"></div>
-              <div class="home-compta-add-row">
-                <div class="home-compta-tabs">
-                  <button type="button" class="home-compta-tab active" id="home-compta-tab-revenu" data-type="revenu">Revenu</button>
-                </div>
-                <input type="number" class="home-compta-amount" id="home-compta-amount" placeholder="0" min="0" step="1" inputmode="decimal">
-                <input type="text" class="home-compta-name" id="home-compta-name" placeholder="Nom">
-                <button type="button" class="btn primary home-compta-add-btn" id="home-compta-add-btn">Ajouter</button>
-              </div>
-            </div>
-            <div style="display:flex;gap:14px;width:100%;flex-wrap:wrap;">
-              <div class="home-tile home-tile-leads" id="home-tile-leads" style="width:auto;flex:1;min-width:220px;">
-                <div class="home-leads-header">
-                  <div class="home-compta-title">Leads</div>
-                  <div class="home-leads-count" id="home-leads-count">0</div>
-                  <a href="#" id="home-leads-open-rubrique" class="home-tile-rubrique-link" style="justify-self:end;">Ouvrir Rubrique →</a>
-                </div>
-                <div class="home-leads-list" id="home-leads-list"></div>
-              </div>
-              <div class="home-tile home-tile-leads" id="home-tile-leads-interested" style="width:auto;flex:1;min-width:220px;position:relative;">
-                <a href="#" id="home-leads-interested-open-rubrique" class="home-tile-rubrique-link" style="position:absolute;top:14px;right:18px;">Ouvrir Rubrique →</a>
-                <div class="home-leads-header">
-                  <div class="home-compta-title">Leads intéressés</div>
-                  <div class="home-leads-count" id="home-leads-interested-count">0</div>
-                </div>
-                <div class="home-leads-list" id="home-leads-interested-list"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div class="view" id="view-results" style="display:none;">
 
           <div class="dash-toolbar">
@@ -407,161 +367,6 @@
           <!-- sous-onglet : clients récurrents (déplacé dans Rubriques > Résultat) -->
 
         </div>
-        <div class="view" id="view-suivi">
-          <div class="placeholder-block"><span class="metal-title">Suivi business</span>À venir.</div>
-        </div>
-        <div class="view" id="view-suivi-equipe">
-          <div class="dash-toolbar">
-            <h1 class="home-hero-name">Suivi</h1>
-          </div>
-          <div class="glass-card panel-section" style="margin-bottom:20px;">
-            <div class="panel-title">Journal Insta</div>
-            <div id="suivi-chart-dms"></div>
-          </div>
-          <div class="glass-card panel-section" style="margin-bottom:20px;">
-            <div class="panel-title">Journal LinkedIn</div>
-            <div id="suivi-chart-linkedin"></div>
-          </div>
-          <div class="glass-card panel-section">
-            <div class="panel-title">Zenoa Radar</div>
-            <div id="suivi-chart-radar"></div>
-          </div>
-        </div>
-        <div class="view" id="view-dms">
-          <div class="dm-toolbar">
-            <h1 class="home-hero-name">Journal Insta</h1>
-            <button class="btn primary btn-sm" id="btn-add-prospect">+ Ajouter un prospect</button>
-          </div>
-
-          <div class="glass-card activity-panel">
-            <div class="activity-head">
-              <div class="panel-title">Activité de l'équipe</div>
-              <div class="period-tabs" id="activity-period-tabs">
-                <div class="period-tab active" data-period="day">Aujourd'hui</div>
-                <div class="period-tab" data-period="week">Cette semaine</div>
-                <div class="period-tab" data-period="month">Ce mois</div>
-                <div class="period-tab" data-period="all">Tout</div>
-              </div>
-            </div>
-            <div id="activity-list"></div>
-          </div>
-
-          <div class="glass-card panel-section chef-only" id="dm-access-panel" style="margin-bottom:20px;">
-            <div class="panel-title">Qui peut ajouter des prospects</div>
-            <div id="dm-access-list" style="margin-top:10px;"></div>
-            <div id="dm-access-picker" class="rj-picker"></div>
-            <button class="btn btn-sm" id="dm-access-add-btn" style="margin-top:12px;">+ Ajouter des personnes</button>
-          </div>
-
-          <div class="filter-row">
-            <select id="dm-filter-setter"><option value="all">Tous les setters</option></select>
-            <select id="dm-filter-secteur"><option value="all">Tous les secteurs</option></select>
-          </div>
-
-          <div id="dm-journal"></div>
-        </div>
-
-        <div class="view" id="view-linkedin">
-          <div class="dm-toolbar">
-            <h1 class="home-hero-name">Journal LinkedIn</h1>
-            <button class="btn primary btn-sm" id="btn-add-linkedin-prospect">+ Ajouter un prospect</button>
-          </div>
-
-          <div class="glass-card activity-panel chef-only" id="linkedin-activity-panel">
-            <div class="activity-head">
-              <div class="panel-title">Activité de l'équipe</div>
-              <div class="period-tabs" id="linkedin-activity-period-tabs">
-                <div class="period-tab active" data-period="day">Aujourd'hui</div>
-                <div class="period-tab" data-period="week">Cette semaine</div>
-                <div class="period-tab" data-period="month">Ce mois</div>
-                <div class="period-tab" data-period="all">Tout</div>
-              </div>
-            </div>
-            <div id="linkedin-activity-list"></div>
-          </div>
-
-          <div class="glass-card panel-section chef-only" id="linkedin-access-panel" style="margin-bottom:20px;">
-            <div class="panel-title">Qui peut ajouter des prospects</div>
-            <div id="linkedin-access-list" style="margin-top:10px;"></div>
-            <div id="linkedin-access-picker" class="rj-picker"></div>
-            <button class="btn btn-sm" id="linkedin-access-add-btn" style="margin-top:12px;">+ Ajouter des personnes</button>
-          </div>
-
-          <div class="filter-row chef-only" id="linkedin-filter-row">
-            <select id="linkedin-filter-setter"><option value="all">Tous les setters</option></select>
-            <select id="linkedin-filter-secteur"><option value="all">Tous les secteurs</option></select>
-          </div>
-
-          <div id="linkedin-journal"></div>
-        </div>
-
-        <div class="view" id="view-radar-journal">
-          <div class="dash-toolbar">
-            <h1 class="home-hero-name">Journal de Zenoa Radar</h1>
-          </div>
-
-          <div class="glass-card activity-panel">
-            <div class="activity-head">
-              <div class="panel-title">Activité de l'équipe</div>
-              <div class="period-tabs" id="radar-journal-period-tabs">
-                <div class="period-tab active" data-period="day">Aujourd'hui</div>
-                <div class="period-tab" data-period="week">Cette semaine</div>
-                <div class="period-tab" data-period="month">Ce mois</div>
-                <div class="period-tab" data-period="all">Tout</div>
-              </div>
-            </div>
-            <div id="radar-journal-activity-list" style="margin-top:14px;"></div>
-            <button class="btn btn-sm" id="radar-journal-add-btn" style="margin-top:16px;display:none;">+ Ajouter des personnes</button>
-          </div>
-        </div>
-        <div class="view" id="view-boxmail">
-          <div class="dash-toolbar">
-            <h1 class="home-hero-name">BoxMail</h1>
-            <div class="period-tabs" id="boxmail-mode-tabs">
-              <div class="period-tab active" data-mode="inbox" id="boxmail-tab-inbox">Boîte de réception<span class="nova-boxmail-badge" id="boxmail-tab-badge" style="display:none;"></span></div>
-              <div class="period-tab" data-mode="send" id="boxmail-tab-send">Envoyer</div>
-            </div>
-          </div>
-
-          <div id="boxmail-send-panel" style="display:none;">
-            <div class="glass-card panel-section">
-              <div class="field" id="boxmail-to-field" style="position:relative;">
-                <label class="field-label">Destinataire (pseudo)</label>
-                <input type="text" id="boxmail-to" placeholder="Tape le pseudo du destinataire" autocomplete="off">
-                <div id="boxmail-to-dropdown" style="display:none;"></div>
-              </div>
-              <div class="field">
-                <label class="field-label">Message</label>
-                <textarea id="boxmail-content" rows="6" placeholder="Ton message..."></textarea>
-              </div>
-              <div class="error-msg" id="boxmail-send-error"></div>
-              <div class="info-msg" id="boxmail-send-success"></div>
-              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-                <button class="btn primary" id="boxmail-send-btn">Envoyer</button>
-                <label class="boxmail-broadcast-toggle" id="boxmail-broadcast-field" style="display:none;">
-                  <input type="checkbox" id="boxmail-broadcast">
-                  <span>Envoyer à toute l'équipe</span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <div id="boxmail-inbox-panel">
-            <div id="boxmail-inbox-list"></div>
-
-            <div id="boxmail-detail" style="display:none;">
-              <div id="boxmail-detail-back" style="cursor:pointer;opacity:.75;font-size:13px;margin-bottom:16px;">&larr; Retour à la boîte de réception</div>
-              <div class="glass-card panel-section">
-                <div style="font-size:12px;opacity:.6;margin-bottom:10px;" id="boxmail-detail-meta"></div>
-                <div id="boxmail-detail-content" style="white-space:pre-wrap;line-height:1.5;"></div>
-              </div>
-              <button class="btn primary" id="boxmail-validate-btn" style="margin-top:16px;">✓ Valider</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="view" id="view-rubriques" style="display:none;"></div>
-
         <div class="view" id="view-rubrique-resultat">
           <div class="dash-toolbar">
             <h1 class="home-hero-name">Résultat</h1>
@@ -722,142 +527,6 @@
           </div>
         </div>
 
-        <div class="view" id="view-resources">
-          <div class="dash-toolbar">
-            <h1 class="home-hero-name">Ressources</h1>
-          </div>
-          <div class="field" style="margin-bottom:16px;">
-            <input id="res-book-search" placeholder="Rechercher un guide..." autocomplete="off">
-          </div>
-          <div id="res-book-grid" style="display:flex;flex-wrap:wrap;gap:18px;margin-top:6px;"></div>
-        </div>
-
-        <div class="view" id="view-equipe" style="display:none;"></div>
-
-        <div class="view" id="view-radar">
-          <div class="dash-toolbar">
-            <h1 class="home-hero-name">Zenoa Radar</h1>
-            <button class="btn btn-sm" id="radar-history-toggle">Intéressé</button>
-          </div>
-
-          <div class="field" id="radar-search-field" style="margin-bottom:16px;display:none;">
-            <input type="text" id="radar-search" placeholder="Rechercher une entreprise, un métier, une ville...">
-          </div>
-
-          <div class="dash-toolbar">
-            <h3 style="margin:0;font-size:15px;font-weight:600;" id="radar-section-title">Prospects du jour <span id="radar-daily-count" style="font-weight:400;color:var(--text-dim);font-size:13px;"></span></h3>
-          </div>
-          <div id="radar-daily-results"></div>
-        </div>
-
-        <div class="view" id="view-partenariat">
-          <div class="dash-toolbar">
-            <h1 class="home-hero-name">Partenariat</h1>
-          </div>
-          <div id="partnership-list"></div>
-        </div>
-
-        <div class="view" id="view-classement">
-          <div class="dash-toolbar">
-            <h1 class="home-hero-name">Classement</h1>
-            <div class="period-tabs" id="classement-period-tabs">
-              <div class="period-tab" data-period="week">Cette semaine</div>
-              <div class="period-tab active" data-period="month">Ce mois</div>
-              <div class="period-tab" data-period="all">Depuis le début</div>
-            </div>
-          </div>
-
-          <div class="podium" id="classement-podium"></div>
-          <div id="classement-rest"></div>
-        </div>
-
-        <div class="view" id="view-admin">
-          <div class="view-head">
-            <h1 class="home-hero-name" style="display:block;">Gérer l'équipe</h1>
-            <p>Tous les setters ayant créé un compte via un code.</p>
-          </div>
-          <div class="team-list" id="team-list"></div>
-        </div>
-
-        <div class="view" id="view-administratif">
-          <div class="dash-toolbar" id="admin-folders-panel">
-            <h1 class="home-hero-name">Administratif</h1>
-          </div>
-          <div class="settings-grid" id="admin-folders-panel-grid">
-            <div class="settings-tile" id="admin-folder-contracts">
-              <div class="settings-tile-icon">📄</div>
-              <div class="settings-tile-label">Contrats équipe</div>
-            </div>
-            <div class="settings-tile" id="admin-folder-codes">
-              <div class="settings-tile-icon">🔑</div>
-              <div class="settings-tile-label">Gestion des codes</div>
-            </div>
-          </div>
-
-          <div id="admin-codes-panel" style="display:none;">
-            <div class="view-head">
-              <div class="back-btn" id="btn-back-admin-folders-codes">←</div>
-              <h1 class="home-hero-name" style="display:block;">Gestion des codes</h1>
-            </div>
-            <div class="team-list" id="codes-list"></div>
-          </div>
-
-          <div id="admin-contracts-panel" style="display:none;">
-            <div class="view-head">
-              <div class="back-btn" id="btn-back-admin-folders">←</div>
-              <h1 class="home-hero-name" style="display:block;">Contrats équipe</h1>
-            </div>
-            <div class="dash-toolbar">
-              <span></span>
-              <button class="btn primary btn-sm" id="btn-generate-contract">+ Générer un contrat équipe</button>
-            </div>
-            <div id="contracts-list"></div>
-
-            <div id="contract-detail" style="display:none;">
-              <div class="back-btn" id="btn-back-contracts-list">←</div>
-              <div class="glass-card panel-section" style="margin-top:12px;">
-                <div id="contract-detail-meta" style="font-size:12px;opacity:.6;margin-bottom:10px;"></div>
-                <div id="contract-detail-content" style="white-space:pre-wrap;line-height:1.6;"></div>
-              </div>
-              <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
-                <button class="btn primary btn-sm" id="btn-send-contract" style="display:none;">Envoyer dans la BoxMail</button>
-                <button class="btn btn-sm danger" id="btn-delete-contract">Supprimer ce contrat</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="view" id="view-gestion-ressources">
-          <div class="view-head">
-            <h1 class="home-hero-name" style="display:block;">Ressources</h1>
-            <p>Liens et notes privés, visibles uniquement par toi.</p>
-          </div>
-          <div class="glass-card panel-section" style="margin-bottom:20px;">
-            <form id="admin-link-form" style="display:flex;flex-direction:column;gap:12px;">
-              <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                <div class="field" style="flex:1;min-width:160px;">
-                  <label class="field-label">Titre</label>
-                  <input id="admin-link-title" placeholder="Nom du lien" autocomplete="off" required>
-                </div>
-                <div class="field" style="flex:1;min-width:200px;">
-                  <label class="field-label">Lien (URL)</label>
-                  <input id="admin-link-url" placeholder="https://..." autocomplete="off">
-                </div>
-              </div>
-              <div class="field">
-                <label class="field-label">Note (optionnel)</label>
-                <input id="admin-link-note" placeholder="Petite note..." autocomplete="off">
-              </div>
-              <button type="submit" class="btn primary" style="align-self:flex-start;">Ajouter</button>
-            </form>
-            <div class="error-msg" id="admin-link-error"></div>
-          </div>
-          <div class="field" style="margin-bottom:16px;">
-            <input id="admin-link-search" placeholder="Rechercher dans les liens et notes..." autocomplete="off">
-          </div>
-          <div id="admin-links-list"></div>
-        </div>
-
         <div class="view" id="view-settings">
           <div class="view-head">
             <h1 class="home-hero-name" style="display:block;">Paramètres</h1>
@@ -872,15 +541,6 @@
             <div class="settings-tile" id="settings-install-app">
               <div class="settings-tile-label">Ajouter à l'écran d'accueil</div>
             </div>
-            <div class="settings-tile settings-tile-switch" id="settings-push">
-              <div class="settings-tile-label">Activer les notifications
-                <div class="settings-tile-sub" id="settings-push-status" style="font-size:11px;font-weight:400;opacity:.6;margin-top:2px;">Désactivées</div>
-              </div>
-              <label class="zenoa-switch" id="settings-push-switch-wrap">
-                <input type="checkbox" id="settings-push-switch">
-                <span class="zenoa-switch-track"></span>
-              </label>
-            </div>
             <div class="settings-tile settings-tile-danger" id="settings-logout">
               <div class="settings-tile-label">Se déconnecter</div>
             </div>
@@ -891,102 +551,6 @@
     </div>
   </div>
 
-</div>
-
-<!-- MODAL: signaler un problème -->
-<div class="modal-overlay" id="modal-report-issue">
-  <div class="glass-card modal-box">
-    <h2>Signaler un problème</h2>
-    <div class="field">
-      <label class="field-label">Décris le problème</label>
-      <textarea id="report-issue-text" rows="4" style="width:100%;background:transparent;border:1px solid rgba(199,194,219,.2);border-radius:8px;color:var(--metal-2);padding:10px 12px;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn ghost" id="btn-cancel-report">Annuler</button>
-      <button class="btn primary" id="btn-send-report">Envoyer</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: liste des signalements (chef) -->
-<div class="modal-overlay" id="modal-reports-list">
-  <div class="glass-card modal-box" style="max-width:460px;max-height:80vh;overflow-y:auto;">
-    <h2>Notifications</h2>
-    <div id="reports-list-items" style="display:flex;flex-direction:column;gap:10px;margin:14px 0;"></div>
-    <div class="modal-actions">
-      <button class="btn ghost" id="btn-close-reports">Fermer</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- MODAL: rôles de l'équipe (chef) -->
-<div class="modal-overlay" id="modal-roles">
-  <div class="glass-card modal-box" style="max-width:460px;max-height:80vh;overflow-y:auto;">
-    <h2>Rôles de l'équipe</h2>
-    <p style="margin:0 0 12px;font-size:13px;opacity:.7;">Clique sur un membre pour lui donner ou changer son rôle (stratégie, poste...).</p>
-    <div id="roles-list-items" style="display:flex;flex-direction:column;gap:6px;margin:14px 0;"></div>
-    <div class="modal-actions">
-      <button class="btn ghost" id="btn-close-roles">Fermer</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: générer un contrat équipe -->
-<div class="modal-overlay" id="modal-generate-contract">
-  <div class="glass-card modal-box" style="max-width:480px;max-height:85vh;overflow-y:auto;">
-    <h2>Générer un contrat équipe</h2>
-    <div class="field">
-      <label class="field-label">Pseudo du setter</label>
-      <input type="text" id="contract-pseudo" list="contract-pseudo-suggestions" placeholder="Choisis un membre" autocomplete="off">
-      <datalist id="contract-pseudo-suggestions"></datalist>
-    </div>
-    <div class="field">
-      <label class="field-label">Poste occupé</label>
-      <input type="text" id="contract-position" placeholder="Ex : Setter closer">
-    </div>
-    <div class="field">
-      <label class="field-label">Pourcentage à la vente (%)</label>
-      <input type="number" id="contract-percentage" min="0" max="100" step="0.5" placeholder="Ex : 10">
-    </div>
-    <div class="field">
-      <label class="field-label">Durée du contrat</label>
-      <input type="text" id="contract-duration" list="contract-duration-suggestions" placeholder="Ex : 6 mois, 1 an, durée indéterminée">
-      <datalist id="contract-duration-suggestions">
-        <option value="1 mois"></option>
-        <option value="3 mois"></option>
-        <option value="6 mois"></option>
-        <option value="1 an"></option>
-        <option value="Durée indéterminée"></option>
-      </datalist>
-    </div>
-    <div class="field">
-      <label class="field-label">Date de début</label>
-      <input type="date" id="contract-start-date">
-    </div>
-    <div class="field">
-      <label class="field-label">Période d'essai <span style="text-transform:none;opacity:.7;">(optionnel)</span></label>
-      <input type="text" id="contract-trial" placeholder="Ex : 2 semaines">
-    </div>
-    <div class="field">
-      <label class="field-label">Préavis en cas de résiliation <span style="text-transform:none;opacity:.7;">(optionnel)</span></label>
-      <input type="text" id="contract-notice" placeholder="Ex : 15 jours">
-    </div>
-    <div class="field">
-      <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;">
-        <input type="checkbox" id="contract-confidentiality"> Clause de confidentialité
-      </label>
-    </div>
-    <div class="field">
-      <label class="field-label">Notes complémentaires <span style="text-transform:none;opacity:.7;">(optionnel)</span></label>
-      <textarea id="contract-notes" rows="3" placeholder="Toute autre clause ou précision..."></textarea>
-    </div>
-    <div class="error-msg" id="contract-error"></div>
-    <div class="modal-actions">
-      <button class="btn ghost" id="btn-cancel-contract">Annuler</button>
-      <button class="btn primary" id="btn-confirm-contract">Générer</button>
-    </div>
-  </div>
 </div>
 
 <!-- MODAL: ajouter un client -->
@@ -1001,34 +565,6 @@
     <div class="modal-actions">
       <button class="btn ghost" id="btn-cancel-add-client">Annuler</button>
       <button class="btn primary" id="btn-confirm-add-client">Créer</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: ajouter une vente one-shot -->
-<div class="modal-overlay" id="modal-add-oneshot">
-  <div class="glass-card modal-box">
-    <h2>Nouvelle vente one-shot</h2>
-    <div class="field">
-      <label class="field-label">Nom du client</label>
-      <input type="text" id="oneshot-name" placeholder="Ex : Sarah">
-    </div>
-    <div class="field">
-      <label class="field-label">Ce que tu lui as apporté</label>
-      <input type="text" id="oneshot-description" placeholder="Ex : Audit + stratégie Ads">
-    </div>
-    <div class="field">
-      <label class="field-label">Montant (€)</label>
-      <input type="number" id="oneshot-amount" placeholder="0" min="0" step="0.01">
-    </div>
-    <div class="field">
-      <label class="field-label">Date</label>
-      <input type="date" id="oneshot-date">
-    </div>
-    <div class="error-msg" id="oneshot-error"></div>
-    <div class="modal-actions">
-      <button class="btn ghost" id="btn-cancel-oneshot">Annuler</button>
-      <button class="btn primary" id="btn-confirm-oneshot">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -1053,78 +589,6 @@
   </div>
 </div>
 
-<!-- MODAL: ajouter / éditer un prospect -->
-<div class="modal-overlay" id="modal-prospect">
-  <div class="glass-card modal-box">
-    <h2 id="prospect-modal-title">Ajouter un prospect</h2>
-    <div class="field">
-      <label class="field-label">Contact</label>
-      <input type="text" id="prospect-contact" placeholder="@pseudo (Insta), email, TikTok...">
-    </div>
-    <div class="field">
-      <label class="field-label">Secteur d'activité</label>
-      <input type="text" id="prospect-secteur" list="secteur-suggestions" placeholder="Ex : Fitness, Immobilier...">
-      <datalist id="secteur-suggestions"></datalist>
-    </div>
-    <div class="field">
-      <label class="field-label">Date du DM</label>
-      <input type="date" id="prospect-date">
-    </div>
-    <div class="field" id="prospect-status-field">
-      <label class="field-label">Statut</label>
-      <select id="prospect-status">
-        <option value="sent">DM envoyé</option>
-        <option value="replied">Réponse reçue</option>
-        <option value="mini_analysis_requested">Demande mini analyse</option>
-        <option value="meeting">Call pris</option>
-        <option value="sold">Vendu</option>
-        <option value="not_interested">Pas intéressé</option>
-      </select>
-    </div>
-    <div class="error-msg" id="prospect-error"></div>
-    <div class="modal-actions">
-      <button class="btn ghost" id="btn-cancel-prospect">Annuler</button>
-      <button class="btn primary" id="btn-confirm-prospect">Enregistrer</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: ajouter / éditer un prospect LinkedIn -->
-<div class="modal-overlay" id="modal-linkedin-prospect">
-  <div class="glass-card modal-box">
-    <h2 id="linkedin-prospect-modal-title">Ajouter un prospect</h2>
-    <div class="field">
-      <label class="field-label">Contact</label>
-      <input type="text" id="linkedin-prospect-contact" placeholder="Nom / profil LinkedIn">
-    </div>
-    <div class="field">
-      <label class="field-label">Secteur d'activité</label>
-      <input type="text" id="linkedin-prospect-secteur" list="linkedin-secteur-suggestions" placeholder="Ex : Fitness, Immobilier...">
-      <datalist id="linkedin-secteur-suggestions"></datalist>
-    </div>
-    <div class="field">
-      <label class="field-label">Date du message</label>
-      <input type="date" id="linkedin-prospect-date">
-    </div>
-    <div class="field" id="linkedin-prospect-status-field">
-      <label class="field-label">Statut</label>
-      <select id="linkedin-prospect-status">
-        <option value="sent">Message envoyé</option>
-        <option value="replied">Réponse reçue</option>
-        <option value="audit_requested">Demande audit</option>
-        <option value="meeting">Call pris</option>
-        <option value="sold">Vendu</option>
-        <option value="not_interested">Pas intéressé</option>
-      </select>
-    </div>
-    <div class="error-msg" id="linkedin-prospect-error"></div>
-    <div class="modal-actions">
-      <button class="btn ghost" id="btn-cancel-linkedin-prospect">Annuler</button>
-      <button class="btn primary" id="btn-confirm-linkedin-prospect">Enregistrer</button>
-    </div>
-  </div>
-</div>
-
 <!-- Élément conservé uniquement pour éviter un crash JS : le bundle
      compilé attache un addEventListener dessus au chargement, sans
      vérifier qu'il existe, même si la vue "Analyse / Stats" a été
@@ -1136,19 +600,6 @@
 <script src="/pwa-widget.js"></script>
 <script src="/confirm-dialog-widget.js"></script>
 <script src="/chat-widget.js"></script>
-<script src="/boxmail-widget.js"></script>
-<script src="/dm-widget.js"></script>
-<script src="/linkedin-widget.js"></script>
-<script src="/team-tracking-widget.js"></script>
-<script src="/home-widget.js"></script><script src="/results-widget.js"></script>
-<script src="/contracts-widget.js"></script>
-<script src="/push-widget.js"></script>
-<script src="/partnership-widget.js"></script>
-<script src="/radar-widget.js"></script>
-<script src="/admin-links-widget.js"></script>
-<script src="/resources-widget.js"></script>
-<script src="/radar-journal-widget.js"></script>
-<script src="/dm-journal-watchlist-widget.js"></script>
 
 </body>
 </html>
