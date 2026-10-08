@@ -325,9 +325,52 @@
              bundle compilé lit/clique ces ids précis au boot, sans
              vérifier qu'ils existent (même mécanisme que
              #btn-back-to-stats plus bas). Le site ne garde plus que
-             Paramètres, donc il n'y a plus de vraie navigation ici. -->
+             Paramètres, donc il n'y a plus de vraie navigation ici.
+             Le deuxième groupe ci-dessous correspond au journal de
+             prospects / classement / gestion d'équipe : ces
+             addEventListener sont attachés par le bundle de façon
+             inconditionnelle dès son chargement (pas seulement au clic
+             sur un menu), donc leur absence plante tout le script —
+             et donc tout le site — dès l'ouverture, avant même l'écran
+             de connexion. -->
         <div id="nav-boxmail" style="display:none;" aria-hidden="true"></div>
         <div id="nav-admin" style="display:none;" aria-hidden="true"></div>
+        <div id="activity-list" style="display:none;" aria-hidden="true"></div>
+        <div id="activity-period-tabs" style="display:none;" aria-hidden="true"></div>
+        <div id="btn-add-prospect" style="display:none;" aria-hidden="true"></div>
+        <div id="btn-cancel-prospect" style="display:none;" aria-hidden="true"></div>
+        <div id="btn-confirm-prospect" style="display:none;" aria-hidden="true"></div>
+        <div id="classement-period-tabs" style="display:none;" aria-hidden="true"></div>
+        <div id="classement-podium" style="display:none;" aria-hidden="true"></div>
+        <div id="classement-rest" style="display:none;" aria-hidden="true"></div>
+        <div id="dm-filter-secteur" style="display:none;" aria-hidden="true"></div>
+        <div id="dm-filter-setter" style="display:none;" aria-hidden="true"></div>
+        <div id="dm-journal" style="display:none;" aria-hidden="true"></div>
+        <div id="modal-prospect" style="display:none;" aria-hidden="true"></div>
+        <div id="prospect-contact" style="display:none;" aria-hidden="true"></div>
+        <div id="prospect-date" style="display:none;" aria-hidden="true"></div>
+        <div id="prospect-error" style="display:none;" aria-hidden="true"></div>
+        <div id="prospect-modal-title" style="display:none;" aria-hidden="true"></div>
+        <div id="prospect-secteur" style="display:none;" aria-hidden="true"></div>
+        <div id="prospect-status" style="display:none;" aria-hidden="true"></div>
+        <div id="secteur-suggestions" style="display:none;" aria-hidden="true"></div>
+        <div id="team-list" style="display:none;" aria-hidden="true"></div>
+        <div id="stats-agency-sub" style="display:none;" aria-hidden="true"></div>
+        <div id="stats-agency-value" style="display:none;" aria-hidden="true"></div>
+        <div id="stats-chart" style="display:none;" aria-hidden="true"></div>
+        <div id="stats-detail-avatar" style="display:none;" aria-hidden="true"></div>
+        <div id="stats-detail-name" style="display:none;" aria-hidden="true"></div>
+        <div id="stats-detail-panel" style="display:none;" aria-hidden="true"></div>
+        <div id="stats-detail-sub" style="display:none;" aria-hidden="true"></div>
+        <div id="stats-list" style="display:none;" aria-hidden="true"></div>
+        <div id="stats-list-panel" style="display:none;" aria-hidden="true"></div>
+        <div id="stats-objective-trend" style="display:none;" aria-hidden="true"></div>
+        <div id="stats-objective-value" style="display:none;" aria-hidden="true"></div>
+        <div id="stats-profitability-value" style="display:none;" aria-hidden="true"></div>
+        <div id="stats-regularity-sub" style="display:none;" aria-hidden="true"></div>
+        <div id="stats-regularity-value" style="display:none;" aria-hidden="true"></div>
+        <div id="stats-seniority-sub" style="display:none;" aria-hidden="true"></div>
+        <div id="stats-seniority-value" style="display:none;" aria-hidden="true"></div>
       </div>
       <div class="glow-divider" style="margin:0 18px; width:auto;"></div>
       <div class="sidebar-profile">
