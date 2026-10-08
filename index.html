@@ -58,11 +58,22 @@
        3 traits pour le faire sortir. */
     .hamburger{display:none!important;}
     .sidebar-overlay{display:none!important;}
-    .sidebar{transform:translate(0)!important;}
-    .main{margin-left:calc(290px + 16px)!important;margin-top:16px!important;margin-right:16px!important;margin-bottom:16px!important;height:calc(100dvh - 32px)!important;}
+    .sidebar{transform:translate(0)!important;border-right:none!important;}
+
+    /* Effet "tablette" : .main est positionné en fixed avec un écart
+       (--app-gap) identique sur les 4 côtés, au lieu d'une marge sur un
+       flex-item (qui ne garantissait pas l'écart du bas de façon fiable
+       selon le navigateur/viewport). --sb-w suit la largeur réelle de la
+       sidebar (desktop/mobile/réduite) pour que .main colle toujours
+       juste à côté d'elle. */
+    :root{--app-gap:8px;--sb-w:290px;}
+    #screen-app.sidebar-collapsed{--sb-w:76px;}
+    @media (max-width:520px){
+      :root{--sb-w:82vw;}
+    }
+    .main{position:fixed!important;top:var(--app-gap)!important;right:var(--app-gap)!important;bottom:var(--app-gap)!important;left:calc(var(--sb-w) + var(--app-gap))!important;margin:0!important;height:auto!important;}
     .topbar{margin-left:calc(290px + 16px)!important;}
     @media (max-width:520px){
-      .main{margin-left:calc(82vw + 16px)!important;}
       .topbar{margin-left:calc(82vw + 16px)!important;}
     }
     .main{background:#000;}
@@ -77,7 +88,6 @@
     .sidebar-toggle svg{width:16px;height:16px;}
     .sidebar-toggle:hover{background:rgba(255,255,255,.16);}
     #screen-app.sidebar-collapsed .sidebar{width:76px!important;}
-    #screen-app.sidebar-collapsed .main{margin-left:calc(76px + 16px)!important;}
     #screen-app.sidebar-collapsed .topbar{margin-left:calc(76px + 16px)!important;}
     #screen-app.sidebar-collapsed .sidebar-toggle{right:50%;transform:translateX(50%);}
     #screen-app.sidebar-collapsed .nav-item{justify-content:center;padding-left:0;padding-right:0;gap:0;}
@@ -139,7 +149,12 @@
     /* Lueur blanche en bas de la sidebar (même esprit que la lueur verte
        de la capture envoyée, en blanc). */
     .sidebar:after{content:"";position:absolute;left:0;right:0;bottom:0;height:180px;background:radial-gradient(ellipse 140% 100% at 50% 100%,rgba(255,255,255,.14),transparent 70%);pointer-events:none;z-index:0;}
-    .sidebar-head,.sidebar-toggle,.nav-list,.sidebar-profile{position:relative;z-index:1;}
+    /* .sidebar-toggle n'est volontairement PAS dans cette liste : il a
+       déjà son propre z-index (règle plus haut) et le mettre ici lui
+       ré-impose position:relative, ce qui casse son ancrage
+       position:absolute + right:14px (le bouton se retrouvait coupé à
+       gauche). */
+    .sidebar-head,.nav-list,.sidebar-profile{position:relative;z-index:1;}
 
     /* Plus de logo/en-tête en haut de la sidebar, juste la liste, comme
        sur la capture envoyée. */
