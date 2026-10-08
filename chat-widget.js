@@ -56,8 +56,6 @@
     var me = null;
 
     var settingsLogout = document.getElementById("settings-logout");
-    var settingsEditPseudo = document.getElementById("settings-edit-pseudo");
-    var settingsEditPhoto = document.getElementById("settings-edit-photo");
     var myAvatarInput = document.getElementById("my-avatar-input");
     var myRoleDisplayEl = document.getElementById("my-role-display");
     var settingsBtn = document.getElementById("settings-btn");
@@ -96,6 +94,192 @@
       });
     }
 
+    // ---------- Sous-pages de Paramètres ----------
+
+    function wireSettingsTile(tileId, viewName, backBtnId, onOpen) {
+      var tile = document.getElementById(tileId);
+      if (tile) {
+        tile.addEventListener("click", function () {
+          if (onOpen) onOpen();
+          switchToView(viewName);
+        });
+      }
+      var backBtn = document.getElementById(backBtnId);
+      if (backBtn) {
+        backBtn.addEventListener("click", function () { switchToView("settings"); });
+      }
+    }
+
+    // ----- Profil -----
+    var profilNameInput = document.getElementById("profil-name-input");
+    var profilEmailInput = document.getElementById("profil-email-input");
+    var profilError = document.getElementById("profil-error");
+    var profilSuccess = document.getElementById("profil-success");
+    var profilSaveBtn = document.getElementById("profil-save-btn");
+    var profilChangePhotoBtn = document.getElementById("profil-change-photo-btn");
+    var profilAvatarImg = document.getElementById("profil-avatar-img");
+    var profilAvatarInitial = document.getElementById("profil-avatar-initial");
+    var myAvatarImg = document.getElementById("my-avatar-img");
+    var myAvatarInitial = document.getElementById("my-avatar-initial");
+
+    function syncProfilAvatar() {
+      if (!profilAvatarImg || !myAvatarImg) return;
+      if (myAvatarImg.style.display !== "none" && myAvatarImg.src) {
+        profilAvatarImg.src = myAvatarImg.src;
+        profilAvatarImg.style.display = "block";
+        if (profilAvatarInitial) profilAvatarInitial.style.display = "none";
+      } else {
+        profilAvatarImg.style.display = "none";
+        if (profilAvatarInitial && myAvatarInitial) {
+          profilAvatarInitial.textContent = myAvatarInitial.textContent;
+          profilAvatarInitial.style.display = "";
+        }
+      }
+    }
+    if (myAvatarImg) {
+      new MutationObserver(syncProfilAvatar).observe(myAvatarImg, { attributes: true, attributeFilter: ["src", "style"] });
+    }
+    if (myAvatarInitial) {
+      new MutationObserver(syncProfilAvatar).observe(myAvatarInitial, { childList: true, characterData: true, subtree: true });
+    }
+
+    wireSettingsTile("settings-profil", "settings-profil", "btn-back-settings-profil", function () {
+      if (!me) return;
+      if (profilNameInput) profilNameInput.value = me.pseudo || "";
+      if (profilEmailInput) profilEmailInput.value = me.email || "";
+      if (profilError) profilError.textContent = "";
+      if (profilSuccess) profilSuccess.textContent = "";
+      syncProfilAvatar();
+    });
+    if (profilChangePhotoBtn && myAvatarInput) {
+      profilChangePhotoBtn.addEventListener("click", function () { myAvatarInput.click(); });
+    }
+    if (profilSaveBtn) {
+      profilSaveBtn.addEventListener("click", function () {
+        if (!me) return;
+        if (profilError) profilError.textContent = "";
+        if (profilSuccess) profilSuccess.textContent = "";
+        var newPseudo = (profilNameInput && profilNameInput.value.trim()) || "";
+        var newEmail = (profilEmailInput && profilEmailInput.value.trim()) || "";
+        if (!newPseudo) { if (profilError) profilError.textContent = "Le nom ne peut pas être vide."; return; }
+        if (!newEmail || !newEmail.includes("@")) { if (profilError) profilError.textContent = "Entre une adresse e-mail valide."; return; }
+
+        var emailChanged = newEmail !== me.email;
+        var tasks = [];
+        if (newPseudo !== me.pseudo) {
+          tasks.push(supabase.from("profiles").update({ pseudo: newPseudo }).eq("id", me.id));
+        }
+        if (emailChanged) {
+          tasks.push(supabase.auth.updateUser({ email: newEmail }));
+          tasks.push(supabase.from("profiles").update({ email: newEmail }).eq("id", me.id));
+        }
+        if (!tasks.length) { if (profilSuccess) profilSuccess.textContent = "Rien à enregistrer."; return; }
+
+        Promise.all(tasks).then(function (results) {
+          var err = results.find(function (r) { return r && r.error; });
+          if (err) { if (profilError) profilError.textContent = "Erreur : " + err.error.message; return; }
+          me.pseudo = newPseudo;
+          me.email = newEmail;
+          var nameEl = document.getElementById("my-name-display");
+          if (nameEl) nameEl.textContent = newPseudo;
+          if (profilSuccess) profilSuccess.textContent = emailChanged ? "Profil mis à jour. Vérifie ta boîte mail pour confirmer la nouvelle adresse." : "Profil mis à jour.";
+        });
+      });
+    }
+
+    // ----- Mot de passe et sécurité -----
+    var passwordNewInput = document.getElementById("password-new-input");
+    var passwordConfirmInput = document.getElementById("password-confirm-input");
+    var passwordError = document.getElementById("password-error");
+    var passwordSuccess = document.getElementById("password-success");
+    var passwordSaveBtn = document.getElementById("password-save-btn");
+
+    wireSettingsTile("settings-password", "settings-password", "btn-back-settings-password", function () {
+      if (passwordNewInput) passwordNewInput.value = "";
+      if (passwordConfirmInput) passwordConfirmInput.value = "";
+      if (passwordError) passwordError.textContent = "";
+      if (passwordSuccess) passwordSuccess.textContent = "";
+    });
+    if (passwordSaveBtn) {
+      passwordSaveBtn.addEventListener("click", function () {
+        if (passwordError) passwordError.textContent = "";
+        if (passwordSuccess) passwordSuccess.textContent = "";
+        var pw1 = passwordNewInput ? passwordNewInput.value : "";
+        var pw2 = passwordConfirmInput ? passwordConfirmInput.value : "";
+        if (!pw1 || pw1.length < 8) { if (passwordError) passwordError.textContent = "8 caractères minimum."; return; }
+        if (pw1 !== pw2) { if (passwordError) passwordError.textContent = "Les deux mots de passe ne correspondent pas."; return; }
+        supabase.auth.updateUser({ password: pw1 }).then(function (res) {
+          if (res && res.error) { if (passwordError) passwordError.textContent = "Erreur : " + res.error.message; return; }
+          if (passwordNewInput) passwordNewInput.value = "";
+          if (passwordConfirmInput) passwordConfirmInput.value = "";
+          if (passwordSuccess) passwordSuccess.textContent = "Mot de passe mis à jour.";
+        });
+      });
+    }
+
+    // ----- Notifications -----
+    var notifEmailSwitch = document.getElementById("notif-email-switch");
+    var notifRemindersSwitch = document.getElementById("notif-reminders-switch");
+
+    wireSettingsTile("settings-notifications", "settings-notifications", "btn-back-settings-notifications", function () {
+      if (!me) return;
+      if (notifEmailSwitch) notifEmailSwitch.checked = me.notif_email !== false;
+      if (notifRemindersSwitch) notifRemindersSwitch.checked = me.notif_reminders !== false;
+    });
+    if (notifEmailSwitch) {
+      notifEmailSwitch.addEventListener("change", function () {
+        if (!me) return;
+        me.notif_email = notifEmailSwitch.checked;
+        supabase.from("profiles").update({ notif_email: notifEmailSwitch.checked }).eq("id", me.id).then(function (res) {
+          if (res && res.error) alert("Erreur : " + res.error.message);
+        });
+      });
+    }
+    if (notifRemindersSwitch) {
+      notifRemindersSwitch.addEventListener("change", function () {
+        if (!me) return;
+        me.notif_reminders = notifRemindersSwitch.checked;
+        supabase.from("profiles").update({ notif_reminders: notifRemindersSwitch.checked }).eq("id", me.id).then(function (res) {
+          if (res && res.error) alert("Erreur : " + res.error.message);
+        });
+      });
+    }
+
+    // ----- Supprimer mon compte (RGPD) -----
+    var deleteAccountConfirmInput = document.getElementById("delete-account-confirm-input");
+    var deleteAccountError = document.getElementById("delete-account-error");
+    var deleteAccountBtn = document.getElementById("delete-account-btn");
+
+    wireSettingsTile("settings-delete-account", "settings-delete-account", "btn-back-settings-delete-account", function () {
+      if (deleteAccountConfirmInput) deleteAccountConfirmInput.value = "";
+      if (deleteAccountError) deleteAccountError.textContent = "";
+      if (deleteAccountBtn) deleteAccountBtn.disabled = true;
+    });
+    if (deleteAccountConfirmInput && deleteAccountBtn) {
+      deleteAccountConfirmInput.addEventListener("input", function () {
+        deleteAccountBtn.disabled = deleteAccountConfirmInput.value.trim() !== "SUPPRIMER";
+      });
+    }
+    if (deleteAccountBtn) {
+      deleteAccountBtn.addEventListener("click", function () {
+        if (deleteAccountError) deleteAccountError.textContent = "";
+        zenoaConfirm("C'est définitif : ton compte et toutes tes données seront supprimés. Continuer ?", { danger: true, confirmLabel: "Supprimer définitivement" }).then(function (ok) {
+          if (!ok) return;
+          deleteAccountBtn.disabled = true;
+          supabase.rpc("delete_my_account").then(function (res) {
+            if (res && res.error) {
+              if (deleteAccountError) deleteAccountError.textContent = "Erreur : " + res.error.message;
+              deleteAccountBtn.disabled = false;
+              return;
+            }
+            supabase.auth.signOut().then(function () { window.location.reload(); });
+          });
+        });
+      });
+    }
+
+    // ---------- Reste de Paramètres ----------
+
     if (settingsLogout) {
       settingsLogout.addEventListener("click", function () {
         zenoaConfirm("Es-tu sûr de vouloir te déconnecter ?").then(function (ok) {
@@ -104,28 +288,9 @@
         });
       });
     }
-    if (settingsEditPseudo) {
-      settingsEditPseudo.addEventListener("click", function () {
-        if (!me) return;
-        var newPseudo = window.prompt("Nouveau pseudo :", me.pseudo || "");
-        if (!newPseudo || !newPseudo.trim() || newPseudo.trim() === me.pseudo) return;
-        newPseudo = newPseudo.trim();
-        supabase.from("profiles").update({ pseudo: newPseudo }).eq("id", me.id).then(function (res) {
-          if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-          me.pseudo = newPseudo;
-          var nameEl = document.getElementById("my-name-display");
-          if (nameEl) nameEl.textContent = newPseudo;
-        });
-      });
-    }
-    if (settingsEditPhoto && myAvatarInput) {
-      settingsEditPhoto.addEventListener("click", function () {
-        myAvatarInput.click(); // réutilise l'upload déjà géré par l'app
-      });
-    }
 
     // Empêche l'édition directe du pseudo / de la photo en cliquant dessus :
-    // ça passe uniquement par la modale Paramètres.
+    // ça passe uniquement par la page Paramètres > Profil.
     document.addEventListener("click", function (e) {
       var t = e.target;
       if (t.id === "my-avatar-input" || (t.closest && t.closest("#my-avatar-input"))) return;
@@ -169,7 +334,7 @@
     function boot(userId) {
       if (booted) return;
       booted = true;
-      supabase.from("profiles").select("id,role,pseudo,custom_role").eq("id", userId).single().then(function (res) {
+      supabase.from("profiles").select("id,role,pseudo,custom_role,email,notif_email,notif_reminders").eq("id", userId).single().then(function (res) {
         if (!res || !res.data) return;
         me = res.data;
         applyMyCustomRole(me.custom_role);
