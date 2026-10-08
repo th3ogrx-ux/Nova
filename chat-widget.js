@@ -70,9 +70,11 @@
     }
 
     // Navigation élève (Accueil, Mon projet, Ressources, Cours,
-    // Progression, Calendrier) : visible uniquement pour les comptes
-    // non-chef, affichée/masquée dans boot() une fois le rôle connu.
-    document.querySelectorAll(".eleve-only[data-view]").forEach(function (navEl) {
+    // Progression, Calendrier) et navigation chef (Tableau de bord,
+    // Élèves, Contenu, Retours, Accès et codes) : chacune visible
+    // uniquement pour le rôle correspondant, affichée/masquée dans
+    // boot() une fois le rôle connu.
+    document.querySelectorAll(".eleve-only[data-view], .chef-only[data-view]").forEach(function (navEl) {
       navEl.addEventListener("click", function () {
         document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
         navEl.classList.add("active");
@@ -84,7 +86,7 @@
     if (settingsBtn) {
       settingsBtn.addEventListener("click", function () {
         var activeNav = document.querySelector(".nav-item.active[data-view]");
-        previousViewBeforeSettings = activeNav ? activeNav.getAttribute("data-view") : "accueil";
+        previousViewBeforeSettings = activeNav ? activeNav.getAttribute("data-view") : (me && me.role === "chef" ? "tableau-de-bord" : "accueil");
         switchToView("settings");
       });
     }
@@ -171,14 +173,16 @@
         if (!res || !res.data) return;
         me = res.data;
         applyMyCustomRole(me.custom_role);
-        // Les élèves (tout rôle non-chef) ont leur propre navigation à
-        // gauche et atterrissent sur Accueil ; le chef n'a toujours que
-        // Paramètres (accessible via l'icône réglages).
-        var isEleve = me.role !== "chef";
+        // Chaque rôle a sa propre navigation à gauche : élèves (Accueil...)
+        // ou chef (Tableau de bord...), jamais les deux en même temps.
+        var isChef = me.role === "chef";
         document.querySelectorAll(".eleve-only").forEach(function (el) {
-          el.style.display = isEleve ? "flex" : "none";
+          el.style.display = isChef ? "none" : "flex";
         });
-        switchToView(isEleve ? "accueil" : "settings");
+        document.querySelectorAll(".chef-only").forEach(function (el) {
+          el.style.display = isChef ? "flex" : "none";
+        });
+        switchToView(isChef ? "tableau-de-bord" : "accueil");
       });
     }
 
