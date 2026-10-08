@@ -67,6 +67,24 @@
       if (v) v.classList.add("active");
     }
 
+    // Réduction du menu à gauche (icônes seules, toujours cliquables) :
+    // l'état se garde d'une visite à l'autre.
+    var sidebarToggle = document.getElementById("sidebar-toggle");
+    var screenApp = document.getElementById("screen-app");
+    if (sidebarToggle && screenApp) {
+      var COLLAPSE_KEY = "zenoaSidebarCollapsed";
+      function applyCollapsed(collapsed) {
+        screenApp.classList.toggle("sidebar-collapsed", collapsed);
+        sidebarToggle.title = collapsed ? "Agrandir le menu" : "Réduire le menu";
+      }
+      try { applyCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1"); } catch (e) {}
+      sidebarToggle.addEventListener("click", function () {
+        var collapsed = !screenApp.classList.contains("sidebar-collapsed");
+        applyCollapsed(collapsed);
+        try { localStorage.setItem(COLLAPSE_KEY, collapsed ? "1" : "0"); } catch (e) {}
+      });
+    }
+
     // Navigation élève (Accueil, Mon projet, Ressources, Cours,
     // Progression, Calendrier) et navigation chef (Tableau de bord,
     // Élèves, Contenu, Retours, Accès et codes) : chacune visible
