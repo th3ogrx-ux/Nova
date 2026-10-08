@@ -659,11 +659,14 @@
             <h1 class="home-hero-name" style="display:block;">Paramètres</h1>
           </div>
           <div class="settings-grid" id="settings-grid">
-            <div class="settings-tile" id="settings-edit-pseudo">
-              <div class="settings-tile-label">Changer de pseudo</div>
+            <div class="settings-tile" id="settings-profil">
+              <div class="settings-tile-label">Profil</div>
             </div>
-            <div class="settings-tile" id="settings-edit-photo">
-              <div class="settings-tile-label">Changer de photo de profil</div>
+            <div class="settings-tile" id="settings-password">
+              <div class="settings-tile-label">Mot de passe et sécurité</div>
+            </div>
+            <div class="settings-tile" id="settings-notifications">
+              <div class="settings-tile-label">Notifications</div>
             </div>
             <div class="settings-tile" id="settings-install-app">
               <div class="settings-tile-label">Ajouter à l'écran d'accueil</div>
@@ -671,6 +674,95 @@
             <div class="settings-tile settings-tile-danger" id="settings-logout">
               <div class="settings-tile-label">Se déconnecter</div>
             </div>
+            <div class="settings-tile settings-tile-danger" id="settings-delete-account">
+              <div class="settings-tile-label">Supprimer mon compte et mes données</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="view" id="view-settings-profil">
+          <div class="view-head">
+            <div class="back-btn" id="btn-back-settings-profil">←</div>
+            <h1 class="home-hero-name" style="display:block;">Profil</h1>
+          </div>
+          <div class="glass-card panel-section">
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+              <label class="avatar" id="profil-avatar" style="width:56px;height:56px;cursor:pointer;flex-shrink:0;">
+                <span id="profil-avatar-initial"></span>
+                <img id="profil-avatar-img" style="display:none;">
+              </label>
+              <button type="button" class="btn btn-sm" id="profil-change-photo-btn">Changer la photo</button>
+            </div>
+            <div class="field">
+              <label class="field-label">Nom</label>
+              <input type="text" id="profil-name-input" placeholder="Ton nom">
+            </div>
+            <div class="field">
+              <label class="field-label">Adresse e-mail</label>
+              <input type="email" id="profil-email-input" placeholder="toi@email.com">
+            </div>
+            <div class="error-msg" id="profil-error"></div>
+            <div class="info-msg" id="profil-success"></div>
+            <button type="button" class="btn primary" id="profil-save-btn" style="margin-top:12px;">Enregistrer</button>
+          </div>
+        </div>
+
+        <div class="view" id="view-settings-password">
+          <div class="view-head">
+            <div class="back-btn" id="btn-back-settings-password">←</div>
+            <h1 class="home-hero-name" style="display:block;">Mot de passe et sécurité</h1>
+          </div>
+          <div class="glass-card panel-section">
+            <div class="field">
+              <label class="field-label">Nouveau mot de passe</label>
+              <input type="password" id="password-new-input" placeholder="8 caractères minimum" autocomplete="new-password">
+            </div>
+            <div class="field">
+              <label class="field-label">Confirmer le mot de passe</label>
+              <input type="password" id="password-confirm-input" placeholder="8 caractères minimum" autocomplete="new-password">
+            </div>
+            <div class="error-msg" id="password-error"></div>
+            <div class="info-msg" id="password-success"></div>
+            <button type="button" class="btn primary" id="password-save-btn" style="margin-top:12px;">Mettre à jour le mot de passe</button>
+          </div>
+        </div>
+
+        <div class="view" id="view-settings-notifications">
+          <div class="view-head">
+            <div class="back-btn" id="btn-back-settings-notifications">←</div>
+            <h1 class="home-hero-name" style="display:block;">Notifications</h1>
+          </div>
+          <div class="settings-grid">
+            <div class="settings-tile settings-tile-switch">
+              <div class="settings-tile-label">Notifications par e-mail</div>
+              <label class="zenoa-switch">
+                <input type="checkbox" id="notif-email-switch">
+                <span class="zenoa-switch-track"></span>
+              </label>
+            </div>
+            <div class="settings-tile settings-tile-switch">
+              <div class="settings-tile-label">Rappels</div>
+              <label class="zenoa-switch">
+                <input type="checkbox" id="notif-reminders-switch">
+                <span class="zenoa-switch-track"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="view" id="view-settings-delete-account">
+          <div class="view-head">
+            <div class="back-btn" id="btn-back-settings-delete-account">←</div>
+            <h1 class="home-hero-name" style="display:block;">Supprimer mon compte</h1>
+          </div>
+          <div class="glass-card panel-section">
+            <p style="margin:0 0 16px;font-size:13.5px;line-height:1.6;color:var(--text-mid);">Cette action supprime définitivement ton compte et toutes tes données associées. C'est irréversible.</p>
+            <div class="field">
+              <label class="field-label">Tape SUPPRIMER pour confirmer</label>
+              <input type="text" id="delete-account-confirm-input" placeholder="SUPPRIMER" autocomplete="off">
+            </div>
+            <div class="error-msg" id="delete-account-error"></div>
+            <button type="button" class="btn danger" id="delete-account-btn" style="margin-top:12px;" disabled>Supprimer définitivement mon compte</button>
           </div>
         </div>
 
