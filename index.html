@@ -98,20 +98,29 @@
     ::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--cool-1),var(--cool-2));border-radius:10px;}
     ::-webkit-scrollbar-thumb:hover{background:var(--cool-2);}
 
-    .nav-icon{display:none!important;}
     #nav-results,#nav-equipe,#nav-dms,#nav-linkedin,#nav-radar{display:none!important;}
+
+    /* Look "sidebar SaaS pro" façon Shopify admin : icônes sobres
+       petites + texte, liste dense, plus de pastille (l'icône ou le
+       surlignage de l'item actif suffisent comme repère visuel). */
+    .nav-icon{display:flex!important;align-items:center;justify-content:center;width:17px;height:17px;flex-shrink:0;opacity:.72;transition:opacity .2s ease;}
     .nav-icon svg{width:100%;height:100%;}
+    .nav-item.active .nav-icon,.nav-subitem.active .nav-icon{opacity:1;}
+    .nav-item>.dot,.nav-subitem>.dot{display:none;}
+    /* ...sauf la pastille rouge "non lu" sur un item, qui doit rester visible. */
+    .nav-item>.dot.nova-dot-alert,.nav-subitem>.dot.nova-dot-alert{display:inline-block;}
+    .nav-item{padding:9px 12px;font-size:13.5px;gap:10px;margin-bottom:1px;}
+    .nav-list{padding:8px 10px;}
 
     .nav-caret{margin-left:auto;font-size:10px;opacity:.5;transition:transform .2s ease;flex-shrink:0;}
     .nav-caret.open{transform:rotate(180deg);}
-    .nav-sublist{display:none;flex-direction:column;gap:1px;padding:2px 0 6px 34px;}
+    .nav-sublist{display:none;flex-direction:column;gap:1px;padding:2px 0 6px 33px;}
     .nav-sublist.open{display:flex;}
-    .nav-subitem{display:flex;align-items:center;gap:9px;font-size:12px;padding:8px 12px;border-radius:8px;cursor:pointer;color:var(--text-dim);transition:background .2s ease,color .2s ease;}
-    .nav-subitem .dot{width:6px;height:6px;border-radius:50%;background:var(--text-dim);opacity:.5;flex-shrink:0;}
+    .nav-subitem{display:flex;align-items:center;gap:8px;font-size:12px;padding:7px 12px;border-radius:7px;cursor:pointer;color:var(--text-dim);transition:background .2s ease,color .2s ease;}
     .nav-subitem .nav-icon{width:14px;height:14px;flex-shrink:0;}
     .nav-subitem:hover{background:#ffffff0a;color:var(--metal-2);}
     .nav-subitem.active{color:var(--cool-2);background:#300a6614;font-weight:600;}
-    .nav-sublist .nav-item{padding:8px 12px;font-size:12px;}
+    .nav-sublist .nav-item{padding:7px 12px;font-size:12px;gap:8px;}
     .nav-sublist .nav-item .nav-icon{width:14px;height:14px;}
 
     .boxmail-broadcast-toggle{display:flex;align-items:center;justify-content:center;gap:9px;padding:10px 16px;border-radius:10px;border:1px solid rgba(199,194,219,.2);background:rgba(255,255,255,.04);cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text-mid);text-align:center;text-transform:none;letter-spacing:normal;margin-bottom:0;white-space:nowrap;transition:background .2s ease,border-color .2s ease,color .2s ease;user-select:none;}
