@@ -59,11 +59,11 @@
     .hamburger{display:none!important;}
     .sidebar-overlay{display:none!important;}
     .sidebar{transform:translate(0)!important;}
-    .main{margin-left:290px!important;}
-    .topbar{margin-left:290px!important;}
+    .main{margin-left:calc(290px + 16px)!important;margin-top:16px!important;margin-right:16px!important;margin-bottom:16px!important;height:calc(100dvh - 32px)!important;}
+    .topbar{margin-left:calc(290px + 16px)!important;}
     @media (max-width:520px){
-      .main{margin-left:82vw!important;}
-      .topbar{margin-left:82vw!important;}
+      .main{margin-left:calc(82vw + 16px)!important;}
+      .topbar{margin-left:calc(82vw + 16px)!important;}
     }
     .main{background:#000;}
 
@@ -77,8 +77,8 @@
     .sidebar-toggle svg{width:16px;height:16px;}
     .sidebar-toggle:hover{background:rgba(255,255,255,.16);}
     #screen-app.sidebar-collapsed .sidebar{width:76px!important;}
-    #screen-app.sidebar-collapsed .main{margin-left:76px!important;}
-    #screen-app.sidebar-collapsed .topbar{margin-left:76px!important;}
+    #screen-app.sidebar-collapsed .main{margin-left:calc(76px + 16px)!important;}
+    #screen-app.sidebar-collapsed .topbar{margin-left:calc(76px + 16px)!important;}
     #screen-app.sidebar-collapsed .sidebar-toggle{right:50%;transform:translateX(50%);}
     #screen-app.sidebar-collapsed .nav-item{justify-content:center;padding-left:0;padding-right:0;gap:0;}
     #screen-app.sidebar-collapsed .nav-label,#screen-app.sidebar-collapsed .nav-caret{display:none;}
@@ -132,7 +132,14 @@
     /* ...sauf la pastille rouge "non lu" sur un item, qui doit rester visible. */
     .nav-item>.dot.nova-dot-alert,.nav-subitem>.dot.nova-dot-alert{display:inline-block;}
     .nav-item{padding:9px 12px;font-size:13.5px;gap:10px;margin-bottom:1px;color:#fff;}
-    .nav-list{padding:16px 10px 8px;}
+    /* padding-top dégagé pour que le premier item ne passe pas sous le
+       bouton réduire/agrandir, placé en haut à droite de la sidebar. */
+    .nav-list{padding:56px 10px 8px;}
+
+    /* Lueur blanche en bas de la sidebar (même esprit que la lueur verte
+       de la capture envoyée, en blanc). */
+    .sidebar:after{content:"";position:absolute;left:0;right:0;bottom:0;height:180px;background:radial-gradient(ellipse 140% 100% at 50% 100%,rgba(255,255,255,.14),transparent 70%);pointer-events:none;z-index:0;}
+    .sidebar-head,.sidebar-toggle,.nav-list,.sidebar-profile{position:relative;z-index:1;}
 
     /* Plus de logo/en-tête en haut de la sidebar, juste la liste, comme
        sur la capture envoyée. */
@@ -192,7 +199,7 @@
     /* Menu à gauche noir/texte blanc (déjà en place), zone de contenu à
        droite en thème clair : fond blanc, texte sombre. La sidebar et
        les écrans de connexion ne sont pas concernés (hors de .main). */
-    .main{background:#fff;color:#1c1430;border-radius:28px 0 0 28px;}
+    .main{background:#fff;color:#1c1430;border-radius:22px;box-shadow:0 20px 60px rgba(0,0,0,.4);}
     .main .home-hero-name{font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#1c1430;text-shadow:none;}
     .main .view-head p,.main .global-stat-meta{color:#6b6478;}
     .main .field-label{color:#6b6478;}
