@@ -272,6 +272,28 @@
     .main .btn.ghost:hover{color:#1c1430;background:rgba(28,20,48,.05);}
     .main .zenoa-switch-track{background:rgba(28,20,48,.12);border-color:rgba(28,20,48,.18);}
     .main .zenoa-switch-track:before{background:#fff;}
+    .main .panel-title{color:#6b6478;}
+    .main .progress-track{background:rgba(28,20,48,.08);}
+    .main .progress-label{color:#6b6478;}
+
+    /* ---------- Page Accueil ---------- */
+    .accueil-welcome{margin-bottom:20px;}
+    .accueil-welcome-title{font-size:22px;font-weight:700;margin-bottom:4px;}
+    .accueil-welcome-sub{font-size:13.5px;color:#6b6478;}
+    .accueil-progress-module{font-size:13px;color:#6b6478;margin-top:12px;}
+    .accueil-next-lesson-body{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+    .accueil-next-lesson-title{font-size:15px;font-weight:600;margin-bottom:4px;}
+    .accueil-next-lesson-meta{font-size:12.5px;color:#6b6478;}
+    .accueil-mission-row{display:flex;align-items:center;gap:12px;cursor:pointer;font-size:14px;}
+    .accueil-mission-row input[type="checkbox"]{width:18px;height:18px;flex-shrink:0;accent-color:#7c3aed;cursor:pointer;}
+    .accueil-mission-row.done span{text-decoration:line-through;color:#6b6478;}
+    .accueil-news-item{display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid rgba(28,20,48,.08);font-size:13.5px;}
+    .accueil-news-item:last-child{border-bottom:none;}
+    .accueil-news-date{font-size:11px;color:#6b6478;flex-shrink:0;width:42px;}
+    .accueil-news-item.clickable{cursor:pointer;}
+    .accueil-news-item.clickable:hover .accueil-news-title{color:#7c3aed;}
+    .accueil-quick-access{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+    .accueil-quick-access .btn{flex:1;min-width:140px;}
   </style>
 </head>
 <body>
@@ -695,6 +717,51 @@
         <div class="view" id="view-accueil">
           <div class="dash-toolbar">
             <h1 class="home-hero-name">Accueil</h1>
+          </div>
+
+          <div class="accueil-welcome">
+            <h2 class="accueil-welcome-title">Salut <span id="accueil-welcome-name"></span> 👋</h2>
+            <p class="accueil-welcome-sub">Content de te revoir, voyons où tu en es.</p>
+          </div>
+
+          <div class="glass-card panel-section">
+            <div class="panel-title">Ma progression</div>
+            <div class="progress-track"><div class="progress-fill prog-green" id="accueil-progress-fill" style="width:0%;"></div></div>
+            <div class="progress-label">
+              <span id="accueil-progress-text">0 leçon terminée sur 0</span>
+              <span id="accueil-progress-pct">0%</span>
+            </div>
+            <div class="accueil-progress-module">Module en cours : <strong id="accueil-progress-module">—</strong></div>
+          </div>
+
+          <div class="glass-card panel-section">
+            <div class="panel-title">Ma prochaine leçon</div>
+            <div class="accueil-next-lesson-body">
+              <div>
+                <div class="accueil-next-lesson-title" id="accueil-next-lesson-title">—</div>
+                <div class="accueil-next-lesson-meta" id="accueil-next-lesson-meta">—</div>
+              </div>
+              <button type="button" class="btn primary" id="accueil-continue-btn">Continuer</button>
+            </div>
+          </div>
+
+          <div class="glass-card panel-section">
+            <div class="panel-title">Ma mission du moment</div>
+            <label class="accueil-mission-row" id="accueil-mission-row">
+              <input type="checkbox" id="accueil-mission-check">
+              <span id="accueil-mission-text">—</span>
+            </label>
+          </div>
+
+          <div class="glass-card panel-section">
+            <div class="panel-title">Nouveautés</div>
+            <div id="accueil-news-list"></div>
+          </div>
+
+          <div class="accueil-quick-access">
+            <button type="button" class="btn" data-view="mon-projet">Mon projet</button>
+            <button type="button" class="btn" data-view="resources">Ressources</button>
+            <button type="button" class="btn" id="accueil-ask-question">Poser une question</button>
           </div>
         </div>
 

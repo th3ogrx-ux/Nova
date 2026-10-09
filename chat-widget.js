@@ -4,6 +4,23 @@
   var SUPABASE_URL = "https://mfdqxzccmzumxiichdqw.supabase.co";
   var SUPABASE_KEY = "sb_publishable_Qes5VQ0OcaAEVh_kMjej6A_HJ6yxY3T";
 
+  // ===== Page Accueil : contenu éditable =====
+  // Nouveautés affichées sur l'accueil (3 maximum). "view" est optionnel :
+  // si renseigné (ex: "resources"), cliquer sur l'item ouvre cette page.
+  var ACCUEIL_NEWS = [
+    { date: "Oct.", titre: "Nouveau design de l'espace membre", view: null },
+    { date: "Oct.", titre: "Page Ressources mise à jour", view: "resources" },
+    { date: "Oct.", titre: "Calendrier disponible", view: "calendrier" }
+  ];
+  // Texte de la mission du moment, affiché à côté de la case à cocher.
+  var ACCUEIL_MISSION_TEXT = "Termine ta première leçon du module en cours.";
+  // DONNÉES DE TEST : la progression et la prochaine leçon ne sont pas
+  // encore stockées en base (pas de table leçons/modules pour l'instant).
+  // À brancher plus tard sur de vraies données (ex: tables "lessons" et
+  // "user_lesson_progress") — en attendant, ces valeurs sont statiques.
+  var ACCUEIL_TEST_PROGRESS = { done: 4, total: 12, module: "Module 2 — Les fondamentaux" };
+  var ACCUEIL_TEST_NEXT_LESSON = { titre: "Structurer ton premier message", module: "Module 2 — Les fondamentaux", duree: "12 min" };
+
   function loadSupabase(cb) {
     if (window.supabase && window.supabase.createClient) return cb();
     if (window.__zenoaSupabaseLoadCbs) { window.__zenoaSupabaseLoadCbs.push(cb); return; }
@@ -97,6 +114,108 @@
         switchToView(navEl.getAttribute("data-view"));
       });
     });
+
+    // Navigue vers une page via son item de menu (réutilise le clic déjà
+    // câblé juste au-dessus, pour garder le surlignage du menu cohérent).
+    function goToView(viewName) {
+      var navEl = document.querySelector('.nav-item[data-view="' + viewName + '"]');
+      if (navEl) navEl.click();
+      else switchToView(viewName);
+    }
+
+    function showToast(message) {
+      var toast = document.getElementById("toast");
+      if (!toast) return;
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(function () { toast.classList.remove("show"); }, 2600);
+    }
+
+    // ---------- Page Accueil ----------
+
+    function renderAccueil() {
+      if (!me) return;
+      var nameEl = document.getElementById("accueil-welcome-name");
+      if (nameEl) nameEl.textContent = me.pseudo || "";
+
+      var p = ACCUEIL_TEST_PROGRESS;
+      var pct = p.total > 0 ? Math.round((p.done / p.total) * 100) : 0;
+      var fill = document.getElementById("accueil-progress-fill");
+      if (fill) fill.style.width = pct + "%";
+      var progressText = document.getElementById("accueil-progress-text");
+      if (progressText) progressText.textContent = p.done + (p.done > 1 ? " leçons terminées sur " : " leçon terminée sur ") + p.total;
+      var progressPct = document.getElementById("accueil-progress-pct");
+      if (progressPct) progressPct.textContent = pct + "%";
+      var progressModule = document.getElementById("accueil-progress-module");
+      if (progressModule) progressModule.textContent = p.module;
+
+      var lessonTitle = document.getElementById("accueil-next-lesson-title");
+      if (lessonTitle) lessonTitle.textContent = ACCUEIL_TEST_NEXT_LESSON.titre;
+      var lessonMeta = document.getElementById("accueil-next-lesson-meta");
+      if (lessonMeta) lessonMeta.textContent = ACCUEIL_TEST_NEXT_LESSON.module + " · " + ACCUEIL_TEST_NEXT_LESSON.duree;
+
+      var missionText = document.getElementById("accueil-mission-text");
+      if (missionText) missionText.textContent = ACCUEIL_MISSION_TEXT;
+      var missionCheck = document.getElementById("accueil-mission-check");
+      var missionRow = document.getElementById("accueil-mission-row");
+      if (missionCheck) {
+        missionCheck.checked = !!me.mission_done;
+        if (missionRow) missionRow.classList.toggle("done", missionCheck.checked);
+      }
+
+      var newsList = document.getElementById("accueil-news-list");
+      if (newsList) {
+        newsList.innerHTML = "";
+        ACCUEIL_NEWS.slice(0, 3).forEach(function (item) {
+          var row = document.createElement("div");
+          row.className = "accueil-news-item" + (item.view ? " clickable" : "");
+          var dateEl = document.createElement("span");
+          dateEl.className = "accueil-news-date";
+          dateEl.textContent = item.date;
+          var titleEl = document.createElement("span");
+          titleEl.className = "accueil-news-title";
+          titleEl.textContent = item.titre;
+          row.appendChild(dateEl);
+          row.appendChild(titleEl);
+          if (item.view) row.addEventListener("click", function () { goToView(item.view); });
+          newsList.appendChild(row);
+        });
+      }
+    }
+
+    var accueilMissionCheck = document.getElementById("accueil-mission-check");
+    if (accueilMissionCheck) {
+      accueilMissionCheck.addEventListener("change", function () {
+        if (!me) return;
+        me.mission_done = accueilMissionCheck.checked;
+        var missionRow = document.getElementById("accueil-mission-row");
+        if (missionRow) missionRow.classList.toggle("done", accueilMissionCheck.checked);
+        supabase.from("profiles").update({ mission_done: accueilMissionCheck.checked }).eq("id", me.id).then(function (res) {
+          if (res && res.error) alert("Erreur : " + res.error.message);
+        });
+      });
+    }
+
+    var accueilContinueBtn = document.getElementById("accueil-continue-btn");
+    if (accueilContinueBtn) {
+      accueilContinueBtn.addEventListener("click", function () { goToView("cours"); });
+    }
+
+    document.querySelectorAll(".accueil-quick-access [data-view]").forEach(function (btn) {
+      btn.addEventListener("click", function () { goToView(btn.getAttribute("data-view")); });
+    });
+
+    // Pas encore de vraie messagerie élève -> chef côté UI : affiche un
+    // message d'attente plutôt que de deviner un contact. À brancher sur
+    // une vraie fonctionnalité (ex: BoxMail, ou un mailto: vers une
+    // adresse de support confirmée) quand elle existera.
+    var accueilAskBtn = document.getElementById("accueil-ask-question");
+    if (accueilAskBtn) {
+      accueilAskBtn.addEventListener("click", function () {
+        showToast("La messagerie arrive bientôt.");
+      });
+    }
 
     var previousViewBeforeSettings = "accueil";
     if (settingsBtn) {
@@ -352,10 +471,11 @@
     function boot(userId) {
       if (booted) return;
       booted = true;
-      supabase.from("profiles").select("id,role,pseudo,custom_role,email,notif_email,notif_reminders").eq("id", userId).single().then(function (res) {
+      supabase.from("profiles").select("id,role,pseudo,custom_role,email,notif_email,notif_reminders,mission_done").eq("id", userId).single().then(function (res) {
         if (!res || !res.data) return;
         me = res.data;
         applyMyCustomRole(me.custom_role);
+        renderAccueil();
         // Chaque rôle a sa propre navigation à gauche : élèves (Accueil...)
         // ou chef (Tableau de bord...), jamais les deux en même temps.
         var isChef = me.role === "chef";
