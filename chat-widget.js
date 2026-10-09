@@ -217,6 +217,256 @@
       });
     }
 
+    // ---------- Page Cours ----------
+    // Modules/leçons/progression viennent de Supabase (tables
+    // course_modules, course_lessons, user_lesson_progress — voir
+    // cours-content.sql), pas de données écrites en dur ici.
+
+    var courseModules = [];   // [{id, position, title, description}]
+    var courseLessons = [];   // [{id, module_id, position, title, duration_minutes, content_type, content_text, video_url}]
+    var courseProgress = {};  // { lessonId: true } pour les leçons terminées par l'utilisateur connecté
+    var courseDataLoaded = false;
+    var currentLessonId = null;
+    var previousViewBeforeLecon = "cours";
+
+    // Toutes les leçons triées dans l'ordre (module puis position dans
+    // le module) : sert à déterminer la "leçon en cours" (la première
+    // leçon non terminée dans cet ordre) et le bouton "Leçon suivante".
+    function getOrderedLessons() {
+      var moduleOrder = {};
+      courseModules.forEach(function (m) { moduleOrder[m.id] = m.position; });
+      return courseLessons.slice().sort(function (a, b) {
+        var ma = moduleOrder[a.module_id] || 0, mb = moduleOrder[b.module_id] || 0;
+        if (ma !== mb) return ma - mb;
+        return a.position - b.position;
+      });
+    }
+
+    function loadCourseData(userId) {
+      if (courseDataLoaded) return;
+      courseDataLoaded = true;
+      Promise.all([
+        supabase.from("course_modules").select("id,position,title,description").order("position"),
+        supabase.from("course_lessons").select("id,module_id,position,title,duration_minutes,content_type,content_text,video_url").order("position"),
+        supabase.from("user_lesson_progress").select("lesson_id,completed").eq("user_id", userId)
+      ]).then(function (results) {
+        var modulesRes = results[0], lessonsRes = results[1], progressRes = results[2];
+        if (modulesRes && modulesRes.data) courseModules = modulesRes.data;
+        if (lessonsRes && lessonsRes.data) courseLessons = lessonsRes.data;
+        if (progressRes && progressRes.data) {
+          progressRes.data.forEach(function (row) {
+            if (row.completed) courseProgress[row.lesson_id] = true;
+          });
+        }
+        renderCoursModules();
+      });
+    }
+
+    function renderCoursModules() {
+      var list = document.getElementById("cours-modules-list");
+      if (!list) return;
+      list.innerHTML = "";
+      if (!courseModules.length) {
+        list.innerHTML = '<div class="cours-empty">Aucun module pour le moment.</div>';
+        return;
+      }
+
+      var ordered = getOrderedLessons();
+      var currentLessonIdGlobal = null;
+      for (var i = 0; i < ordered.length; i++) {
+        if (!courseProgress[ordered[i].id]) { currentLessonIdGlobal = ordered[i].id; break; }
+      }
+
+      courseModules.slice().sort(function (a, b) { return a.position - b.position; }).forEach(function (mod) {
+        var lessons = courseLessons.filter(function (l) { return l.module_id === mod.id; })
+          .sort(function (a, b) { return a.position - b.position; });
+        var doneCount = lessons.filter(function (l) { return courseProgress[l.id]; }).length;
+        var pct = lessons.length ? Math.round((doneCount / lessons.length) * 100) : 0;
+        var containsCurrent = lessons.some(function (l) { return l.id === currentLessonIdGlobal; });
+
+        var block = document.createElement("div");
+        block.className = "glass-card panel-section cours-module" + (containsCurrent ? " open" : "");
+
+        var head = document.createElement("button");
+        head.type = "button";
+        head.className = "cours-module-head";
+        var headText = document.createElement("div");
+        var titleEl = document.createElement("div");
+        titleEl.className = "cours-module-title";
+        titleEl.textContent = mod.title;
+        var descEl = document.createElement("div");
+        descEl.className = "cours-module-desc";
+        descEl.textContent = mod.description || "";
+        headText.appendChild(titleEl);
+        headText.appendChild(descEl);
+        var caretEl = document.createElement("span");
+        caretEl.className = "cours-module-caret";
+        caretEl.textContent = "▾";
+        head.appendChild(headText);
+        head.appendChild(caretEl);
+        head.addEventListener("click", function () { block.classList.toggle("open"); });
+        block.appendChild(head);
+
+        var progressWrap = document.createElement("div");
+        progressWrap.className = "cours-module-progress";
+        var track = document.createElement("div");
+        track.className = "progress-track";
+        var fill = document.createElement("div");
+        fill.className = "progress-fill prog-green";
+        fill.style.width = pct + "%";
+        track.appendChild(fill);
+        var label = document.createElement("div");
+        label.className = "progress-label";
+        label.innerHTML = "<span></span><span></span>";
+        label.children[0].textContent = doneCount + " leçon" + (doneCount > 1 ? "s" : "") + " terminée" + (doneCount > 1 ? "s" : "") + " sur " + lessons.length;
+        label.children[1].textContent = pct + "%";
+        progressWrap.appendChild(track);
+        progressWrap.appendChild(label);
+        block.appendChild(progressWrap);
+
+        var lessonsWrap = document.createElement("div");
+        lessonsWrap.className = "cours-module-lessons";
+        lessons.forEach(function (lesson, idx) {
+          var isDone = !!courseProgress[lesson.id];
+          var isCurrent = lesson.id === currentLessonIdGlobal;
+
+          var row = document.createElement("div");
+          row.className = "cours-lesson" + (isDone ? " done" : "");
+          row.setAttribute("data-lesson-title", lesson.title.toLowerCase());
+
+          var numEl = document.createElement("span");
+          numEl.className = "cours-lesson-num";
+          numEl.textContent = isDone ? "✓" : String(idx + 1);
+
+          var infoEl = document.createElement("div");
+          infoEl.className = "cours-lesson-info";
+          var lTitleEl = document.createElement("div");
+          lTitleEl.className = "cours-lesson-title";
+          lTitleEl.textContent = lesson.title;
+          var metaEl = document.createElement("div");
+          metaEl.className = "cours-lesson-meta";
+          metaEl.textContent = lesson.duration_minutes ? lesson.duration_minutes + " min" : "";
+          infoEl.appendChild(lTitleEl);
+          infoEl.appendChild(metaEl);
+
+          row.appendChild(numEl);
+          row.appendChild(infoEl);
+
+          if (isCurrent) {
+            var contBtn = document.createElement("button");
+            contBtn.type = "button";
+            contBtn.className = "btn orange btn-sm";
+            contBtn.textContent = "Continuer";
+            contBtn.addEventListener("click", function (e) {
+              e.stopPropagation();
+              openLesson(lesson.id);
+            });
+            row.appendChild(contBtn);
+          } else {
+            var statusEl = document.createElement("span");
+            statusEl.className = "cours-lesson-status " + (isDone ? "status-done" : "status-todo");
+            statusEl.textContent = isDone ? "Terminée ✅" : "À faire";
+            row.appendChild(statusEl);
+          }
+
+          row.addEventListener("click", function () { openLesson(lesson.id); });
+          lessonsWrap.appendChild(row);
+        });
+        block.appendChild(lessonsWrap);
+
+        list.appendChild(block);
+      });
+    }
+
+    function updateLessonCompleteButton() {
+      var btn = document.getElementById("lecon-complete-btn");
+      if (!btn || !currentLessonId) return;
+      var done = !!courseProgress[currentLessonId];
+      btn.textContent = done ? "Terminée ✅" : "Marquer comme terminée";
+      btn.classList.toggle("ghost", done);
+    }
+
+    function openLesson(lessonId) {
+      var lesson = courseLessons.find(function (l) { return l.id === lessonId; });
+      if (!lesson) return;
+      currentLessonId = lessonId;
+      var mod = courseModules.find(function (m) { return m.id === lesson.module_id; });
+
+      var metaEl = document.getElementById("lecon-meta");
+      if (metaEl) metaEl.textContent = (mod ? mod.title : "") + (lesson.duration_minutes ? " · " + lesson.duration_minutes + " min" : "");
+      var titleEl = document.getElementById("lecon-title");
+      if (titleEl) titleEl.textContent = lesson.title;
+      var bodyEl = document.getElementById("lecon-body");
+      if (bodyEl) {
+        bodyEl.innerHTML = "";
+        if (lesson.content_type === "video" && lesson.video_url) {
+          var video = document.createElement("video");
+          video.src = lesson.video_url;
+          video.controls = true;
+          bodyEl.appendChild(video);
+        }
+        if (lesson.content_text) {
+          var textEl = document.createElement("div");
+          textEl.textContent = lesson.content_text;
+          bodyEl.appendChild(textEl);
+        }
+      }
+      updateLessonCompleteButton();
+
+      var activeNav = document.querySelector(".nav-item.active[data-view]");
+      previousViewBeforeLecon = activeNav ? activeNav.getAttribute("data-view") : "cours";
+      switchToView("lecon");
+    }
+
+    var btnBackLecon = document.getElementById("btn-back-lecon");
+    if (btnBackLecon) {
+      btnBackLecon.addEventListener("click", function () { switchToView(previousViewBeforeLecon); });
+    }
+
+    var leconCompleteBtn = document.getElementById("lecon-complete-btn");
+    if (leconCompleteBtn) {
+      leconCompleteBtn.addEventListener("click", function () {
+        if (!currentLessonId || !me) return;
+        var newDone = !courseProgress[currentLessonId];
+        courseProgress[currentLessonId] = newDone;
+        updateLessonCompleteButton();
+        renderCoursModules();
+        supabase.from("user_lesson_progress")
+          .upsert({ user_id: me.id, lesson_id: currentLessonId, completed: newDone, completed_at: newDone ? new Date().toISOString() : null }, { onConflict: "user_id,lesson_id" })
+          .then(function (res) {
+            if (res && res.error) alert("Erreur : " + res.error.message);
+          });
+      });
+    }
+
+    var leconNextBtn = document.getElementById("lecon-next-btn");
+    if (leconNextBtn) {
+      leconNextBtn.addEventListener("click", function () {
+        var ordered = getOrderedLessons();
+        var idx = ordered.findIndex(function (l) { return l.id === currentLessonId; });
+        if (idx !== -1 && idx < ordered.length - 1) openLesson(ordered[idx + 1].id);
+      });
+    }
+
+    // Recherche simple : filtre les leçons par titre, et ouvre les
+    // modules qui contiennent un résultat.
+    var coursSearchInput = document.getElementById("cours-search-input");
+    if (coursSearchInput) {
+      coursSearchInput.addEventListener("input", function () {
+        var q = coursSearchInput.value.trim().toLowerCase();
+        document.querySelectorAll(".cours-module").forEach(function (block) {
+          var anyVisible = false;
+          block.querySelectorAll(".cours-lesson").forEach(function (row) {
+            var match = !q || (row.getAttribute("data-lesson-title") || "").indexOf(q) !== -1;
+            row.style.display = match ? "" : "none";
+            if (match) anyVisible = true;
+          });
+          block.style.display = anyVisible ? "" : "none";
+          if (q && anyVisible) block.classList.add("open");
+        });
+      });
+    }
+
     var previousViewBeforeSettings = "accueil";
     if (settingsBtn) {
       settingsBtn.addEventListener("click", function () {
@@ -506,10 +756,16 @@
 
     supabase.auth.getSession().then(function (res) {
       var session = res && res.data && res.data.session;
-      if (session && session.user) boot(session.user.id);
+      if (session && session.user) {
+        boot(session.user.id);
+        loadCourseData(session.user.id);
+      }
     });
     supabase.auth.onAuthStateChange(function (event, session) {
-      if (session && session.user) boot(session.user.id);
+      if (session && session.user) {
+        boot(session.user.id);
+        loadCourseData(session.user.id);
+      }
     });
   }
 
