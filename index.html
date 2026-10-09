@@ -270,6 +270,8 @@
     .main .btn{color:#1c1430;border-color:rgba(28,20,48,.2);}
     .main .btn:hover{color:#1c1430;}
     .main .btn.ghost:hover{color:#1c1430;background:rgba(28,20,48,.05);}
+    .main .btn.danger{color:#D9534F;border-color:#d9534f66;}
+    .main .btn.danger:hover{color:#D9534F;background:#d9534f14;}
     .main .zenoa-switch-track{background:rgba(28,20,48,.12);border-color:rgba(28,20,48,.18);}
     .main .zenoa-switch-track:before{background:#fff;}
     .main .panel-title{color:#6b6478;}
@@ -349,6 +351,8 @@
     .projet-submission-note{font-size:13.5px;margin-bottom:4px;white-space:pre-wrap;}
     .projet-submission-link,.projet-submission-file{font-size:12.5px;color:#2f80ff;word-break:break-all;display:block;text-decoration:none;cursor:pointer;}
     .projet-submission-link:hover,.projet-submission-file:hover{text-decoration:underline;}
+    .projet-submission-feedback{margin-top:8px;padding:10px 12px;border-radius:10px;background:rgba(47,128,255,.06);border:1px solid rgba(47,128,255,.15);}
+    .projet-submission-feedback-text{font-size:13px;margin-top:6px;white-space:pre-wrap;color:#1c1430;}
 
     /* ---------- Page Ressources ---------- */
     .ressources-categories{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
@@ -387,6 +391,60 @@
     .calendrier-event-actions{display:flex;gap:8px;flex-wrap:wrap;}
     .calendrier-event.past{opacity:.75;}
     .calendrier-empty{padding:30px 10px;text-align:center;color:#6b6478;font-size:13.5px;}
+
+    /* ---------- Partie admin (Tableau de bord, Élèves, Contenu, Retours, Accès et codes) ---------- */
+    .main .indicator-label,.main .indicator-sub,.main .activity-row-name,.main .activity-row-count{color:#6b6478;}
+    #admin-top-active-list .activity-row-count{width:auto;max-width:150px;white-space:nowrap;font-weight:500;font-size:11px;}
+    .main .indicator-value{color:#1c1430;}
+    .main .activity-row-track{background:rgba(28,20,48,.08);}
+    .admin-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:16px;}
+    .admin-panel-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+    .admin-stuck-threshold{display:flex;align-items:center;gap:6px;font-size:12.5px;color:#6b6478;}
+    .admin-stuck-threshold input{width:60px;padding:6px 8px;}
+    .admin-student-row{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid rgba(28,20,48,.08);flex-wrap:wrap;}
+    .admin-student-row:last-child{border-bottom:none;}
+    .admin-student-row-info{flex:1;min-width:160px;}
+    .admin-student-row-name{font-size:13.5px;font-weight:600;}
+    .admin-student-row-meta{font-size:11.5px;color:#6b6478;margin-top:2px;}
+    .admin-pending-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;font-size:14px;}
+
+    .status-pill.status-expired{color:#f6923d;border-color:#f6923d66;background:#f6923d14;}
+    .status-pill.status-suspended{color:#D9534F;border-color:#d9534f66;background:#d9534f14;}
+
+    .eleve-row{display:flex;align-items:center;gap:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer;flex-wrap:wrap;}
+    .eleve-row-info{flex:1;min-width:160px;}
+    .eleve-row-name{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .eleve-row-meta{font-size:11.5px;color:#6b6478;margin-top:3px;}
+    .eleve-row-progress{display:flex;align-items:center;gap:8px;width:120px;flex-shrink:0;font-size:12px;color:#6b6478;}
+    .eleve-row-progress .progress-track{flex:1;margin-top:0;}
+    .eleve-detail-actions{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+
+    .contenu-tab-panel[hidden]{display:none;}
+    .admin-content-item{display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:8px;flex-wrap:wrap;}
+    .admin-content-item-info{flex:1;min-width:140px;}
+    .admin-content-item-title{font-size:13.5px;font-weight:700;}
+    .admin-content-item-meta{font-size:11.5px;color:#6b6478;margin-top:2px;}
+    .admin-content-item-actions{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;}
+    .admin-content-item.draft{opacity:.65;}
+
+    .admin-code-item{padding:14px 16px;margin-bottom:8px;}
+    .admin-code-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+    .admin-code-value{font-family:Consolas,Monaco,monospace;font-size:15px;font-weight:700;letter-spacing:.05em;}
+    .admin-code-meta{font-size:11.5px;color:#6b6478;}
+    .admin-code-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+
+    .retour-item{padding:16px 18px;margin-bottom:10px;}
+    .retour-item-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+    .retour-item-student{font-size:14px;font-weight:700;}
+    .retour-item-date{font-size:11.5px;color:#6b6478;}
+
+    /* Modal admin générique : couleurs explicites (pas scopées sous
+       .main, le modal est en dehors pour couvrir tout l'écran). */
+    #admin-modal-box{background:#fff;color:#1c1430;max-width:460px;max-height:85vh;overflow-y:auto;}
+    #admin-modal-box .field-label{color:#6b6478;}
+    #admin-modal-box input,#admin-modal-box textarea,#admin-modal-box select{background:#fff;border-color:rgba(28,20,48,.18);color:#1c1430;}
+    #admin-modal-box .checkbox-row{display:flex;align-items:center;gap:10px;font-size:13.5px;margin-bottom:14px;}
+    #admin-modal-box .checkbox-row input{width:18px;height:18px;flex-shrink:0;}
   </style>
 </head>
 <body>
@@ -1017,17 +1075,99 @@
           <div class="dash-toolbar">
             <h1 class="home-hero-name">Tableau de bord</h1>
           </div>
+
+          <div class="cours-page-head">
+            <h2 class="cours-page-title">Tableau de bord</h2>
+            <p class="cours-page-sub">Vue d'ensemble de tes élèves.</p>
+          </div>
+
+          <div class="admin-stats-grid" id="admin-stats-grid"></div>
+
+          <div class="glass-card panel-section">
+            <div class="panel-title">Qui avance</div>
+            <div id="admin-top-active-list"></div>
+          </div>
+
+          <div class="glass-card panel-section">
+            <div class="admin-panel-head">
+              <div class="panel-title" style="margin-bottom:0;">Qui est bloqué</div>
+              <div class="admin-stuck-threshold">
+                <label for="admin-stuck-days-input">Depuis plus de</label>
+                <input type="number" id="admin-stuck-days-input" value="7" min="1">
+                <label for="admin-stuck-days-input">jours</label>
+              </div>
+            </div>
+            <div id="admin-stuck-list"></div>
+          </div>
+
+          <div class="glass-card panel-section">
+            <div class="panel-title">Projets en attente de correction</div>
+            <div class="admin-pending-row">
+              <span><strong id="admin-pending-count">0</strong> projet(s) à corriger</span>
+              <button type="button" class="btn blue btn-sm" data-view="retours">Voir Retours</button>
+            </div>
+          </div>
         </div>
 
         <div class="view" id="view-eleves">
           <div class="dash-toolbar">
             <h1 class="home-hero-name">Élèves</h1>
           </div>
+
+          <div class="cours-page-head">
+            <h2 class="cours-page-title">Élèves</h2>
+            <p class="cours-page-sub">Liste de tous tes élèves.</p>
+          </div>
+
+          <div class="field cours-search-field">
+            <input type="text" id="eleves-search-input" placeholder="Rechercher un élève (nom ou e-mail)...">
+          </div>
+          <div class="ressources-categories" id="eleves-filter-pills"></div>
+
+          <div id="eleves-list"></div>
+          <button type="button" class="btn btn-sm" id="eleves-export-csv-btn">Exporter en CSV</button>
+        </div>
+
+        <div class="view" id="view-eleve-detail">
+          <div class="view-head">
+            <div class="back-btn" id="btn-back-eleve-detail">←</div>
+            <h1 class="home-hero-name" style="display:block;">Élève</h1>
+          </div>
+          <div id="eleve-detail-content"></div>
         </div>
 
         <div class="view" id="view-contenu">
           <div class="dash-toolbar">
             <h1 class="home-hero-name">Contenu</h1>
+          </div>
+
+          <div class="cours-page-head">
+            <h2 class="cours-page-title">Contenu</h2>
+            <p class="cours-page-sub">Modules, leçons, ressources, nouveautés et calendrier.</p>
+          </div>
+
+          <div class="ressources-categories" id="contenu-tabs">
+            <button type="button" class="ressources-cat-pill active" data-tab="modules">Modules &amp; leçons</button>
+            <button type="button" class="ressources-cat-pill" data-tab="ressources">Ressources</button>
+            <button type="button" class="ressources-cat-pill" data-tab="nouveautes">Nouveautés</button>
+            <button type="button" class="ressources-cat-pill" data-tab="calendrier">Calendrier</button>
+          </div>
+
+          <div class="contenu-tab-panel" id="contenu-tab-modules">
+            <button type="button" class="btn blue btn-sm" id="contenu-add-module-btn">+ Ajouter un module</button>
+            <div id="contenu-modules-list"></div>
+          </div>
+          <div class="contenu-tab-panel" id="contenu-tab-ressources" hidden>
+            <button type="button" class="btn blue btn-sm" id="contenu-add-resource-btn">+ Ajouter une ressource</button>
+            <div id="contenu-resources-list"></div>
+          </div>
+          <div class="contenu-tab-panel" id="contenu-tab-nouveautes" hidden>
+            <button type="button" class="btn blue btn-sm" id="contenu-add-news-btn">+ Ajouter une nouveauté</button>
+            <div id="contenu-news-list"></div>
+          </div>
+          <div class="contenu-tab-panel" id="contenu-tab-calendrier" hidden>
+            <button type="button" class="btn blue btn-sm" id="contenu-add-event-btn">+ Ajouter un événement</button>
+            <div id="contenu-events-list"></div>
           </div>
         </div>
 
@@ -1035,12 +1175,59 @@
           <div class="dash-toolbar">
             <h1 class="home-hero-name">Retours</h1>
           </div>
+
+          <div class="cours-page-head">
+            <h2 class="cours-page-title">Retours</h2>
+            <p class="cours-page-sub">Projets déposés par tes élèves.</p>
+          </div>
+
+          <div class="ressources-categories" id="retours-filter-pills"></div>
+          <div id="retours-list"></div>
         </div>
 
         <div class="view" id="view-acces-codes">
           <div class="dash-toolbar">
             <h1 class="home-hero-name">Accès et codes</h1>
           </div>
+
+          <div class="cours-page-head">
+            <h2 class="cours-page-title">Accès et codes</h2>
+            <p class="cours-page-sub">Les paiements sont gérés en dehors du site : crée un code à envoyer une fois le paiement reçu.</p>
+          </div>
+
+          <div class="glass-card panel-section">
+            <div class="panel-title">Créer un ou plusieurs codes</div>
+            <div class="panel-grid">
+              <div class="field">
+                <label class="field-label">Quantité</label>
+                <input type="number" id="codes-qty-input" value="1" min="1" max="50">
+              </div>
+              <div class="field">
+                <label class="field-label">Durée d'accès en jours (optionnel)</label>
+                <input type="number" id="codes-duration-input" placeholder="Illimité si vide" min="1">
+              </div>
+              <div class="field">
+                <label class="field-label">Pour qui (optionnel)</label>
+                <input type="text" id="codes-pseudo-input" placeholder="Nom de l'élève">
+              </div>
+              <div class="field">
+                <label class="field-label">E-mail (optionnel)</label>
+                <input type="email" id="codes-email-input" placeholder="eleve@email.com">
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label">Note (comment il a payé, optionnel)</label>
+              <input type="text" id="codes-note-input" placeholder="Ex : virement le 12/10">
+            </div>
+            <button type="button" class="btn blue" id="codes-generate-btn">Générer</button>
+            <div class="info-msg" id="codes-generate-success"></div>
+          </div>
+
+          <div class="field cours-search-field">
+            <input type="text" id="codes-search-input" placeholder="Rechercher un code...">
+          </div>
+          <div class="ressources-categories" id="codes-filter-pills"></div>
+          <div id="codes-list"></div>
         </div>
 
         <div class="view" id="view-settings">
@@ -1205,6 +1392,21 @@
 <button id="btn-back-to-stats" style="display:none;" aria-hidden="true" tabindex="-1"></button>
 
 <div id="toast"></div>
+
+<!-- Modal générique réutilisé par toutes les actions d'ajout/édition
+     de la partie admin (module, leçon, ressource, nouveauté,
+     événement) : évite de dupliquer un modal par type de contenu. -->
+<div class="modal-overlay" id="admin-modal-overlay">
+  <div class="modal-box" id="admin-modal-box">
+    <h2 id="admin-modal-title">Titre</h2>
+    <div id="admin-modal-body"></div>
+    <div class="error-msg" id="admin-modal-error"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn ghost" id="admin-modal-cancel">Annuler</button>
+      <button type="button" class="btn primary" id="admin-modal-save">Enregistrer</button>
+    </div>
+  </div>
+</div>
 
 <script src="/pwa-widget.js"></script>
 <script src="/confirm-dialog-widget.js"></script>

@@ -72,13 +72,32 @@
     var supabase = getSupabaseClient();
     var me = null;
 
+    // Pré-remplit le champ code si on arrive via le lien "Copier le lien"
+    // généré depuis Accès et codes (admin) : .../?code=XXX-XXXXXX.
+    try {
+      var prefillCode = new URLSearchParams(window.location.search).get("code");
+      var codeInputEl = document.getElementById("code-input");
+      if (prefillCode && codeInputEl) {
+        codeInputEl.value = prefillCode.toUpperCase();
+        codeInputEl.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    } catch (e) {}
+
     var settingsLogout = document.getElementById("settings-logout");
     var myAvatarInput = document.getElementById("my-avatar-input");
     var myRoleDisplayEl = document.getElementById("my-role-display");
     var settingsBtn = document.getElementById("settings-btn");
     var btnBackSettings = document.getElementById("btn-back-settings");
 
+    // Pages admin : en plus d'être masquées du menu pour un élève
+    // (déjà géré par .chef-only), on refuse ici le switch si quelqu'un
+    // essayait de les forcer (ex: depuis la console du navigateur).
+    // Ce n'est qu'une protection côté interface : la vraie sécurité est
+    // dans les policies RLS (admin-panel.sql), qui bloquent aussi les
+    // lectures/écritures même si l'affichage était contourné.
+    var ADMIN_ONLY_VIEWS = ["tableau-de-bord", "eleves", "eleve-detail", "contenu", "retours", "acces-codes"];
     function switchToView(viewName) {
+      if (ADMIN_ONLY_VIEWS.indexOf(viewName) !== -1 && !(me && me.role === "chef")) return;
       document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
       var v = document.getElementById("view-" + viewName);
       if (v) v.classList.add("active");
@@ -164,24 +183,45 @@
         if (missionRow) missionRow.classList.toggle("done", missionCheck.checked);
       }
 
+      renderAccueilNews();
+    }
+
+    // Nouveautés affichées sur l'accueil : viennent de la table
+    // home_news, gérée par l'admin depuis Contenu > Nouveautés. En
+    // attendant le premier chargement (ou si la migration admin-panel.sql
+    // n'a pas encore été exécutée), on affiche les 3 nouveautés d'origine
+    // codées en dur, pour ne jamais laisser la page vide.
+    var homeNewsList = ACCUEIL_NEWS.map(function (item) {
+      return { date_label: item.date, title: item.titre, link_view: item.view };
+    });
+    var homeNewsLoaded = false;
+
+    function loadHomeNews() {
+      supabase.from("home_news").select("id,position,date_label,title,link_view").order("position").then(function (res) {
+        if (res && res.data && res.data.length) homeNewsList = res.data;
+        homeNewsLoaded = true;
+        renderAccueilNews();
+      });
+    }
+
+    function renderAccueilNews() {
       var newsList = document.getElementById("accueil-news-list");
-      if (newsList) {
-        newsList.innerHTML = "";
-        ACCUEIL_NEWS.slice(0, 3).forEach(function (item) {
-          var row = document.createElement("div");
-          row.className = "accueil-news-item" + (item.view ? " clickable" : "");
-          var dateEl = document.createElement("span");
-          dateEl.className = "accueil-news-date";
-          dateEl.textContent = item.date;
-          var titleEl = document.createElement("span");
-          titleEl.className = "accueil-news-title";
-          titleEl.textContent = item.titre;
-          row.appendChild(dateEl);
-          row.appendChild(titleEl);
-          if (item.view) row.addEventListener("click", function () { goToView(item.view); });
-          newsList.appendChild(row);
-        });
-      }
+      if (!newsList) return;
+      newsList.innerHTML = "";
+      homeNewsList.slice(0, 3).forEach(function (item) {
+        var row = document.createElement("div");
+        row.className = "accueil-news-item" + (item.link_view ? " clickable" : "");
+        var dateEl = document.createElement("span");
+        dateEl.className = "accueil-news-date";
+        dateEl.textContent = item.date_label;
+        var titleEl = document.createElement("span");
+        titleEl.className = "accueil-news-title";
+        titleEl.textContent = item.title;
+        row.appendChild(dateEl);
+        row.appendChild(titleEl);
+        if (item.link_view) row.addEventListener("click", function () { goToView(item.link_view); });
+        newsList.appendChild(row);
+      });
     }
 
     var accueilMissionCheck = document.getElementById("accueil-mission-check");
@@ -247,7 +287,7 @@
       courseDataLoaded = true;
       Promise.all([
         supabase.from("course_modules").select("id,position,title,description").order("position"),
-        supabase.from("course_lessons").select("id,module_id,position,title,duration_minutes,content_type,content_text,video_url").order("position"),
+        supabase.from("course_lessons").select("id,module_id,position,title,duration_minutes,content_type,content_text,video_url,status").order("position"),
         supabase.from("user_lesson_progress").select("lesson_id,completed").eq("user_id", userId)
       ]).then(function (results) {
         var modulesRes = results[0], lessonsRes = results[1], progressRes = results[2];
@@ -488,7 +528,7 @@
         supabase.from("project_steps").select("id,position,label").order("position"),
         supabase.from("user_project").select("title").eq("user_id", userId).single(),
         supabase.from("user_project_steps").select("step_id,done").eq("user_id", userId),
-        supabase.from("project_submissions").select("id,note,link_url,file_name,file_path,created_at").eq("user_id", userId).order("created_at", { ascending: false })
+        supabase.from("project_submissions").select("id,note,link_url,file_name,file_path,created_at,admin_feedback,corrected").eq("user_id", userId).order("created_at", { ascending: false })
       ]).then(function (results) {
         var stepsRes = results[0], projectRes = results[1], userStepsRes = results[2], subsRes = results[3];
         if (stepsRes && stepsRes.data) PROJECT_STEPS_TEMPLATE = stepsRes.data;
@@ -590,6 +630,23 @@
             });
           });
           item.appendChild(fileEl);
+        }
+        // Retour de l'admin sur ce dépôt (page Retours côté admin) :
+        // visible ici dès qu'il a écrit quelque chose, avec le statut.
+        if (sub.admin_feedback || sub.corrected) {
+          var feedbackBox = document.createElement("div");
+          feedbackBox.className = "projet-submission-feedback";
+          var statusPill = document.createElement("span");
+          statusPill.className = "status-pill " + (sub.corrected ? "status-actif" : "status-churn");
+          statusPill.textContent = sub.corrected ? "Corrigé" : "En attente de correction";
+          feedbackBox.appendChild(statusPill);
+          if (sub.admin_feedback) {
+            var feedbackText = document.createElement("div");
+            feedbackText.className = "projet-submission-feedback-text";
+            feedbackText.textContent = sub.admin_feedback;
+            feedbackBox.appendChild(feedbackText);
+          }
+          item.appendChild(feedbackBox);
         }
         list.appendChild(item);
       });
@@ -1152,6 +1209,1249 @@
       renderCalendarList("calendrier-past-list", past, true);
     }
 
+    // ============================================================
+    // ---------- PARTIE ADMIN (visible seulement par le "chef") ----------
+    // Sécurité : en plus du blocage d'affichage (ADMIN_ONLY_VIEWS plus
+    // haut) et du masquage menu (.chef-only, géré dans boot()), TOUTES
+    // les lectures/écritures ci-dessous passent par les policies RLS de
+    // admin-panel.sql, qui vérifient public.is_admin() côté serveur.
+    // Même si quelqu'un contournait l'interface (ex: console du
+    // navigateur), Supabase refuserait la requête.
+    // ============================================================
+
+    function formatShortDate(value) {
+      if (!value) return "—";
+      return new Date(value).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+    }
+    function formatShortDateTime(value) {
+      if (!value) return "—";
+      return new Date(value).toLocaleString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    }
+
+    // Déplace un item d'une liste triée par "position" vers le haut/bas
+    // puis réécrit les 2 positions touchées en base. Simple et suffisant
+    // pour réordonner du contenu admin (pas de drag-and-drop).
+    function reorderItem(table, items, item, direction, onDone) {
+      var sorted = items.slice().sort(function (a, b) { return a.position - b.position; });
+      var idx = sorted.indexOf(item);
+      var swapIdx = idx + direction;
+      if (swapIdx < 0 || swapIdx >= sorted.length) return;
+      var other = sorted[swapIdx];
+      var tmpPos = item.position;
+      item.position = other.position;
+      other.position = tmpPos;
+      Promise.all([
+        supabase.from(table).update({ position: item.position }).eq("id", item.id),
+        supabase.from(table).update({ position: other.position }).eq("id", other.id)
+      ]).then(function () { onDone(); });
+    }
+
+    // ----- Modal générique (admin-modal-*), réutilisé par toutes les
+    // actions d'ajout/édition de contenu, pour éviter un modal par type. -----
+    var adminModalOverlay = document.getElementById("admin-modal-overlay");
+    var adminModalTitle = document.getElementById("admin-modal-title");
+    var adminModalBody = document.getElementById("admin-modal-body");
+    var adminModalError = document.getElementById("admin-modal-error");
+    var adminModalCancel = document.getElementById("admin-modal-cancel");
+    var adminModalSave = document.getElementById("admin-modal-save");
+    var adminModalOnSave = null;
+
+    function openAdminModal(title, fieldsHtml, onSave) {
+      if (!adminModalOverlay) return;
+      adminModalTitle.textContent = title;
+      adminModalBody.innerHTML = fieldsHtml;
+      adminModalError.textContent = "";
+      adminModalOnSave = onSave;
+      adminModalOverlay.classList.add("open");
+    }
+    function closeAdminModal() {
+      if (!adminModalOverlay) return;
+      adminModalOverlay.classList.remove("open");
+      adminModalOnSave = null;
+    }
+    if (adminModalCancel) adminModalCancel.addEventListener("click", closeAdminModal);
+    if (adminModalOverlay) {
+      adminModalOverlay.addEventListener("click", function (e) { if (e.target === adminModalOverlay) closeAdminModal(); });
+    }
+    if (adminModalSave) {
+      adminModalSave.addEventListener("click", function () {
+        if (!adminModalOnSave) return;
+        adminModalError.textContent = "";
+        adminModalOnSave(function (errMsg) {
+          if (errMsg) { adminModalError.textContent = errMsg; return; }
+          closeAdminModal();
+        });
+      });
+    }
+
+    // ---------- Tableau de bord ----------
+    var dashboardStudents = [];
+    var dashboardDoneByUser = {};
+    var dashboardLastCompletion = {};
+
+    function loadDashboardData() {
+      var statsEl = document.getElementById("admin-stats-grid");
+      if (!statsEl) return;
+      Promise.all([
+        supabase.from("profiles").select("id,pseudo,email,created_at,last_seen_at,is_active").eq("role", "membre"),
+        supabase.from("user_lesson_progress").select("user_id,completed_at").eq("completed", true),
+        supabase.from("project_submissions").select("id,corrected")
+      ]).then(function (results) {
+        dashboardStudents = (results[0] && results[0].data) || [];
+        var progressRows = (results[1] && results[1].data) || [];
+        var submissions = (results[2] && results[2].data) || [];
+
+        dashboardDoneByUser = {};
+        dashboardLastCompletion = {};
+        progressRows.forEach(function (row) {
+          dashboardDoneByUser[row.user_id] = (dashboardDoneByUser[row.user_id] || 0) + 1;
+          if (!dashboardLastCompletion[row.user_id] || new Date(row.completed_at) > new Date(dashboardLastCompletion[row.user_id])) {
+            dashboardLastCompletion[row.user_id] = row.completed_at;
+          }
+        });
+
+        var totalLessons = courseLessons.filter(function (l) { return l.status !== "draft"; }).length;
+        var weekAgo = Date.now() - 7 * 86400000;
+        var newThisWeek = dashboardStudents.filter(function (s) { return s.created_at && new Date(s.created_at).getTime() >= weekAgo; }).length;
+        var activeLast7 = dashboardStudents.filter(function (s) { return s.last_seen_at && new Date(s.last_seen_at).getTime() >= weekAgo; }).length;
+
+        var avgPct = 0;
+        if (dashboardStudents.length && totalLessons > 0) {
+          var sumPct = dashboardStudents.reduce(function (acc, s) { return acc + ((dashboardDoneByUser[s.id] || 0) / totalLessons) * 100; }, 0);
+          avgPct = Math.round(sumPct / dashboardStudents.length);
+        }
+
+        statsEl.innerHTML = "";
+        [
+          { label: "Élèves au total", value: String(dashboardStudents.length) },
+          { label: "Nouveaux cette semaine", value: String(newThisWeek) },
+          { label: "Actifs ces 7 derniers jours", value: String(activeLast7) },
+          { label: "Progression moyenne", value: avgPct + "%" }
+        ].forEach(function (stat) {
+          var card = document.createElement("div");
+          card.className = "glass-card indicator-card";
+          var val = document.createElement("div");
+          val.className = "indicator-value";
+          val.textContent = stat.value;
+          var lab = document.createElement("div");
+          lab.className = "indicator-label";
+          lab.textContent = stat.label;
+          card.appendChild(val);
+          card.appendChild(lab);
+          statsEl.appendChild(card);
+        });
+
+        // "Qui avance" : les 5 élèves les plus récemment actifs.
+        var topActiveList = document.getElementById("admin-top-active-list");
+        if (topActiveList) {
+          var mostActive = dashboardStudents.filter(function (s) { return s.last_seen_at; })
+            .sort(function (a, b) { return new Date(b.last_seen_at) - new Date(a.last_seen_at); })
+            .slice(0, 5);
+          topActiveList.innerHTML = "";
+          if (!mostActive.length) {
+            topActiveList.innerHTML = '<div class="cours-empty">Pas encore de connexion enregistrée.</div>';
+          } else {
+            mostActive.forEach(function (s) {
+              var pct = totalLessons > 0 ? Math.round(((dashboardDoneByUser[s.id] || 0) / totalLessons) * 100) : 0;
+              topActiveList.appendChild(buildAdminActivityRow(s, pct, formatShortDateTime(s.last_seen_at)));
+            });
+          }
+        }
+
+        renderStuckStudents();
+
+        var pendingCount = submissions.filter(function (sub) { return !sub.corrected; }).length;
+        var pendingEl = document.getElementById("admin-pending-count");
+        if (pendingEl) pendingEl.textContent = String(pendingCount);
+      });
+    }
+
+    function buildAdminActivityRow(student, pct, subText) {
+      var row = document.createElement("div");
+      row.className = "activity-row";
+      row.style.cursor = "pointer";
+      var name = document.createElement("div");
+      name.className = "activity-row-name";
+      name.textContent = student.pseudo || student.email;
+      var track = document.createElement("div");
+      track.className = "activity-row-track";
+      var fill = document.createElement("div");
+      fill.className = "activity-row-fill";
+      fill.style.width = pct + "%";
+      track.appendChild(fill);
+      var count = document.createElement("div");
+      count.className = "activity-row-count";
+      count.textContent = subText;
+      row.appendChild(name);
+      row.appendChild(track);
+      row.appendChild(count);
+      row.addEventListener("click", function () { openEleveDetail(student.id); });
+      return row;
+    }
+
+    function renderStuckStudents() {
+      var list = document.getElementById("admin-stuck-list");
+      if (!list) return;
+      var daysInput = document.getElementById("admin-stuck-days-input");
+      var threshold = (daysInput && parseInt(daysInput.value, 10)) || 7;
+      var cutoff = Date.now() - threshold * 86400000;
+      // "Sans connexion OU sans leçon terminée depuis X jours" : on
+      // signale dès que l'un des deux signaux d'activité est trop ancien
+      // (ou inexistant), c'est le signal le plus utile pour savoir qui
+      // relancer.
+      var stuck = dashboardStudents.filter(function (s) {
+        var lastSeenTime = s.last_seen_at ? new Date(s.last_seen_at).getTime() : 0;
+        var lastDoneTime = dashboardLastCompletion[s.id] ? new Date(dashboardLastCompletion[s.id]).getTime() : 0;
+        return lastSeenTime < cutoff || lastDoneTime < cutoff;
+      });
+      list.innerHTML = "";
+      if (!stuck.length) {
+        list.innerHTML = '<div class="cours-empty">Personne de bloqué pour le moment 🎉</div>';
+        return;
+      }
+      stuck.forEach(function (s) {
+        var row = document.createElement("div");
+        row.className = "admin-student-row";
+        row.style.cursor = "pointer";
+        var info = document.createElement("div");
+        info.className = "admin-student-row-info";
+        var nameEl = document.createElement("div");
+        nameEl.className = "admin-student-row-name";
+        nameEl.textContent = s.pseudo || s.email;
+        var metaEl = document.createElement("div");
+        metaEl.className = "admin-student-row-meta";
+        metaEl.textContent = s.last_seen_at ? ("Dernière connexion : " + formatShortDate(s.last_seen_at)) : "Jamais connecté";
+        info.appendChild(nameEl);
+        info.appendChild(metaEl);
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn orange btn-sm";
+        btn.textContent = "Lui écrire";
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          window.location.href = "mailto:" + s.email;
+        });
+        row.appendChild(info);
+        row.appendChild(btn);
+        row.addEventListener("click", function () { openEleveDetail(s.id); });
+        list.appendChild(row);
+      });
+    }
+
+    var adminStuckDaysInput = document.getElementById("admin-stuck-days-input");
+    if (adminStuckDaysInput) adminStuckDaysInput.addEventListener("input", renderStuckStudents);
+
+    // ---------- Page Élèves ----------
+    var elevesList = [];
+    var elevesDoneByUser = {};
+    var elevesFilter = "all";
+
+    function loadElevesData() {
+      Promise.all([
+        supabase.from("profiles").select("id,pseudo,email,created_at,last_seen_at,is_active,access_expires_at,admin_notes").eq("role", "membre"),
+        supabase.from("user_lesson_progress").select("user_id").eq("completed", true)
+      ]).then(function (results) {
+        elevesList = (results[0] && results[0].data) || [];
+        elevesDoneByUser = {};
+        ((results[1] && results[1].data) || []).forEach(function (row) {
+          elevesDoneByUser[row.user_id] = (elevesDoneByUser[row.user_id] || 0) + 1;
+        });
+        renderElevesFilterPills();
+        renderElevesList();
+      });
+    }
+
+    function eleveAccessStatus(s) {
+      if (!s.is_active) return "suspended";
+      if (s.access_expires_at && new Date(s.access_expires_at).getTime() < Date.now()) return "expired";
+      return "actif";
+    }
+    function eleveAccessStatusLabel(status) {
+      if (status === "suspended") return "Suspendu";
+      if (status === "expired") return "Expiré";
+      return "Actif";
+    }
+
+    function renderElevesFilterPills() {
+      var wrap = document.getElementById("eleves-filter-pills");
+      if (!wrap) return;
+      wrap.innerHTML = "";
+      [
+        { key: "all", label: "Tous" },
+        { key: "active", label: "Actifs" },
+        { key: "blocked", label: "Bloqués" },
+        { key: "new", label: "Nouveaux" }
+      ].forEach(function (f) {
+        var pill = document.createElement("button");
+        pill.type = "button";
+        pill.className = "ressources-cat-pill" + (elevesFilter === f.key ? " active" : "");
+        pill.textContent = f.label;
+        pill.addEventListener("click", function () { elevesFilter = f.key; renderElevesFilterPills(); renderElevesList(); });
+        wrap.appendChild(pill);
+      });
+    }
+
+    function renderElevesList() {
+      var container = document.getElementById("eleves-list");
+      if (!container) return;
+      var searchInput = document.getElementById("eleves-search-input");
+      var q = (searchInput ? searchInput.value : "").trim().toLowerCase();
+      var weekAgo = Date.now() - 7 * 86400000;
+
+      var filtered = elevesList.filter(function (s) {
+        if (q && (s.pseudo || "").toLowerCase().indexOf(q) === -1 && (s.email || "").toLowerCase().indexOf(q) === -1) return false;
+        if (elevesFilter === "active") return s.last_seen_at && new Date(s.last_seen_at).getTime() >= weekAgo;
+        if (elevesFilter === "blocked") return !s.last_seen_at || new Date(s.last_seen_at).getTime() < weekAgo;
+        if (elevesFilter === "new") return s.created_at && new Date(s.created_at).getTime() >= weekAgo;
+        return true;
+      });
+
+      container.innerHTML = "";
+      if (!filtered.length) {
+        container.innerHTML = '<div class="cours-empty">Aucun élève trouvé.</div>';
+        return;
+      }
+
+      var totalLessons = courseLessons.filter(function (l) { return l.status !== "draft"; }).length;
+      filtered.forEach(function (s) {
+        var pct = totalLessons > 0 ? Math.round(((elevesDoneByUser[s.id] || 0) / totalLessons) * 100) : 0;
+        var status = eleveAccessStatus(s);
+        var row = document.createElement("div");
+        row.className = "glass-card eleve-row";
+        row.innerHTML =
+          '<div class="eleve-row-info">' +
+            '<div class="eleve-row-name"><span class="eleve-row-name-text"></span><span class="status-pill"></span></div>' +
+            '<div class="eleve-row-meta"></div>' +
+          '</div>' +
+          '<div class="eleve-row-progress"><div class="progress-track"><div class="progress-fill prog-green"></div></div><span></span></div>';
+        row.querySelector(".eleve-row-name-text").textContent = s.pseudo || "(sans nom)";
+        var pill = row.querySelector(".status-pill");
+        pill.classList.add("status-" + status);
+        pill.textContent = eleveAccessStatusLabel(status);
+        row.querySelector(".eleve-row-meta").textContent = (s.email || "") + " · Inscrit le " + formatShortDate(s.created_at);
+        row.querySelector(".progress-fill").style.width = pct + "%";
+        row.querySelector(".eleve-row-progress span").textContent = pct + "%";
+        row.addEventListener("click", function () { openEleveDetail(s.id); });
+        container.appendChild(row);
+      });
+    }
+
+    var elevesSearchInput = document.getElementById("eleves-search-input");
+    if (elevesSearchInput) elevesSearchInput.addEventListener("input", renderElevesList);
+
+    var elevesExportCsvBtn = document.getElementById("eleves-export-csv-btn");
+    if (elevesExportCsvBtn) {
+      elevesExportCsvBtn.addEventListener("click", function () {
+        var totalLessons = courseLessons.filter(function (l) { return l.status !== "draft"; }).length;
+        var rows = [["Nom", "E-mail", "Date d'inscription", "Dernière connexion", "Progression %", "Statut"]];
+        elevesList.forEach(function (s) {
+          var pct = totalLessons > 0 ? Math.round(((elevesDoneByUser[s.id] || 0) / totalLessons) * 100) : 0;
+          rows.push([
+            s.pseudo || "",
+            s.email || "",
+            s.created_at ? formatShortDate(s.created_at) : "",
+            s.last_seen_at ? formatShortDate(s.last_seen_at) : "Jamais",
+            String(pct),
+            eleveAccessStatusLabel(eleveAccessStatus(s))
+          ]);
+        });
+        var csv = rows.map(function (r) {
+          return r.map(function (cell) { return '"' + String(cell).replace(/"/g, '""') + '"'; }).join(",");
+        }).join("\n");
+        var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "eleves-zenoa-" + new Date().toISOString().slice(0, 10) + ".csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    // ----- Fiche élève -----
+    var btnBackEleveDetail = document.getElementById("btn-back-eleve-detail");
+    if (btnBackEleveDetail) btnBackEleveDetail.addEventListener("click", function () { switchToView("eleves"); });
+
+    function openEleveDetail(studentId) {
+      switchToView("eleve-detail");
+      var content = document.getElementById("eleve-detail-content");
+      if (content) content.innerHTML = '<div class="cours-empty">Chargement…</div>';
+      Promise.all([
+        supabase.from("profiles").select("id,pseudo,email,created_at,last_seen_at,is_active,access_expires_at,admin_notes").eq("id", studentId).single(),
+        supabase.from("user_lesson_progress").select("completed").eq("user_id", studentId).eq("completed", true),
+        supabase.from("project_submissions").select("id,note,created_at,corrected").eq("user_id", studentId).order("created_at", { ascending: false })
+      ]).then(function (results) {
+        var student = results[0] && results[0].data;
+        if (!student) {
+          if (content) content.innerHTML = '<div class="cours-empty">Élève introuvable.</div>';
+          return;
+        }
+        var doneCount = ((results[1] && results[1].data) || []).length;
+        var submissions = (results[2] && results[2].data) || [];
+        renderEleveDetail(student, doneCount, submissions);
+      });
+    }
+
+    function renderEleveDetail(student, doneCount, submissions) {
+      var content = document.getElementById("eleve-detail-content");
+      if (!content) return;
+      var totalLessons = courseLessons.filter(function (l) { return l.status !== "draft"; }).length;
+      var pct = totalLessons > 0 ? Math.round((doneCount / totalLessons) * 100) : 0;
+      var status = eleveAccessStatus(student);
+
+      content.innerHTML = "";
+
+      var head = document.createElement("div");
+      head.className = "glass-card panel-section";
+      head.innerHTML =
+        '<div class="admin-panel-head">' +
+          '<div>' +
+            '<div class="panel-title" style="margin-bottom:2px;" data-f="name"></div>' +
+            '<div class="admin-student-row-meta" data-f="email"></div>' +
+          '</div>' +
+          '<span class="status-pill"></span>' +
+        '</div>' +
+        '<div class="admin-student-row-meta">Inscrit le <span data-f="inscr"></span> · Dernière connexion : <span data-f="lastseen"></span> · Progression : <span data-f="pct"></span></div>';
+      head.querySelector('[data-f="name"]').textContent = student.pseudo || "(sans nom)";
+      head.querySelector('[data-f="email"]').textContent = student.email || "";
+      var pill = head.querySelector(".status-pill");
+      pill.classList.add("status-" + status);
+      pill.textContent = eleveAccessStatusLabel(status);
+      head.querySelector('[data-f="inscr"]').textContent = formatShortDate(student.created_at);
+      head.querySelector('[data-f="lastseen"]').textContent = student.last_seen_at ? formatShortDateTime(student.last_seen_at) : "jamais connecté";
+      head.querySelector('[data-f="pct"]').textContent = pct + "% (" + doneCount + "/" + totalLessons + " leçons)";
+      content.appendChild(head);
+
+      // ----- Actions -----
+      var actions = document.createElement("div");
+      actions.className = "glass-card panel-section eleve-detail-actions";
+
+      var suspendBtn = document.createElement("button");
+      suspendBtn.type = "button";
+      suspendBtn.className = "btn btn-sm " + (student.is_active ? "danger" : "blue");
+      suspendBtn.textContent = student.is_active ? "Suspendre l'accès" : "Réactiver l'accès";
+      suspendBtn.addEventListener("click", function () {
+        zenoaConfirm(
+          student.is_active ? "Suspendre l'accès de cet élève ? Il ne pourra plus se connecter." : "Réactiver l'accès de cet élève ?",
+          student.is_active ? { danger: true, confirmLabel: "Suspendre" } : {}
+        ).then(function (ok) {
+          if (!ok) return;
+          supabase.from("profiles").update({ is_active: !student.is_active }).eq("id", student.id).then(function (res) {
+            if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+            openEleveDetail(student.id);
+          });
+        });
+      });
+      actions.appendChild(suspendBtn);
+
+      var extendBtn = document.createElement("button");
+      extendBtn.type = "button";
+      extendBtn.className = "btn blue btn-sm";
+      extendBtn.textContent = "Prolonger l'accès";
+      extendBtn.addEventListener("click", function () {
+        var days = window.prompt("Prolonger l'accès de combien de jours à partir d'aujourd'hui ? (laisse vide pour un accès illimité)", "30");
+        if (days === null) return;
+        var newExpiry = null;
+        if (days.trim() !== "") {
+          var n = parseInt(days, 10);
+          if (!n || n <= 0) { alert("Nombre de jours invalide."); return; }
+          newExpiry = new Date(Date.now() + n * 86400000).toISOString();
+        }
+        supabase.from("profiles").update({ access_expires_at: newExpiry }).eq("id", student.id).then(function (res) {
+          if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+          openEleveDetail(student.id);
+        });
+      });
+      actions.appendChild(extendBtn);
+
+      var deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
+      deleteBtn.className = "btn danger btn-sm";
+      deleteBtn.textContent = "Supprimer le compte";
+      deleteBtn.addEventListener("click", function () {
+        zenoaConfirm(
+          "Supprimer définitivement le compte et toutes les données de " + (student.pseudo || student.email) + " ? Cette action est irréversible.",
+          { danger: true, confirmLabel: "Supprimer définitivement" }
+        ).then(function (ok) {
+          if (!ok) return;
+          supabase.rpc("admin_delete_student", { student_id: student.id }).then(function (res) {
+            if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+            showToast("Compte supprimé.");
+            switchToView("eleves");
+            loadElevesData();
+            loadDashboardData();
+          });
+        });
+      });
+      actions.appendChild(deleteBtn);
+      content.appendChild(actions);
+
+      // ----- Notes privées -----
+      var notesSection = document.createElement("div");
+      notesSection.className = "glass-card panel-section";
+      notesSection.innerHTML =
+        '<div class="panel-title">Notes privées (visibles seulement par toi)</div>' +
+        '<textarea class="eleve-notes-textarea" rows="3" placeholder="Ex : a besoin d\'un suivi rapproché..."></textarea>' +
+        '<button type="button" class="btn btn-sm eleve-notes-save-btn" style="margin-top:8px;">Enregistrer</button>';
+      var notesTextarea = notesSection.querySelector(".eleve-notes-textarea");
+      notesTextarea.value = student.admin_notes || "";
+      notesSection.querySelector(".eleve-notes-save-btn").addEventListener("click", function () {
+        supabase.from("profiles").update({ admin_notes: notesTextarea.value }).eq("id", student.id).then(function (res) {
+          if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+          showToast("Notes enregistrées.");
+        });
+      });
+      content.appendChild(notesSection);
+
+      // ----- Projets déposés -----
+      var subsSection = document.createElement("div");
+      subsSection.className = "glass-card panel-section";
+      var subsTitle = document.createElement("div");
+      subsTitle.className = "panel-title";
+      subsTitle.textContent = "Projets déposés";
+      subsSection.appendChild(subsTitle);
+      if (!submissions.length) {
+        var empty = document.createElement("div");
+        empty.className = "cours-empty";
+        empty.textContent = "Aucun dépôt pour le moment.";
+        subsSection.appendChild(empty);
+      } else {
+        submissions.forEach(function (sub) {
+          var item = document.createElement("div");
+          item.className = "projet-submission-item";
+          var dateEl = document.createElement("div");
+          dateEl.className = "projet-submission-date";
+          dateEl.textContent = formatShortDateTime(sub.created_at);
+          item.appendChild(dateEl);
+          if (sub.note) {
+            var noteEl = document.createElement("div");
+            noteEl.className = "projet-submission-note";
+            noteEl.textContent = sub.note;
+            item.appendChild(noteEl);
+          }
+          var statusPill = document.createElement("span");
+          statusPill.className = "status-pill " + (sub.corrected ? "status-actif" : "status-churn");
+          statusPill.textContent = sub.corrected ? "Corrigé" : "À corriger";
+          item.appendChild(statusPill);
+          subsSection.appendChild(item);
+        });
+      }
+      content.appendChild(subsSection);
+    }
+
+    // ---------- Page Contenu ----------
+    var adminModules = [];
+    var adminLessons = [];
+    var adminResources = [];
+    var adminNewsItems = [];
+    var adminEvents = [];
+
+    function loadContenuData() {
+      Promise.all([
+        supabase.from("course_modules").select("id,position,title,description").order("position"),
+        supabase.from("course_lessons").select("id,module_id,position,title,duration_minutes,content_type,content_text,video_url,status").order("position"),
+        supabase.from("resources").select("id,category,title,description,resource_type,file_url,prompt_text,position").order("position"),
+        supabase.from("home_news").select("id,position,date_label,title,link_view").order("position"),
+        supabase.from("calendar_events").select("id,title,description,event_date,event_time,join_url,replay_url").order("event_date")
+      ]).then(function (results) {
+        adminModules = (results[0] && results[0].data) || [];
+        adminLessons = (results[1] && results[1].data) || [];
+        adminResources = (results[2] && results[2].data) || [];
+        adminNewsItems = (results[3] && results[3].data) || [];
+        adminEvents = (results[4] && results[4].data) || [];
+        renderContenuModules();
+        renderContenuResources();
+        renderContenuNews();
+        renderContenuEvents();
+      });
+    }
+
+    document.querySelectorAll("#contenu-tabs [data-tab]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        document.querySelectorAll("#contenu-tabs [data-tab]").forEach(function (b) { b.classList.remove("active"); });
+        btn.classList.add("active");
+        var tab = btn.getAttribute("data-tab");
+        ["modules", "ressources", "nouveautes", "calendrier"].forEach(function (t) {
+          var panel = document.getElementById("contenu-tab-" + t);
+          if (panel) panel.hidden = t !== tab;
+        });
+      });
+    });
+
+    function buildAdminContentItemRow(title, meta, isDraft) {
+      var row = document.createElement("div");
+      row.className = "admin-content-item" + (isDraft ? " draft" : "");
+      row.innerHTML =
+        '<div class="admin-content-item-info">' +
+          '<div class="admin-content-item-title"></div>' +
+          '<div class="admin-content-item-meta"></div>' +
+        '</div>' +
+        '<div class="admin-content-item-actions"></div>';
+      row.querySelector(".admin-content-item-title").textContent = title;
+      row.querySelector(".admin-content-item-meta").textContent = meta;
+      return row;
+    }
+    function addRowActionBtn(row, label, cls, onClick) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-sm" + (cls ? " " + cls : "");
+      btn.textContent = label;
+      btn.addEventListener("click", onClick);
+      row.querySelector(".admin-content-item-actions").appendChild(btn);
+      return btn;
+    }
+
+    function renderContenuModules() {
+      var list = document.getElementById("contenu-modules-list");
+      if (!list) return;
+      list.innerHTML = "";
+      if (!adminModules.length) {
+        list.innerHTML = '<div class="cours-empty">Aucun module pour le moment.</div>';
+        return;
+      }
+      adminModules.slice().sort(function (a, b) { return a.position - b.position; }).forEach(function (mod) {
+        var card = document.createElement("div");
+        card.className = "glass-card panel-section";
+
+        var head = buildAdminContentItemRow(mod.title, mod.description || "", false);
+        addRowActionBtn(head, "↑", "", function () { reorderItem("course_modules", adminModules, mod, -1, loadContenuData); });
+        addRowActionBtn(head, "↓", "", function () { reorderItem("course_modules", adminModules, mod, 1, loadContenuData); });
+        addRowActionBtn(head, "Modifier", "blue", function () { openModuleModal(mod); });
+        addRowActionBtn(head, "Suppr.", "danger", function () {
+          zenoaConfirm('Supprimer le module "' + mod.title + '" et toutes ses leçons ? Cette action est irréversible.', { danger: true, confirmLabel: "Supprimer" }).then(function (ok) {
+            if (!ok) return;
+            supabase.from("course_modules").delete().eq("id", mod.id).then(function (res) {
+              if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+              loadContenuData();
+            });
+          });
+        });
+        card.appendChild(head);
+
+        var lessons = adminLessons.filter(function (l) { return l.module_id === mod.id; }).sort(function (a, b) { return a.position - b.position; });
+        lessons.forEach(function (lesson) {
+          var isDraft = lesson.status === "draft";
+          var meta = (lesson.content_type === "video" ? "Vidéo" : "Texte") +
+            (lesson.duration_minutes ? " · " + lesson.duration_minutes + " min" : "") +
+            " · " + (isDraft ? "Brouillon" : "Publiée");
+          var row = buildAdminContentItemRow(lesson.title, meta, isDraft);
+          row.style.marginLeft = "18px";
+          addRowActionBtn(row, "↑", "", function () { reorderItem("course_lessons", lessons, lesson, -1, loadContenuData); });
+          addRowActionBtn(row, "↓", "", function () { reorderItem("course_lessons", lessons, lesson, 1, loadContenuData); });
+          addRowActionBtn(row, isDraft ? "Publier" : "Repasser en brouillon", "", function () {
+            supabase.from("course_lessons").update({ status: isDraft ? "published" : "draft" }).eq("id", lesson.id).then(function (res) {
+              if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+              loadContenuData();
+            });
+          });
+          addRowActionBtn(row, "Modifier", "blue", function () { openLessonModal(mod, lesson); });
+          addRowActionBtn(row, "Suppr.", "danger", function () {
+            zenoaConfirm('Supprimer la leçon "' + lesson.title + '" ?', { danger: true, confirmLabel: "Supprimer" }).then(function (ok) {
+              if (!ok) return;
+              supabase.from("course_lessons").delete().eq("id", lesson.id).then(function (res) {
+                if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+                loadContenuData();
+              });
+            });
+          });
+          card.appendChild(row);
+        });
+
+        var addLessonBtn = document.createElement("button");
+        addLessonBtn.type = "button";
+        addLessonBtn.className = "btn btn-sm";
+        addLessonBtn.style.marginTop = "8px";
+        addLessonBtn.textContent = "+ Ajouter une leçon";
+        addLessonBtn.addEventListener("click", function () { openLessonModal(mod, null); });
+        card.appendChild(addLessonBtn);
+
+        list.appendChild(card);
+      });
+    }
+
+    function openModuleModal(mod) {
+      openAdminModal(mod ? "Modifier le module" : "Ajouter un module",
+        '<div class="field"><label class="field-label">Titre</label><input type="text" id="cf-title"></div>' +
+        '<div class="field"><label class="field-label">Description</label><textarea id="cf-desc" rows="2"></textarea></div>',
+        function (done) {
+          var title = document.getElementById("cf-title").value.trim();
+          if (!title) { done("Le titre est obligatoire."); return; }
+          var payload = { title: title, description: document.getElementById("cf-desc").value.trim() || null };
+          var query = mod
+            ? supabase.from("course_modules").update(payload).eq("id", mod.id)
+            : supabase.from("course_modules").insert(Object.assign({ position: adminModules.length }, payload));
+          query.then(function (res) {
+            if (res && res.error) { done("Erreur : " + res.error.message); return; }
+            done();
+            loadContenuData();
+          });
+        });
+      document.getElementById("cf-title").value = mod ? mod.title : "";
+      document.getElementById("cf-desc").value = (mod && mod.description) || "";
+    }
+    var contenuAddModuleBtn = document.getElementById("contenu-add-module-btn");
+    if (contenuAddModuleBtn) contenuAddModuleBtn.addEventListener("click", function () { openModuleModal(null); });
+
+    function openLessonModal(mod, lesson) {
+      openAdminModal(lesson ? "Modifier la leçon" : "Ajouter une leçon",
+        '<div class="field"><label class="field-label">Titre</label><input type="text" id="cf-title"></div>' +
+        '<div class="field"><label class="field-label">Type de contenu</label><select id="cf-type"><option value="text">Texte</option><option value="video">Vidéo</option></select></div>' +
+        '<div class="field"><label class="field-label">Lien vidéo (si type vidéo)</label><input type="text" id="cf-video" placeholder="https://..."></div>' +
+        '<div class="field"><label class="field-label">Texte / description</label><textarea id="cf-text" rows="3"></textarea></div>' +
+        '<div class="field"><label class="field-label">Durée (minutes)</label><input type="number" id="cf-duration" min="1"></div>' +
+        '<div class="field"><label class="field-label">Statut</label><select id="cf-status"><option value="published">Publiée</option><option value="draft">Brouillon</option></select></div>',
+        function (done) {
+          var title = document.getElementById("cf-title").value.trim();
+          if (!title) { done("Le titre est obligatoire."); return; }
+          var durationVal = document.getElementById("cf-duration").value;
+          var payload = {
+            title: title,
+            content_type: document.getElementById("cf-type").value,
+            video_url: document.getElementById("cf-video").value.trim() || null,
+            content_text: document.getElementById("cf-text").value.trim() || null,
+            duration_minutes: durationVal ? parseInt(durationVal, 10) : null,
+            status: document.getElementById("cf-status").value
+          };
+          var query = lesson
+            ? supabase.from("course_lessons").update(payload).eq("id", lesson.id)
+            : supabase.from("course_lessons").insert(Object.assign({
+                module_id: mod.id,
+                position: adminLessons.filter(function (l) { return l.module_id === mod.id; }).length
+              }, payload));
+          query.then(function (res) {
+            if (res && res.error) { done("Erreur : " + res.error.message); return; }
+            done();
+            loadContenuData();
+          });
+        });
+      document.getElementById("cf-title").value = lesson ? lesson.title : "";
+      document.getElementById("cf-type").value = lesson ? lesson.content_type : "text";
+      document.getElementById("cf-video").value = (lesson && lesson.video_url) || "";
+      document.getElementById("cf-text").value = (lesson && lesson.content_text) || "";
+      document.getElementById("cf-duration").value = (lesson && lesson.duration_minutes) || "";
+      document.getElementById("cf-status").value = (lesson && lesson.status) || "published";
+    }
+
+    function renderContenuResources() {
+      var list = document.getElementById("contenu-resources-list");
+      if (!list) return;
+      list.innerHTML = "";
+      if (!adminResources.length) {
+        list.innerHTML = '<div class="cours-empty">Aucune ressource pour le moment.</div>';
+        return;
+      }
+      adminResources.slice().sort(function (a, b) { return a.position - b.position; }).forEach(function (r) {
+        var row = document.createElement("div");
+        row.className = "glass-card";
+        var inner = buildAdminContentItemRow(r.title, r.category + " · " + (r.resource_type === "prompt" ? "Prompt" : "Fichier"), false);
+        row.appendChild(inner);
+        addRowActionBtn(inner, "↑", "", function () { reorderItem("resources", adminResources, r, -1, loadContenuData); });
+        addRowActionBtn(inner, "↓", "", function () { reorderItem("resources", adminResources, r, 1, loadContenuData); });
+        addRowActionBtn(inner, "Modifier", "blue", function () { openResourceModal(r); });
+        addRowActionBtn(inner, "Suppr.", "danger", function () {
+          zenoaConfirm('Supprimer la ressource "' + r.title + '" ?', { danger: true, confirmLabel: "Supprimer" }).then(function (ok) {
+            if (!ok) return;
+            supabase.from("resources").delete().eq("id", r.id).then(function (res) {
+              if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+              loadContenuData();
+            });
+          });
+        });
+        list.appendChild(row);
+      });
+    }
+
+    function openResourceModal(r) {
+      openAdminModal(r ? "Modifier la ressource" : "Ajouter une ressource",
+        '<div class="field"><label class="field-label">Catégorie</label><input type="text" id="cf-category" placeholder="Templates, Prompts, Guides PDF, Outils..."></div>' +
+        '<div class="field"><label class="field-label">Titre</label><input type="text" id="cf-title"></div>' +
+        '<div class="field"><label class="field-label">Description</label><textarea id="cf-desc" rows="2"></textarea></div>' +
+        '<div class="field"><label class="field-label">Type</label><select id="cf-type"><option value="file">Fichier à télécharger</option><option value="prompt">Prompt à copier</option></select></div>' +
+        '<div class="field"><label class="field-label">Lien du fichier (si type fichier)</label><input type="text" id="cf-file-url" placeholder="https://..."></div>' +
+        '<div class="field"><label class="field-label">Texte du prompt (si type prompt)</label><textarea id="cf-prompt" rows="3"></textarea></div>',
+        function (done) {
+          var title = document.getElementById("cf-title").value.trim();
+          var category = document.getElementById("cf-category").value.trim();
+          if (!title || !category) { done("Catégorie et titre sont obligatoires."); return; }
+          var payload = {
+            category: category,
+            title: title,
+            description: document.getElementById("cf-desc").value.trim() || null,
+            resource_type: document.getElementById("cf-type").value,
+            file_url: document.getElementById("cf-file-url").value.trim() || null,
+            prompt_text: document.getElementById("cf-prompt").value.trim() || null
+          };
+          var query = r
+            ? supabase.from("resources").update(payload).eq("id", r.id)
+            : supabase.from("resources").insert(Object.assign({ position: adminResources.length }, payload));
+          query.then(function (res) {
+            if (res && res.error) { done("Erreur : " + res.error.message); return; }
+            done();
+            loadContenuData();
+            resourcesDataLoaded = false;
+            loadResourcesData();
+          });
+        });
+      document.getElementById("cf-category").value = r ? r.category : "";
+      document.getElementById("cf-title").value = r ? r.title : "";
+      document.getElementById("cf-desc").value = (r && r.description) || "";
+      document.getElementById("cf-type").value = r ? r.resource_type : "file";
+      document.getElementById("cf-file-url").value = (r && r.file_url) || "";
+      document.getElementById("cf-prompt").value = (r && r.prompt_text) || "";
+    }
+    var contenuAddResourceBtn = document.getElementById("contenu-add-resource-btn");
+    if (contenuAddResourceBtn) contenuAddResourceBtn.addEventListener("click", function () { openResourceModal(null); });
+
+    function renderContenuNews() {
+      var list = document.getElementById("contenu-news-list");
+      if (!list) return;
+      list.innerHTML = "";
+      if (!adminNewsItems.length) {
+        list.innerHTML = '<div class="cours-empty">Aucune nouveauté pour le moment.</div>';
+        return;
+      }
+      adminNewsItems.slice().sort(function (a, b) { return a.position - b.position; }).forEach(function (n) {
+        var row = document.createElement("div");
+        row.className = "glass-card";
+        var inner = buildAdminContentItemRow(n.title, n.date_label + (n.link_view ? " · lien vers " + n.link_view : ""), false);
+        row.appendChild(inner);
+        addRowActionBtn(inner, "↑", "", function () { reorderItem("home_news", adminNewsItems, n, -1, loadContenuData); });
+        addRowActionBtn(inner, "↓", "", function () { reorderItem("home_news", adminNewsItems, n, 1, loadContenuData); });
+        addRowActionBtn(inner, "Modifier", "blue", function () { openNewsModal(n); });
+        addRowActionBtn(inner, "Suppr.", "danger", function () {
+          zenoaConfirm('Supprimer la nouveauté "' + n.title + '" ?', { danger: true, confirmLabel: "Supprimer" }).then(function (ok) {
+            if (!ok) return;
+            supabase.from("home_news").delete().eq("id", n.id).then(function (res) {
+              if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+              loadContenuData();
+              loadHomeNews();
+            });
+          });
+        });
+        list.appendChild(row);
+      });
+    }
+
+    function openNewsModal(n) {
+      openAdminModal(n ? "Modifier la nouveauté" : "Ajouter une nouveauté",
+        '<div class="field"><label class="field-label">Date affichée (ex : Oct.)</label><input type="text" id="cf-date-label"></div>' +
+        '<div class="field"><label class="field-label">Titre</label><input type="text" id="cf-title"></div>' +
+        '<div class="field"><label class="field-label">Page liée au clic (optionnel)</label>' +
+        '<select id="cf-link-view"><option value="">Aucune</option><option value="resources">Ressources</option><option value="cours">Cours</option><option value="calendrier">Calendrier</option><option value="mon-projet">Mon projet</option><option value="progression">Progression</option></select></div>',
+        function (done) {
+          var title = document.getElementById("cf-title").value.trim();
+          var dateLabel = document.getElementById("cf-date-label").value.trim();
+          if (!title || !dateLabel) { done("La date et le titre sont obligatoires."); return; }
+          var payload = { title: title, date_label: dateLabel, link_view: document.getElementById("cf-link-view").value || null };
+          var query = n
+            ? supabase.from("home_news").update(payload).eq("id", n.id)
+            : supabase.from("home_news").insert(Object.assign({ position: adminNewsItems.length }, payload));
+          query.then(function (res) {
+            if (res && res.error) { done("Erreur : " + res.error.message); return; }
+            done();
+            loadContenuData();
+            loadHomeNews();
+          });
+        });
+      document.getElementById("cf-date-label").value = n ? n.date_label : "";
+      document.getElementById("cf-title").value = n ? n.title : "";
+      document.getElementById("cf-link-view").value = (n && n.link_view) || "";
+    }
+    var contenuAddNewsBtn = document.getElementById("contenu-add-news-btn");
+    if (contenuAddNewsBtn) contenuAddNewsBtn.addEventListener("click", function () { openNewsModal(null); });
+
+    function renderContenuEvents() {
+      var list = document.getElementById("contenu-events-list");
+      if (!list) return;
+      list.innerHTML = "";
+      if (!adminEvents.length) {
+        list.innerHTML = '<div class="cours-empty">Aucun événement pour le moment.</div>';
+        return;
+      }
+      adminEvents.slice().sort(function (a, b) { return (a.event_date + "T" + a.event_time).localeCompare(b.event_date + "T" + b.event_time); }).forEach(function (ev) {
+        var row = document.createElement("div");
+        row.className = "glass-card";
+        var inner = buildAdminContentItemRow(ev.title, formatShortDate(ev.event_date) + " à " + (ev.event_time || "").slice(0, 5), false);
+        row.appendChild(inner);
+        addRowActionBtn(inner, "Modifier", "blue", function () { openEventModal(ev); });
+        addRowActionBtn(inner, "Suppr.", "danger", function () {
+          zenoaConfirm('Supprimer l\'événement "' + ev.title + '" ?', { danger: true, confirmLabel: "Supprimer" }).then(function (ok) {
+            if (!ok) return;
+            supabase.from("calendar_events").delete().eq("id", ev.id).then(function (res) {
+              if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+              loadContenuData();
+              calendarDataLoaded = false;
+              loadCalendarData();
+            });
+          });
+        });
+        list.appendChild(row);
+      });
+    }
+
+    function openEventModal(ev) {
+      openAdminModal(ev ? "Modifier l'événement" : "Ajouter un événement",
+        '<div class="field"><label class="field-label">Titre</label><input type="text" id="cf-title"></div>' +
+        '<div class="field"><label class="field-label">Description</label><textarea id="cf-desc" rows="2"></textarea></div>' +
+        '<div class="field"><label class="field-label">Date</label><input type="date" id="cf-date"></div>' +
+        '<div class="field"><label class="field-label">Heure (Paris)</label><input type="time" id="cf-time"></div>' +
+        '<div class="field"><label class="field-label">Lien de connexion (optionnel)</label><input type="text" id="cf-join" placeholder="https://..."></div>' +
+        '<div class="field"><label class="field-label">Lien du replay (optionnel)</label><input type="text" id="cf-replay" placeholder="https://..."></div>',
+        function (done) {
+          var title = document.getElementById("cf-title").value.trim();
+          var date = document.getElementById("cf-date").value;
+          var time = document.getElementById("cf-time").value;
+          if (!title || !date || !time) { done("Titre, date et heure sont obligatoires."); return; }
+          var payload = {
+            title: title,
+            description: document.getElementById("cf-desc").value.trim() || null,
+            event_date: date,
+            event_time: time + ":00",
+            join_url: document.getElementById("cf-join").value.trim() || null,
+            replay_url: document.getElementById("cf-replay").value.trim() || null
+          };
+          var query = ev
+            ? supabase.from("calendar_events").update(payload).eq("id", ev.id)
+            : supabase.from("calendar_events").insert(Object.assign({ created_by: me.id }, payload));
+          query.then(function (res) {
+            if (res && res.error) { done("Erreur : " + res.error.message); return; }
+            done();
+            loadContenuData();
+            calendarDataLoaded = false;
+            loadCalendarData();
+          });
+        });
+      document.getElementById("cf-title").value = ev ? ev.title : "";
+      document.getElementById("cf-desc").value = (ev && ev.description) || "";
+      document.getElementById("cf-date").value = ev ? ev.event_date : "";
+      document.getElementById("cf-time").value = ev ? (ev.event_time || "").slice(0, 5) : "";
+      document.getElementById("cf-join").value = (ev && ev.join_url) || "";
+      document.getElementById("cf-replay").value = (ev && ev.replay_url) || "";
+    }
+    var contenuAddEventBtn = document.getElementById("contenu-add-event-btn");
+    if (contenuAddEventBtn) contenuAddEventBtn.addEventListener("click", function () { openEventModal(null); });
+
+    // ---------- Page Retours ----------
+    var retoursSubmissions = [];
+    var retoursFilter = "pending";
+
+    function loadRetoursData() {
+      Promise.all([
+        supabase.from("project_submissions").select("id,user_id,note,link_url,file_name,file_path,created_at,admin_feedback,corrected").order("created_at", { ascending: false }),
+        supabase.from("profiles").select("id,pseudo,email").eq("role", "membre")
+      ]).then(function (results) {
+        var subs = (results[0] && results[0].data) || [];
+        var byId = {};
+        ((results[1] && results[1].data) || []).forEach(function (s) { byId[s.id] = s; });
+        retoursSubmissions = subs.map(function (sub) {
+          var student = byId[sub.user_id];
+          sub._studentName = student ? (student.pseudo || student.email) : "Élève inconnu";
+          return sub;
+        });
+        renderRetoursFilterPills();
+        renderRetoursList();
+      });
+    }
+
+    function renderRetoursFilterPills() {
+      var wrap = document.getElementById("retours-filter-pills");
+      if (!wrap) return;
+      wrap.innerHTML = "";
+      [{ key: "pending", label: "À corriger" }, { key: "corrected", label: "Corrigés" }, { key: "all", label: "Tous" }].forEach(function (f) {
+        var pill = document.createElement("button");
+        pill.type = "button";
+        pill.className = "ressources-cat-pill" + (retoursFilter === f.key ? " active" : "");
+        pill.textContent = f.label;
+        pill.addEventListener("click", function () { retoursFilter = f.key; renderRetoursFilterPills(); renderRetoursList(); });
+        wrap.appendChild(pill);
+      });
+    }
+
+    function renderRetoursList() {
+      var list = document.getElementById("retours-list");
+      if (!list) return;
+      var filtered = retoursSubmissions.filter(function (sub) {
+        if (retoursFilter === "pending") return !sub.corrected;
+        if (retoursFilter === "corrected") return sub.corrected;
+        return true;
+      });
+      list.innerHTML = "";
+      if (!filtered.length) {
+        list.innerHTML = '<div class="cours-empty">Aucun dépôt dans cette catégorie.</div>';
+        return;
+      }
+
+      filtered.forEach(function (sub) {
+        var item = document.createElement("div");
+        item.className = "glass-card retour-item";
+        item.innerHTML =
+          '<div class="retour-item-head"><span class="retour-item-student"></span><span class="retour-item-date"></span></div>' +
+          '<div class="retour-item-body"></div>' +
+          '<div class="field"><label class="field-label">Ton retour</label><textarea rows="3" class="retour-feedback-textarea"></textarea></div>' +
+          '<div class="admin-content-item-actions">' +
+            '<button type="button" class="btn blue btn-sm" data-act="save">Enregistrer le retour</button>' +
+            '<button type="button" class="btn btn-sm" data-act="toggle"></button>' +
+          '</div>';
+        item.querySelector(".retour-item-student").textContent = sub._studentName;
+        item.querySelector(".retour-item-date").textContent = formatShortDateTime(sub.created_at);
+
+        var body = item.querySelector(".retour-item-body");
+        if (sub.note) {
+          var noteEl = document.createElement("div");
+          noteEl.className = "projet-submission-note";
+          noteEl.textContent = sub.note;
+          body.appendChild(noteEl);
+        }
+        if (sub.link_url) {
+          var linkEl = document.createElement("a");
+          linkEl.className = "projet-submission-link";
+          linkEl.href = sub.link_url;
+          linkEl.target = "_blank";
+          linkEl.rel = "noopener";
+          linkEl.textContent = "🔗 " + sub.link_url;
+          body.appendChild(linkEl);
+        }
+        if (sub.file_path) {
+          var fileEl = document.createElement("a");
+          fileEl.className = "projet-submission-file";
+          fileEl.href = "#";
+          fileEl.textContent = "📎 " + (sub.file_name || "Fichier joint");
+          fileEl.addEventListener("click", function (e) {
+            e.preventDefault();
+            supabase.storage.from("project-uploads").createSignedUrl(sub.file_path, 3600).then(function (res) {
+              if (res && res.data && res.data.signedUrl) window.open(res.data.signedUrl, "_blank");
+              else alert("Impossible d'ouvrir ce fichier pour le moment.");
+            });
+          });
+          body.appendChild(fileEl);
+        }
+
+        var feedbackTextarea = item.querySelector(".retour-feedback-textarea");
+        feedbackTextarea.value = sub.admin_feedback || "";
+        item.querySelector('[data-act="save"]').addEventListener("click", function () {
+          supabase.from("project_submissions").update({ admin_feedback: feedbackTextarea.value }).eq("id", sub.id).then(function (res) {
+            if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+            sub.admin_feedback = feedbackTextarea.value;
+            showToast("Retour enregistré.");
+          });
+        });
+        var toggleBtn = item.querySelector('[data-act="toggle"]');
+        toggleBtn.textContent = sub.corrected ? "Repasser à corriger" : "Marquer comme corrigé";
+        toggleBtn.className = "btn btn-sm" + (sub.corrected ? "" : " orange");
+        toggleBtn.addEventListener("click", function () {
+          var newCorrected = !sub.corrected;
+          supabase.from("project_submissions").update({ corrected: newCorrected, corrected_at: newCorrected ? new Date().toISOString() : null }).eq("id", sub.id).then(function (res) {
+            if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+            sub.corrected = newCorrected;
+            renderRetoursList();
+            loadDashboardData();
+          });
+        });
+
+        list.appendChild(item);
+      });
+    }
+
+    // ---------- Page Accès et codes ----------
+    var adminCodes = [];
+    var codesFilter = "all";
+    // Alphabet sans caractères ambigus (0/O, 1/I/L) pour que les codes
+    // tapés à la main se trompent le moins possible.
+    var CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+    function generateRandomCode() {
+      function randomChars(n) {
+        var bytes = new Uint8Array(n);
+        crypto.getRandomValues(bytes);
+        var out = "";
+        for (var i = 0; i < n; i++) out += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
+        return out;
+      }
+      return randomChars(3) + "-" + randomChars(6);
+    }
+
+    function loadCodesData() {
+      Promise.all([
+        supabase.from("access_codes").select("code,type,used_by,created_at,note,disabled,expires_access_days,intended_pseudo,intended_email").eq("type", "membre").order("created_at", { ascending: false }),
+        supabase.from("profiles").select("id,pseudo,email,created_at")
+      ]).then(function (results) {
+        var codes = (results[0] && results[0].data) || [];
+        var profilesById = {};
+        ((results[1] && results[1].data) || []).forEach(function (p) { profilesById[p.id] = p; });
+        adminCodes = codes.map(function (c) {
+          c._usedByProfile = c.used_by ? profilesById[c.used_by] : null;
+          return c;
+        });
+        renderCodesFilterPills();
+        renderCodesList();
+      });
+    }
+
+    function codeStatus(c) {
+      if (c.disabled) return "disabled";
+      if (c.used_by) return "used";
+      return "available";
+    }
+    function codeStatusLabel(status) {
+      if (status === "disabled") return "Désactivé";
+      if (status === "used") return "Utilisé";
+      return "Disponible";
+    }
+    function codeStatusPillClass(status) {
+      if (status === "disabled") return "status-suspended";
+      if (status === "used") return "status-churn";
+      return "status-actif";
+    }
+
+    function renderCodesFilterPills() {
+      var wrap = document.getElementById("codes-filter-pills");
+      if (!wrap) return;
+      wrap.innerHTML = "";
+      [{ key: "all", label: "Tous" }, { key: "available", label: "Disponibles" }, { key: "used", label: "Utilisés" }, { key: "disabled", label: "Désactivés" }].forEach(function (f) {
+        var pill = document.createElement("button");
+        pill.type = "button";
+        pill.className = "ressources-cat-pill" + (codesFilter === f.key ? " active" : "");
+        pill.textContent = f.label;
+        pill.addEventListener("click", function () { codesFilter = f.key; renderCodesFilterPills(); renderCodesList(); });
+        wrap.appendChild(pill);
+      });
+    }
+
+    function renderCodesList() {
+      var list = document.getElementById("codes-list");
+      if (!list) return;
+      var searchInput = document.getElementById("codes-search-input");
+      var q = (searchInput ? searchInput.value : "").trim().toLowerCase();
+      var filtered = adminCodes.filter(function (c) {
+        if (codesFilter !== "all" && codeStatus(c) !== codesFilter) return false;
+        if (q) {
+          var hay = (c.code + " " + (c.intended_pseudo || "") + " " + (c.intended_email || "") +
+            " " + (c._usedByProfile ? (c._usedByProfile.pseudo || "") + " " + (c._usedByProfile.email || "") : "")).toLowerCase();
+          if (hay.indexOf(q) === -1) return false;
+        }
+        return true;
+      });
+      list.innerHTML = "";
+      if (!filtered.length) {
+        list.innerHTML = '<div class="cours-empty">Aucun code trouvé.</div>';
+        return;
+      }
+
+      filtered.forEach(function (c) {
+        var status = codeStatus(c);
+        var item = document.createElement("div");
+        item.className = "glass-card admin-code-item";
+        item.innerHTML =
+          '<div class="admin-code-head"><span class="admin-code-value"></span><span class="status-pill"></span></div>' +
+          '<div class="admin-code-meta"></div>' +
+          '<div class="admin-code-actions"></div>';
+        item.querySelector(".admin-code-value").textContent = c.code;
+        var pill = item.querySelector(".status-pill");
+        pill.classList.add(codeStatusPillClass(status));
+        pill.textContent = codeStatusLabel(status);
+
+        var metaParts = [];
+        if (c.intended_pseudo || c.intended_email) metaParts.push("Pour : " + (c.intended_pseudo || c.intended_email));
+        if (c.expires_access_days) metaParts.push(c.expires_access_days + " jours d'accès prévus");
+        if (c.note) metaParts.push("Note : " + c.note);
+        if (c._usedByProfile) metaParts.push("Utilisé par " + (c._usedByProfile.pseudo || c._usedByProfile.email) + " le " + formatShortDate(c._usedByProfile.created_at));
+        item.querySelector(".admin-code-meta").textContent = metaParts.length ? metaParts.join(" · ") : "Aucune information supplémentaire.";
+
+        var actions = item.querySelector(".admin-code-actions");
+        var copyBtn = document.createElement("button");
+        copyBtn.type = "button";
+        copyBtn.className = "btn btn-sm";
+        copyBtn.textContent = "Copier le lien";
+        copyBtn.addEventListener("click", function () {
+          var link = window.location.origin + window.location.pathname + "?code=" + encodeURIComponent(c.code);
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link).then(function () { showToast("Lien copié !"); });
+          } else {
+            showToast("Copie non disponible sur ce navigateur.");
+          }
+        });
+        actions.appendChild(copyBtn);
+
+        if (status !== "disabled") {
+          var disableBtn = document.createElement("button");
+          disableBtn.type = "button";
+          disableBtn.className = "btn danger btn-sm";
+          disableBtn.textContent = "Désactiver";
+          disableBtn.addEventListener("click", function () {
+            zenoaConfirm("Désactiver ce code ? Il ne pourra plus être utilisé pour s'inscrire.", { danger: true, confirmLabel: "Désactiver" }).then(function (ok) {
+              if (!ok) return;
+              supabase.from("access_codes").update({ disabled: true }).eq("code", c.code).then(function (res) {
+                if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+                loadCodesData();
+              });
+            });
+          });
+          actions.appendChild(disableBtn);
+        }
+
+        list.appendChild(item);
+      });
+    }
+
+    var codesSearchInput = document.getElementById("codes-search-input");
+    if (codesSearchInput) codesSearchInput.addEventListener("input", renderCodesList);
+
+    var codesGenerateBtn = document.getElementById("codes-generate-btn");
+    if (codesGenerateBtn) {
+      codesGenerateBtn.addEventListener("click", function () {
+        var qtyInput = document.getElementById("codes-qty-input");
+        var durationInput = document.getElementById("codes-duration-input");
+        var pseudoInput = document.getElementById("codes-pseudo-input");
+        var emailInput = document.getElementById("codes-email-input");
+        var noteInput = document.getElementById("codes-note-input");
+        var successEl = document.getElementById("codes-generate-success");
+        var qty = Math.max(1, Math.min(50, parseInt(qtyInput.value, 10) || 1));
+        var durationDays = durationInput.value ? parseInt(durationInput.value, 10) : null;
+        var rows = [];
+        for (var i = 0; i < qty; i++) {
+          rows.push({
+            code: generateRandomCode(),
+            type: "membre",
+            expires_access_days: durationDays,
+            intended_pseudo: pseudoInput.value.trim() || null,
+            intended_email: emailInput.value.trim() || null,
+            note: noteInput.value.trim() || null
+          });
+        }
+        codesGenerateBtn.disabled = true;
+        if (successEl) successEl.textContent = "";
+        supabase.from("access_codes").insert(rows).then(function (res) {
+          codesGenerateBtn.disabled = false;
+          if (res && res.error) { if (successEl) successEl.textContent = "Erreur : " + res.error.message; return; }
+          if (successEl) successEl.textContent = qty > 1 ? qty + " codes créés." : "Code créé : " + rows[0].code;
+          qtyInput.value = "1";
+          durationInput.value = "";
+          pseudoInput.value = "";
+          emailInput.value = "";
+          noteInput.value = "";
+          loadCodesData();
+        });
+      });
+    }
+
+    // ----- Rechargement des données admin à chaque visite d'une page
+    // (contrairement aux pages élève, les données admin changent souvent :
+    // nouvel élève, nouveau dépôt... donc pas de cache "chargé une fois"). -----
+    var navChefDashboard = document.getElementById("nav-chef-dashboard");
+    if (navChefDashboard) navChefDashboard.addEventListener("click", loadDashboardData);
+    var navChefEleves = document.getElementById("nav-chef-eleves");
+    if (navChefEleves) navChefEleves.addEventListener("click", loadElevesData);
+    var navChefContenu = document.getElementById("nav-chef-contenu");
+    if (navChefContenu) navChefContenu.addEventListener("click", loadContenuData);
+    var navChefRetours = document.getElementById("nav-chef-retours");
+    if (navChefRetours) navChefRetours.addEventListener("click", loadRetoursData);
+    var navChefCodes = document.getElementById("nav-chef-codes");
+    if (navChefCodes) navChefCodes.addEventListener("click", loadCodesData);
+    document.querySelectorAll(".admin-pending-row [data-view]").forEach(function (btn) {
+      btn.addEventListener("click", function () { goToView(btn.getAttribute("data-view")); });
+    });
+
     var previousViewBeforeSettings = "accueil";
     if (settingsBtn) {
       settingsBtn.addEventListener("click", function () {
@@ -1411,6 +2711,11 @@
         me = res.data;
         applyMyCustomRole(me.custom_role);
         renderAccueil();
+        // Horodatage de la dernière connexion, utilisé par le Tableau de
+        // bord admin ("Qui avance" / "Qui est bloqué"). Non bloquant :
+        // si la colonne n'existe pas encore (migration admin-panel.sql
+        // pas encore passée), l'erreur est ignorée, rien d'autre ne casse.
+        supabase.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("id", userId).then(function () {});
         // Chaque rôle a sa propre navigation à gauche : élèves (Accueil...)
         // ou chef (Tableau de bord...), jamais les deux en même temps.
         var isChef = me.role === "chef";
@@ -1421,6 +2726,7 @@
           el.style.display = isChef ? "flex" : "none";
         });
         switchToView(isChef ? "tableau-de-bord" : "accueil");
+        if (isChef) loadDashboardData();
 
         // Champs ajoutés par des migrations plus récentes (mission_done,
         // streak) : récupérés à part, pour ne jamais bloquer le reste de
@@ -1451,6 +2757,7 @@
         loadResourcesData();
         loadBadgesData(session.user.id);
         loadCalendarData();
+        loadHomeNews();
       }
     });
     supabase.auth.onAuthStateChange(function (event, session) {
@@ -1461,6 +2768,7 @@
         loadResourcesData();
         loadBadgesData(session.user.id);
         loadCalendarData();
+        loadHomeNews();
       }
     });
   }
