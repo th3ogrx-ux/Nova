@@ -3,21 +3,22 @@
 -- À coller dans Supabase Dashboard > SQL Editor > Run.
 -- Ré-exécutable sans risque (sauf le bloc de données de test, à ne
 -- coller qu'une seule fois — voir la note plus bas).
+--
+-- IMPORTANT : la table public.calendar_events existait déjà (créée
+-- par une fonctionnalité calendrier précédente) avec les colonnes
+-- id, created_by, title, description, event_date, event_time,
+-- created_at. On la réutilise telle quelle (pas de table en double) :
+-- ce fichier se contente d'y AJOUTER les 2 colonnes qui manquaient
+-- (join_url, replay_url) et d'activer la sécurité dessus.
+-- event_date/event_time sont déjà en heure de Paris (pas de fuseau
+-- stocké), donc l'app ne fait aucune conversion pour l'affichage —
+-- seule la génération du fichier .ics convertit vers l'UTC, ce que
+-- les fichiers .ics attendent.
 -- ============================================================
 
-create table if not exists public.calendar_events (
-  id uuid primary key default gen_random_uuid(),
-  title text not null,
-  description text,
-  -- Stockées en UTC (timestamptz) comme il se doit ; l'app les
-  -- affiche converties en Europe/Paris automatiquement, quelle que
-  -- soit l'heure locale de la personne qui regarde.
-  starts_at timestamptz not null,
-  ends_at timestamptz,
-  join_url text,     -- lien de connexion (visio), affiché tant que l'event est à venir
-  replay_url text,   -- lien du replay, affiché une fois l'event passé
-  created_at timestamptz not null default now()
-);
+alter table public.calendar_events
+  add column if not exists join_url text,     -- lien de connexion (visio), affiché tant que l'event est à venir
+  add column if not exists replay_url text;    -- lien du replay, affiché une fois l'event passé
 
 alter table public.calendar_events enable row level security;
 
@@ -28,30 +29,32 @@ create policy "authenticated can read events" on public.calendar_events
 -- ============================================================
 -- DONNÉES DE TEST — un événement à venir et un événement passé (pour
 -- voir le rendu des deux sections). Ne coller qu'UNE SEULE FOIS.
--- Les heures ci-dessous sont écrites en UTC ('Z') ; 18:00 UTC = 20:00
--- heure de Paris en été (19:00 en hiver) — ajuste si besoin.
 -- ============================================================
 
-insert into public.calendar_events (title, description, starts_at, join_url) values
+insert into public.calendar_events (title, description, event_date, event_time, join_url) values
   ('Live mensuel Q&A', 'Session de questions/réponses en direct sur ton avancement.',
-   (now() + interval '5 days') at time zone 'utc', 'https://meet.example.com/live-zenoa');
+   (current_date + 5), '20:00:00', 'https://meet.example.com/live-zenoa');
 
-insert into public.calendar_events (title, description, starts_at, replay_url) values
+insert into public.calendar_events (title, description, event_date, event_time, replay_url) values
   ('Live de lancement', 'Présentation du programme et de la méthode.',
-   (now() - interval '10 days') at time zone 'utc', null);
+   (current_date - 10), '20:00:00', null);
 
 -- ============================================================
 -- Comment ajouter un événement plus tard (Supabase Dashboard > Table
 -- Editor, ou SQL Editor) :
 --
---   insert into public.calendar_events (title, description, starts_at, join_url)
+--   insert into public.calendar_events (title, description, event_date, event_time, join_url)
 --   values (
 --     'Mon prochain live', 'Sa description courte.',
---     '2026-11-15 19:00:00+01',  -- heure Paris : ajoute le décalage (+01 hiver, +02 été)
+--     '2026-11-15',   -- date
+--     '19:00:00',     -- heure de Paris (murale, pas de fuseau à gérer)
 --     'https://lien-de-connexion.example.com'
 --   );
 --
 -- Une fois l'event passé, ajoute son replay avec un update :
 --   update public.calendar_events set replay_url = 'https://...'
 --   where title = 'Mon prochain live';
+--
+-- "created_by" (optionnel) peut recevoir ton user_id si tu veux
+-- garder une trace de qui a créé l'événement ; laisse-le à null sinon.
 -- ============================================================

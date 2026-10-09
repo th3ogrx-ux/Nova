@@ -991,7 +991,12 @@
     }
 
     // ---------- Page Calendrier ----------
-    // Événements dans la table "calendar_events" (voir calendrier.sql).
+    // Table "calendar_events" (voir calendrier.sql) : table déjà
+    // existante (ancienne fonctionnalité calendrier), réutilisée telle
+    // quelle plutôt que dupliquée. Colonnes event_date/event_time sont
+    // déjà en heure de Paris (murale, sans fuseau stocké) : aucune
+    // conversion pour l'affichage, seule la génération du .ics a besoin
+    // d'un vrai instant UTC.
 
     var calendarEvents = [];
     var calendarDataLoaded = false;
@@ -999,33 +1004,56 @@
     function loadCalendarData() {
       if (calendarDataLoaded) return;
       calendarDataLoaded = true;
-      supabase.from("calendar_events").select("id,title,description,starts_at,ends_at,join_url,replay_url").order("starts_at").then(function (res) {
+      supabase.from("calendar_events").select("id,title,description,event_date,event_time,join_url,replay_url").order("event_date").order("event_time").then(function (res) {
         if (res && res.data) calendarEvents = res.data;
         renderCalendar();
       });
     }
 
-    function formatParisDate(iso) {
-      var d = new Date(iso);
+    // Place date/heure "telles quelles" dans un Date en UTC — jamais
+    // interprété comme un vrai instant UTC, juste un support pour les
+    // utilitaires de formatage de Date (toLocaleString...).
+    function parseEventDateTime(dateStr, timeStr) {
+      return new Date((dateStr || "1970-01-01") + "T" + (timeStr || "00:00:00") + "Z");
+    }
+
+    function formatEventDate(dateStr, timeStr) {
+      var d = parseEventDateTime(dateStr, timeStr);
       return {
-        day: d.toLocaleDateString("fr-FR", { day: "2-digit", timeZone: "Europe/Paris" }),
-        month: d.toLocaleDateString("fr-FR", { month: "short", timeZone: "Europe/Paris" }),
-        full: d.toLocaleString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" })
+        day: d.toLocaleDateString("fr-FR", { day: "2-digit", timeZone: "UTC" }),
+        month: d.toLocaleDateString("fr-FR", { month: "short", timeZone: "UTC" }),
+        full: d.toLocaleString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })
       };
+    }
+
+    // Convertit une heure murale Europe/Paris en vrai instant UTC (pour
+    // comparer à "maintenant" et pour le fichier .ics), été comme hiver,
+    // sans dépendance externe.
+    function parisWallTimeToUtcDate(dateStr, timeStr) {
+      var guess = parseEventDateTime(dateStr, timeStr);
+      var parisStr = new Intl.DateTimeFormat("en-US", {
+        timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+      }).format(guess);
+      var m = parisStr.match(/(\d+)\/(\d+)\/(\d+),?\s+(\d+):(\d+):(\d+)/);
+      if (!m) return guess;
+      var hour = +m[4] === 24 ? 0 : +m[4];
+      var parisAsIfUtc = Date.UTC(+m[3], +m[1] - 1, +m[2], hour, +m[5], +m[6]);
+      var offsetMs = guess.getTime() - parisAsIfUtc;
+      return new Date(guess.getTime() + offsetMs);
     }
 
     // Génère un fichier .ics minimal pour un événement et le télécharge.
     function downloadIcs(evt) {
-      function toIcsDate(iso) {
-        return new Date(iso).toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+      function toIcsDate(d) {
+        return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
       }
       var lines = [
         "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ZENOA//Calendrier//FR", "BEGIN:VEVENT",
         "UID:" + evt.id + "@zenoa",
-        "DTSTAMP:" + toIcsDate(new Date().toISOString()),
-        "DTSTART:" + toIcsDate(evt.starts_at)
+        "DTSTAMP:" + toIcsDate(new Date()),
+        "DTSTART:" + toIcsDate(parisWallTimeToUtcDate(evt.event_date, evt.event_time))
       ];
-      if (evt.ends_at) lines.push("DTEND:" + toIcsDate(evt.ends_at));
       lines.push("SUMMARY:" + (evt.title || "").replace(/\n/g, " "));
       if (evt.description) lines.push("DESCRIPTION:" + evt.description.replace(/\n/g, "\\n"));
       if (evt.join_url) lines.push("LOCATION:" + evt.join_url);
@@ -1050,7 +1078,7 @@
         return;
       }
       events.forEach(function (evt) {
-        var d = formatParisDate(evt.starts_at);
+        var d = formatEventDate(evt.event_date, evt.event_time);
         var card = document.createElement("div");
         card.className = "glass-card calendrier-event" + (isPast ? " past" : "");
 
@@ -1118,8 +1146,8 @@
 
     function renderCalendar() {
       var now = new Date();
-      var upcoming = calendarEvents.filter(function (e) { return new Date(e.starts_at) >= now; });
-      var past = calendarEvents.filter(function (e) { return new Date(e.starts_at) < now; }).slice().reverse();
+      var upcoming = calendarEvents.filter(function (e) { return parisWallTimeToUtcDate(e.event_date, e.event_time) >= now; });
+      var past = calendarEvents.filter(function (e) { return parisWallTimeToUtcDate(e.event_date, e.event_time) < now; }).slice().reverse();
       renderCalendarList("calendrier-upcoming-list", upcoming, false);
       renderCalendarList("calendrier-past-list", past, true);
     }
