@@ -92,7 +92,10 @@
        avec une spécificité (sélecteur avec id) plus forte que les
        règles !important ci-dessus pour être sûr de les emporter. */
     .sidebar{transition:width .22s ease;}
-    .sidebar-toggle{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);z-index:5;}
+    /* top tient compte de env(safe-area-inset-top) : sur téléphone (PWA
+       plein écran avec encoche/barre système), un top fixe en pixels
+       plaçait le bouton sous cette barre, donc inatteignable. */
+    .sidebar-toggle{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);z-index:5;}
     .sidebar-toggle svg{width:16px;height:16px;}
     .sidebar-toggle:hover{background:rgba(255,255,255,.16);}
     #screen-app.sidebar-collapsed .sidebar{width:76px!important;}
@@ -152,7 +155,7 @@
     .nav-item{padding:9px 12px;font-size:13.5px;gap:10px;margin-bottom:1px;color:#fff;}
     /* padding-top dégagé pour que le premier item ne passe pas sous le
        bouton réduire/agrandir, placé en haut à droite de la sidebar. */
-    .nav-list{padding:56px 10px 8px;}
+    .nav-list{padding:calc(56px + env(safe-area-inset-top)) 10px 8px;}
 
     /* Lueur blanche en bas de la sidebar (même esprit que la lueur verte
        de la capture envoyée, en blanc). */
