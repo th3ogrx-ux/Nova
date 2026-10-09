@@ -31,30 +31,33 @@ create policy "authenticated can read events" on public.calendar_events
 -- voir le rendu des deux sections). Ne coller qu'UNE SEULE FOIS.
 -- ============================================================
 
-insert into public.calendar_events (title, description, event_date, event_time, join_url) values
+-- created_by est obligatoire (NOT NULL) sur la table existante : on le
+-- remplit avec ton propre compte (le chef), via une sous-requête plutôt
+-- que de devoir coller ton user_id à la main.
+insert into public.calendar_events (title, description, event_date, event_time, join_url, created_by) values
   ('Live mensuel Q&A', 'Session de questions/réponses en direct sur ton avancement.',
-   (current_date + 5), '20:00:00', 'https://meet.example.com/live-zenoa');
+   (current_date + 5), '20:00:00', 'https://meet.example.com/live-zenoa',
+   (select id from public.profiles where role = 'chef' limit 1));
 
-insert into public.calendar_events (title, description, event_date, event_time, replay_url) values
+insert into public.calendar_events (title, description, event_date, event_time, replay_url, created_by) values
   ('Live de lancement', 'Présentation du programme et de la méthode.',
-   (current_date - 10), '20:00:00', null);
+   (current_date - 10), '20:00:00', null,
+   (select id from public.profiles where role = 'chef' limit 1));
 
 -- ============================================================
 -- Comment ajouter un événement plus tard (Supabase Dashboard > Table
 -- Editor, ou SQL Editor) :
 --
---   insert into public.calendar_events (title, description, event_date, event_time, join_url)
+--   insert into public.calendar_events (title, description, event_date, event_time, join_url, created_by)
 --   values (
 --     'Mon prochain live', 'Sa description courte.',
 --     '2026-11-15',   -- date
 --     '19:00:00',     -- heure de Paris (murale, pas de fuseau à gérer)
---     'https://lien-de-connexion.example.com'
+--     'https://lien-de-connexion.example.com',
+--     (select id from public.profiles where role = 'chef' limit 1)  -- created_by est obligatoire
 --   );
 --
 -- Une fois l'event passé, ajoute son replay avec un update :
 --   update public.calendar_events set replay_url = 'https://...'
 --   where title = 'Mon prochain live';
---
--- "created_by" (optionnel) peut recevoir ton user_id si tu veux
--- garder une trace de qui a créé l'événement ; laisse-le à null sinon.
 -- ============================================================
