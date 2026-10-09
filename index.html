@@ -155,7 +155,11 @@
     .nav-item{padding:9px 12px;font-size:13.5px;gap:10px;margin-bottom:1px;color:#fff;}
     /* padding-top dégagé pour que le premier item ne passe pas sous le
        bouton réduire/agrandir, placé en haut à droite de la sidebar. */
-    .nav-list{padding:calc(56px + env(safe-area-inset-top)) 10px 8px;}
+    /* padding-top en dur (pas de env() ici) : .sidebar a déjà son propre
+       padding-top:env(safe-area-inset-top) (règle plus bas), donc
+       l'ajouter aussi ici comptait la zone sûre deux fois et créait un
+       espace énorme entre le bouton et le premier item. */
+    .nav-list{padding:56px 10px 8px;}
 
     /* Lueur blanche en bas de la sidebar (même esprit que la lueur verte
        de la capture envoyée, en blanc). */
