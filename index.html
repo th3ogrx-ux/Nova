@@ -298,6 +298,14 @@
     /* ---------- Page Cours ---------- */
     .btn.orange{background:linear-gradient(120deg,#f6923d,#f6b93d);border:none;color:#2b1604;font-weight:700;}
     .btn.orange:hover{background:linear-gradient(120deg,#f6b93d,#f6923d);color:#2b1604;}
+    /* Accent bleu électrique, utilisé à côté de l'orange sur les
+       nouvelles pages (Mon projet, Ressources, Progression, Calendrier). */
+    .btn.blue{background:linear-gradient(120deg,#2f80ff,#5ba6ff);border:none;color:#fff;font-weight:700;}
+    .btn.blue:hover{background:linear-gradient(120deg,#5ba6ff,#2f80ff);color:#fff;}
+    /* .btn est parfois posé sur un <a> (bouton Télécharger, Rejoindre...) :
+       pas de soulignement de lien dans ce cas. */
+    a.btn{text-decoration:none;}
+    .progress-fill.prog-blue{background:linear-gradient(90deg,#2f80ff,#5ba6ff);}
     .cours-page-head{margin-bottom:18px;}
     .cours-page-title{font-size:22px;font-weight:700;margin-bottom:4px;}
     .cours-page-sub{font-size:13.5px;color:#6b6478;}
@@ -327,6 +335,58 @@
     .lecon-body{font-size:14px;line-height:1.7;color:#1c1430;margin-bottom:22px;white-space:pre-wrap;}
     .lecon-body video{width:100%;border-radius:14px;display:block;margin-bottom:16px;}
     .lecon-actions{display:flex;gap:10px;flex-wrap:wrap;}
+
+    /* ---------- Page Mon projet ---------- */
+    .projet-title-row{display:flex;gap:10px;flex-wrap:wrap;}
+    .projet-title-row input{flex:1;min-width:160px;}
+    .projet-steps-list{margin-top:14px;display:flex;flex-direction:column;gap:2px;}
+    .projet-step-row{display:flex;align-items:center;gap:12px;padding:10px 4px;cursor:pointer;font-size:14px;}
+    .projet-step-row input[type="checkbox"]{width:18px;height:18px;flex-shrink:0;accent-color:#2f80ff;cursor:pointer;}
+    .projet-step-row.done span{text-decoration:line-through;color:#6b6478;}
+    .projet-submission-item{padding:14px 0;border-bottom:1px solid rgba(28,20,48,.08);}
+    .projet-submission-item:last-child{border-bottom:none;}
+    .projet-submission-date{font-size:11px;color:#6b6478;margin-bottom:4px;}
+    .projet-submission-note{font-size:13.5px;margin-bottom:4px;white-space:pre-wrap;}
+    .projet-submission-link,.projet-submission-file{font-size:12.5px;color:#2f80ff;word-break:break-all;display:block;text-decoration:none;cursor:pointer;}
+    .projet-submission-link:hover,.projet-submission-file:hover{text-decoration:underline;}
+
+    /* ---------- Page Ressources ---------- */
+    .ressources-categories{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
+    .ressources-cat-pill{font-size:12px;padding:7px 14px;border-radius:20px;cursor:pointer;border:1px solid rgba(28,20,48,.14);color:#6b6478;background:none;font-family:inherit;}
+    .ressources-cat-pill.active{background:#2f80ff;border-color:#2f80ff;color:#fff;font-weight:600;}
+    .ressources-category{margin-bottom:22px;}
+    .ressources-category-head{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#6b6478;margin:4px 2px 10px;font-weight:600;}
+    .ressource-item{display:flex;align-items:center;gap:14px;padding:16px 18px;margin-bottom:10px;flex-wrap:wrap;}
+    .ressource-item-info{flex:1;min-width:160px;}
+    .ressource-item-title{font-size:14px;font-weight:700;margin-bottom:3px;}
+    .ressource-item-desc{font-size:12.5px;color:#6b6478;}
+    .ressource-item-type{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:20px;background:rgba(47,128,255,.12);color:#2f80ff;font-weight:700;flex-shrink:0;}
+    .ressources-empty{padding:30px 10px;text-align:center;color:#6b6478;font-size:13.5px;}
+
+    /* ---------- Page Progression ---------- */
+    .progression-module-row{padding:14px 0;border-bottom:1px solid rgba(28,20,48,.08);}
+    .progression-module-row:last-child{border-bottom:none;}
+    .progression-module-row-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:13.5px;font-weight:600;}
+    .progression-badges-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+    .progression-badge{padding:16px 14px;border-radius:14px;text-align:center;background:rgba(28,20,48,.04);border:1px solid rgba(28,20,48,.08);}
+    .progression-badge-icon{font-size:28px;margin-bottom:8px;opacity:.3;filter:grayscale(1);}
+    .progression-badge.unlocked{background:linear-gradient(160deg,rgba(47,128,255,.1),rgba(246,146,61,.1));border-color:rgba(47,128,255,.25);}
+    .progression-badge.unlocked .progression-badge-icon{opacity:1;filter:none;}
+    .progression-badge-label{font-size:12.5px;font-weight:700;margin-bottom:3px;}
+    .progression-badge-cond{font-size:11px;color:#6b6478;}
+
+    /* ---------- Page Calendrier ---------- */
+    .calendrier-event{display:flex;gap:16px;padding:18px 20px;margin-bottom:10px;align-items:flex-start;flex-wrap:wrap;}
+    .calendrier-event-date{width:76px;flex-shrink:0;text-align:center;}
+    .calendrier-event-date-day{font-size:22px;font-weight:700;line-height:1;}
+    .calendrier-event-date-month{font-size:11px;text-transform:uppercase;color:#6b6478;margin-top:2px;}
+    .calendrier-event-body{flex:1;min-width:160px;}
+    .calendrier-event-title{font-size:14.5px;font-weight:700;margin-bottom:3px;}
+    .calendrier-event-time{font-size:12px;color:#6b6478;margin-bottom:6px;}
+    .calendrier-event-desc{font-size:13px;color:#1c1430;margin-bottom:10px;}
+    .calendrier-event-actions{display:flex;gap:8px;flex-wrap:wrap;}
+    .calendrier-event.past{opacity:.75;}
+    .calendrier-empty{padding:30px 10px;text-align:center;color:#6b6478;font-size:13.5px;}
   </style>
 </head>
 <body>
@@ -802,12 +862,78 @@
           <div class="dash-toolbar">
             <h1 class="home-hero-name">Mon projet</h1>
           </div>
+
+          <div class="cours-page-head">
+            <h2 class="cours-page-title">Mon projet</h2>
+            <p class="cours-page-sub">Suis ton avancement et dépose ton travail ici.</p>
+          </div>
+
+          <div class="glass-card panel-section">
+            <div class="panel-title">Titre du projet</div>
+            <div class="projet-title-row">
+              <input type="text" id="projet-title-input" placeholder="Ex : Mon produit digital">
+              <button type="button" class="btn btn-sm" id="projet-title-save-btn">Enregistrer</button>
+            </div>
+          </div>
+
+          <div class="glass-card panel-section">
+            <div class="panel-title">Mes étapes</div>
+            <div class="progress-track"><div class="progress-fill prog-blue" id="projet-steps-fill" style="width:0%;"></div></div>
+            <div class="progress-label"><span id="projet-steps-text">0 étape</span><span id="projet-steps-pct">0%</span></div>
+            <div class="projet-steps-list" id="projet-steps-list"></div>
+          </div>
+
+          <div class="glass-card panel-section">
+            <div class="panel-title">Déposer mon travail</div>
+            <div class="field">
+              <label class="field-label">Note / description</label>
+              <textarea id="projet-submit-note" rows="3" placeholder="Décris ce que tu déposes..."></textarea>
+            </div>
+            <div class="field">
+              <label class="field-label">Lien (optionnel)</label>
+              <input type="url" id="projet-submit-link" placeholder="https://...">
+            </div>
+            <div class="field">
+              <label class="field-label">Fichier (image ou PDF, 10 Mo max, optionnel)</label>
+              <input type="file" id="projet-submit-file" accept="image/png,image/jpeg,image/webp,application/pdf">
+            </div>
+            <div class="error-msg" id="projet-submit-error"></div>
+            <div class="info-msg" id="projet-submit-success"></div>
+            <button type="button" class="btn primary" id="projet-submit-btn">Envoyer</button>
+          </div>
+
+          <div class="glass-card panel-section">
+            <div class="panel-title">Historique de mes dépôts</div>
+            <div id="projet-submissions-list"></div>
+          </div>
+
+          <div class="glass-card panel-section">
+            <div class="panel-title">Ma question pour le coach</div>
+            <div class="field">
+              <textarea id="projet-question-input" rows="3" placeholder="Pose ta question ici..."></textarea>
+            </div>
+            <div class="info-msg" id="projet-question-success"></div>
+            <button type="button" class="btn blue" id="projet-question-send-btn">Envoyer ma question</button>
+          </div>
         </div>
 
         <div class="view" id="view-resources">
           <div class="dash-toolbar">
             <h1 class="home-hero-name">Ressources</h1>
           </div>
+
+          <div class="cours-page-head">
+            <h2 class="cours-page-title">Ressources</h2>
+            <p class="cours-page-sub">Templates, prompts, guides et outils à télécharger ou copier.</p>
+          </div>
+
+          <div class="field cours-search-field">
+            <input type="text" id="ressources-search-input" placeholder="Rechercher une ressource...">
+          </div>
+
+          <div class="ressources-categories" id="ressources-categories"></div>
+
+          <div id="ressources-list"></div>
         </div>
 
         <div class="view" id="view-cours">
@@ -847,12 +973,44 @@
           <div class="dash-toolbar">
             <h1 class="home-hero-name">Progression</h1>
           </div>
+
+          <div class="cours-page-head">
+            <h2 class="cours-page-title">Progression</h2>
+            <p class="cours-page-sub">Ce que tu as fait, ce qu'il te reste, et tes badges.</p>
+          </div>
+
+          <div class="glass-card panel-section">
+            <div class="panel-title">Avancement global</div>
+            <div class="progress-track"><div class="progress-fill prog-blue" id="progression-global-fill" style="width:0%;"></div></div>
+            <div class="progress-label"><span id="progression-global-text">0 leçon terminée sur 0</span><span id="progression-global-pct">0%</span></div>
+          </div>
+
+          <div class="glass-card panel-section">
+            <div class="panel-title">Par module</div>
+            <div id="progression-modules-list"></div>
+          </div>
+
+          <div class="glass-card panel-section">
+            <div class="panel-title">Mes badges</div>
+            <div class="progression-badges-grid" id="progression-badges-grid"></div>
+          </div>
         </div>
 
         <div class="view" id="view-calendrier">
           <div class="dash-toolbar">
             <h1 class="home-hero-name">Calendrier</h1>
           </div>
+
+          <div class="cours-page-head">
+            <h2 class="cours-page-title">Calendrier</h2>
+            <p class="cours-page-sub">Les prochains lives et rendez-vous (heures en Europe/Paris).</p>
+          </div>
+
+          <div class="panel-title">À venir</div>
+          <div id="calendrier-upcoming-list"></div>
+
+          <div class="panel-title" style="margin-top:22px;">Passés</div>
+          <div id="calendrier-past-list"></div>
         </div>
 
         <div class="view" id="view-tableau-de-bord">
