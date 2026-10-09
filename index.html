@@ -101,7 +101,10 @@
     /* Logo aligné à gauche, sur la même ligne que le bouton réduire/
        agrandir (à droite) — même formule de top pour rester alignés,
        y compris sous la barre système sur téléphone. */
-    .sidebar-logo{position:absolute;top:calc(14px + env(safe-area-inset-top));left:14px;width:30px;height:30px;object-fit:contain;pointer-events:none;z-index:5;}
+    .sidebar-logo{position:absolute;top:calc(14px + env(safe-area-inset-top));left:14px;width:44px;height:44px;object-fit:contain;pointer-events:none;z-index:5;}
+    /* Le logo disparaît quand le menu est réduit (icônes seules) : plus
+       de place pour lui à côté du bouton recentré. */
+    #screen-app.sidebar-collapsed .sidebar-logo{display:none;}
     #screen-app.sidebar-collapsed .sidebar{width:76px!important;}
     #screen-app.sidebar-collapsed .topbar{margin-left:calc(76px + 16px)!important;}
     #screen-app.sidebar-collapsed .sidebar-toggle{right:50%;transform:translateX(50%);}
@@ -163,7 +166,7 @@
        padding-top:env(safe-area-inset-top) (règle plus bas), donc
        l'ajouter aussi ici comptait la zone sûre deux fois et créait un
        espace énorme entre le bouton et le premier item. */
-    .nav-list{padding:56px 10px 8px;}
+    .nav-list{padding:68px 10px 8px;}
 
     /* Lueur blanche en bas de la sidebar (même esprit que la lueur verte
        de la capture envoyée, en blanc). */
