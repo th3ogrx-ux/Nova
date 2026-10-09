@@ -471,7 +471,7 @@
     function boot(userId) {
       if (booted) return;
       booted = true;
-      supabase.from("profiles").select("id,role,pseudo,custom_role,email,notif_email,notif_reminders,mission_done").eq("id", userId).single().then(function (res) {
+      supabase.from("profiles").select("id,role,pseudo,custom_role,email,notif_email,notif_reminders").eq("id", userId).single().then(function (res) {
         if (!res || !res.data) return;
         me = res.data;
         applyMyCustomRole(me.custom_role);
@@ -486,6 +486,21 @@
           el.style.display = isChef ? "flex" : "none";
         });
         switchToView(isChef ? "tableau-de-bord" : "accueil");
+
+        // Case "Fait" de la mission du moment : récupérée à part, pour
+        // ne jamais bloquer le reste de l'appli (nav, page Accueil) si
+        // la migration accueil-mission.sql n'a pas encore été exécutée
+        // et que la colonne profiles.mission_done n'existe pas encore.
+        supabase.from("profiles").select("mission_done").eq("id", userId).single().then(function (res2) {
+          if (!res2 || !res2.data) return;
+          me.mission_done = res2.data.mission_done;
+          var missionCheck = document.getElementById("accueil-mission-check");
+          var missionRow = document.getElementById("accueil-mission-row");
+          if (missionCheck) {
+            missionCheck.checked = !!me.mission_done;
+            if (missionRow) missionRow.classList.toggle("done", missionCheck.checked);
+          }
+        });
       });
     }
 
