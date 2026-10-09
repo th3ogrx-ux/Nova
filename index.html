@@ -101,7 +101,11 @@
     /* Logo aligné à gauche, sur la même ligne que le bouton réduire/
        agrandir (à droite) — même formule de top pour rester alignés,
        y compris sous la barre système sur téléphone. */
-    .sidebar-logo{position:absolute;top:calc(14px + env(safe-area-inset-top));left:14px;width:44px;height:44px;object-fit:contain;pointer-events:none;z-index:5;}
+    /* top recalculé pour que le centre du logo (plus grand que le
+       bouton) tombe exactement sur le centre du bouton réduire/agrandir
+       (top bouton 14px + moitié de ses 30px = 29px) : alignés sur la
+       même ligne. */
+    .sidebar-logo{position:absolute;top:calc(1px + env(safe-area-inset-top));left:14px;width:56px;height:56px;object-fit:contain;pointer-events:none;z-index:5;}
     /* Le logo disparaît quand le menu est réduit (icônes seules) : plus
        de place pour lui à côté du bouton recentré. */
     #screen-app.sidebar-collapsed .sidebar-logo{display:none;}
