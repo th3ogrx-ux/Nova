@@ -98,6 +98,10 @@
     .sidebar-toggle{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);z-index:5;}
     .sidebar-toggle svg{width:16px;height:16px;}
     .sidebar-toggle:hover{background:rgba(255,255,255,.16);}
+    /* Logo aligné à gauche, sur la même ligne que le bouton réduire/
+       agrandir (à droite) — même formule de top pour rester alignés,
+       y compris sous la barre système sur téléphone. */
+    .sidebar-logo{position:absolute;top:calc(14px + env(safe-area-inset-top));left:14px;width:30px;height:30px;object-fit:contain;pointer-events:none;z-index:5;}
     #screen-app.sidebar-collapsed .sidebar{width:76px!important;}
     #screen-app.sidebar-collapsed .topbar{margin-left:calc(76px + 16px)!important;}
     #screen-app.sidebar-collapsed .sidebar-toggle{right:50%;transform:translateX(50%);}
@@ -407,6 +411,7 @@
         </div>
         <div class="glow-divider" style="margin:10px 0 0; width:auto;"></div>
       </div>
+      <img class="sidebar-logo" src="/sidebar-logo.png" alt="">
       <button type="button" class="sidebar-toggle" id="sidebar-toggle" title="Réduire le menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="10" y1="4" x2="10" y2="20"/></svg></button>
       <div class="nav-list">
         <!-- Navigation élève : visible uniquement pour les comptes non-chef
