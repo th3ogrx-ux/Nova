@@ -259,6 +259,8 @@
           });
         }
         renderCoursModules();
+        renderProgressionPage();
+        checkAndUnlockBadges();
       });
     }
 
@@ -431,6 +433,8 @@
         courseProgress[currentLessonId] = newDone;
         updateLessonCompleteButton();
         renderCoursModules();
+        renderProgressionPage();
+        checkAndUnlockBadges();
         supabase.from("user_lesson_progress")
           .upsert({ user_id: me.id, lesson_id: currentLessonId, completed: newDone, completed_at: newDone ? new Date().toISOString() : null }, { onConflict: "user_id,lesson_id" })
           .then(function (res) {
@@ -465,6 +469,659 @@
           if (q && anyVisible) block.classList.add("open");
         });
       });
+    }
+
+    // ---------- Page Mon projet ----------
+    // Étapes partagées (project_steps), titre + avancement + dépôts
+    // propres à chaque élève (user_project, user_project_steps,
+    // project_submissions). Voir mon-projet.sql.
+
+    var PROJECT_STEPS_TEMPLATE = [];
+    var myProjectSteps = {};
+    var myProjectSubmissions = [];
+    var projectDataLoaded = false;
+
+    function loadProjectData(userId) {
+      if (projectDataLoaded) return;
+      projectDataLoaded = true;
+      Promise.all([
+        supabase.from("project_steps").select("id,position,label").order("position"),
+        supabase.from("user_project").select("title").eq("user_id", userId).single(),
+        supabase.from("user_project_steps").select("step_id,done").eq("user_id", userId),
+        supabase.from("project_submissions").select("id,note,link_url,file_name,file_path,created_at").eq("user_id", userId).order("created_at", { ascending: false })
+      ]).then(function (results) {
+        var stepsRes = results[0], projectRes = results[1], userStepsRes = results[2], subsRes = results[3];
+        if (stepsRes && stepsRes.data) PROJECT_STEPS_TEMPLATE = stepsRes.data;
+        var titleInput = document.getElementById("projet-title-input");
+        if (titleInput) titleInput.value = (projectRes && projectRes.data && projectRes.data.title) || "Mon produit digital";
+        myProjectSteps = {};
+        if (userStepsRes && userStepsRes.data) {
+          userStepsRes.data.forEach(function (row) { if (row.done) myProjectSteps[row.step_id] = true; });
+        }
+        if (subsRes && subsRes.data) myProjectSubmissions = subsRes.data;
+        renderProjectSteps();
+        renderProjectSubmissions();
+      });
+    }
+
+    function updateProjectStepsProgress() {
+      var total = PROJECT_STEPS_TEMPLATE.length;
+      var done = PROJECT_STEPS_TEMPLATE.filter(function (s) { return myProjectSteps[s.id]; }).length;
+      var pct = total ? Math.round((done / total) * 100) : 0;
+      var fill = document.getElementById("projet-steps-fill");
+      if (fill) fill.style.width = pct + "%";
+      var text = document.getElementById("projet-steps-text");
+      if (text) text.textContent = done + "/" + total + " étape" + (total > 1 ? "s" : "");
+      var pctEl = document.getElementById("projet-steps-pct");
+      if (pctEl) pctEl.textContent = pct + "%";
+    }
+
+    function renderProjectSteps() {
+      var list = document.getElementById("projet-steps-list");
+      if (!list) return;
+      list.innerHTML = "";
+      PROJECT_STEPS_TEMPLATE.slice().sort(function (a, b) { return a.position - b.position; }).forEach(function (step) {
+        var isDone = !!myProjectSteps[step.id];
+        var row = document.createElement("label");
+        row.className = "projet-step-row" + (isDone ? " done" : "");
+        var cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = isDone;
+        cb.addEventListener("change", function () {
+          if (!me) return;
+          myProjectSteps[step.id] = cb.checked;
+          row.classList.toggle("done", cb.checked);
+          updateProjectStepsProgress();
+          supabase.from("user_project_steps")
+            .upsert({ user_id: me.id, step_id: step.id, done: cb.checked }, { onConflict: "user_id,step_id" })
+            .then(function (res) { if (res && res.error) alert("Erreur : " + res.error.message); });
+        });
+        var span = document.createElement("span");
+        span.textContent = step.label;
+        row.appendChild(cb);
+        row.appendChild(span);
+        list.appendChild(row);
+      });
+      updateProjectStepsProgress();
+    }
+
+    function renderProjectSubmissions() {
+      var list = document.getElementById("projet-submissions-list");
+      if (!list) return;
+      list.innerHTML = "";
+      if (!myProjectSubmissions.length) {
+        list.innerHTML = '<div class="cours-empty">Aucun dépôt pour le moment.</div>';
+        return;
+      }
+      myProjectSubmissions.forEach(function (sub) {
+        var item = document.createElement("div");
+        item.className = "projet-submission-item";
+        var dateEl = document.createElement("div");
+        dateEl.className = "projet-submission-date";
+        dateEl.textContent = new Date(sub.created_at).toLocaleString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+        item.appendChild(dateEl);
+        if (sub.note) {
+          var noteEl = document.createElement("div");
+          noteEl.className = "projet-submission-note";
+          noteEl.textContent = sub.note;
+          item.appendChild(noteEl);
+        }
+        if (sub.link_url) {
+          var linkEl = document.createElement("a");
+          linkEl.className = "projet-submission-link";
+          linkEl.href = sub.link_url;
+          linkEl.target = "_blank";
+          linkEl.rel = "noopener";
+          linkEl.textContent = "🔗 " + sub.link_url;
+          item.appendChild(linkEl);
+        }
+        if (sub.file_path) {
+          var fileEl = document.createElement("a");
+          fileEl.className = "projet-submission-file";
+          fileEl.textContent = "📎 " + (sub.file_name || "Fichier joint");
+          fileEl.href = "#";
+          fileEl.addEventListener("click", function (e) {
+            e.preventDefault();
+            // Bucket privé : on génère un lien signé temporaire à la demande
+            // plutôt que de stocker une URL publique.
+            supabase.storage.from("project-uploads").createSignedUrl(sub.file_path, 3600).then(function (res) {
+              if (res && res.data && res.data.signedUrl) window.open(res.data.signedUrl, "_blank");
+              else alert("Impossible d'ouvrir ce fichier pour le moment.");
+            });
+          });
+          item.appendChild(fileEl);
+        }
+        list.appendChild(item);
+      });
+    }
+
+    var projetTitleSaveBtn = document.getElementById("projet-title-save-btn");
+    if (projetTitleSaveBtn) {
+      projetTitleSaveBtn.addEventListener("click", function () {
+        if (!me) return;
+        var input = document.getElementById("projet-title-input");
+        var title = input ? input.value.trim() : "";
+        if (!title) return;
+        supabase.from("user_project").upsert({ user_id: me.id, title: title }, { onConflict: "user_id" }).then(function (res) {
+          if (res && res.error) alert("Erreur : " + res.error.message);
+        });
+      });
+    }
+
+    var PROJECT_FILE_MAX_BYTES = 10 * 1024 * 1024; // 10 Mo
+    var PROJECT_FILE_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "application/pdf"];
+
+    var projetSubmitBtn = document.getElementById("projet-submit-btn");
+    if (projetSubmitBtn) {
+      projetSubmitBtn.addEventListener("click", function () {
+        if (!me) return;
+        var errorEl = document.getElementById("projet-submit-error");
+        var successEl = document.getElementById("projet-submit-success");
+        if (errorEl) errorEl.textContent = "";
+        if (successEl) successEl.textContent = "";
+        var noteInput = document.getElementById("projet-submit-note");
+        var linkInput = document.getElementById("projet-submit-link");
+        var fileInput = document.getElementById("projet-submit-file");
+        var note = noteInput ? noteInput.value.trim() : "";
+        var link = linkInput ? linkInput.value.trim() : "";
+        var file = fileInput && fileInput.files && fileInput.files[0];
+
+        if (!note && !link && !file) {
+          if (errorEl) errorEl.textContent = "Ajoute au moins une note, un lien ou un fichier.";
+          return;
+        }
+        if (file && file.size > PROJECT_FILE_MAX_BYTES) {
+          if (errorEl) errorEl.textContent = "Le fichier dépasse 10 Mo.";
+          return;
+        }
+        if (file && PROJECT_FILE_ALLOWED_TYPES.indexOf(file.type) === -1) {
+          if (errorEl) errorEl.textContent = "Type de fichier non autorisé (image ou PDF uniquement).";
+          return;
+        }
+
+        projetSubmitBtn.disabled = true;
+        var uploadPromise = file
+          ? supabase.storage.from("project-uploads").upload(me.id + "/" + Date.now() + "-" + file.name, file).then(function (res) {
+              if (res && res.error) throw res.error;
+              return { path: res.data.path, name: file.name };
+            })
+          : Promise.resolve(null);
+
+        uploadPromise
+          .then(function (uploaded) {
+            return supabase.from("project_submissions").insert({
+              user_id: me.id,
+              note: note || null,
+              link_url: link || null,
+              file_path: uploaded ? uploaded.path : null,
+              file_name: uploaded ? uploaded.name : null
+            }).select().single();
+          })
+          .then(function (res) {
+            projetSubmitBtn.disabled = false;
+            if (res && res.error) { if (errorEl) errorEl.textContent = "Erreur : " + res.error.message; return; }
+            if (successEl) successEl.textContent = "Envoyé !";
+            if (noteInput) noteInput.value = "";
+            if (linkInput) linkInput.value = "";
+            if (fileInput) fileInput.value = "";
+            if (res && res.data) myProjectSubmissions.unshift(res.data);
+            renderProjectSubmissions();
+            checkAndUnlockBadges();
+          })
+          .catch(function (err) {
+            projetSubmitBtn.disabled = false;
+            if (errorEl) errorEl.textContent = "Erreur : " + (err && err.message ? err.message : "envoi impossible.");
+          });
+      });
+    }
+
+    var projetQuestionSendBtn = document.getElementById("projet-question-send-btn");
+    if (projetQuestionSendBtn) {
+      projetQuestionSendBtn.addEventListener("click", function () {
+        if (!me) return;
+        var input = document.getElementById("projet-question-input");
+        var successEl = document.getElementById("projet-question-success");
+        var q = input ? input.value.trim() : "";
+        if (!q) return;
+        supabase.from("coach_questions").insert({ user_id: me.id, question: q }).then(function (res) {
+          if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+          if (successEl) successEl.textContent = "Question envoyée au coach.";
+          if (input) input.value = "";
+        });
+      });
+    }
+
+    // ---------- Page Ressources ----------
+    // Contenu dans la table "resources" (voir ressources.sql) : rien
+    // d'écrit en dur ici, juste l'affichage/filtrage.
+
+    var RESOURCE_CATEGORY_ORDER = ["Templates", "Prompts", "Guides PDF", "Outils"];
+    var resourcesList = [];
+    var resourcesDataLoaded = false;
+    var resourcesActiveCategory = null; // null = toutes les catégories
+
+    function loadResourcesData() {
+      if (resourcesDataLoaded) return;
+      resourcesDataLoaded = true;
+      supabase.from("resources").select("id,category,title,description,resource_type,file_url,prompt_text").order("category").then(function (res) {
+        if (res && res.data) resourcesList = res.data;
+        renderResourceCategoryPills();
+        renderResourcesList();
+      });
+    }
+
+    function sortByCategoryOrder(cats) {
+      return cats.slice().sort(function (a, b) {
+        var ia = RESOURCE_CATEGORY_ORDER.indexOf(a); if (ia === -1) ia = 999;
+        var ib = RESOURCE_CATEGORY_ORDER.indexOf(b); if (ib === -1) ib = 999;
+        return ia - ib;
+      });
+    }
+
+    function renderResourceCategoryPills() {
+      var wrap = document.getElementById("ressources-categories");
+      if (!wrap) return;
+      wrap.innerHTML = "";
+      var cats = [];
+      resourcesList.forEach(function (r) { if (cats.indexOf(r.category) === -1) cats.push(r.category); });
+      cats = sortByCategoryOrder(cats);
+
+      var allPill = document.createElement("button");
+      allPill.type = "button";
+      allPill.className = "ressources-cat-pill" + (resourcesActiveCategory === null ? " active" : "");
+      allPill.textContent = "Tout";
+      allPill.addEventListener("click", function () { resourcesActiveCategory = null; renderResourceCategoryPills(); renderResourcesList(); });
+      wrap.appendChild(allPill);
+
+      cats.forEach(function (cat) {
+        var pill = document.createElement("button");
+        pill.type = "button";
+        pill.className = "ressources-cat-pill" + (resourcesActiveCategory === cat ? " active" : "");
+        pill.textContent = cat;
+        pill.addEventListener("click", function () { resourcesActiveCategory = cat; renderResourceCategoryPills(); renderResourcesList(); });
+        wrap.appendChild(pill);
+      });
+    }
+
+    function renderResourcesList() {
+      var container = document.getElementById("ressources-list");
+      if (!container) return;
+      container.innerHTML = "";
+      var searchInput = document.getElementById("ressources-search-input");
+      var q = (searchInput ? searchInput.value : "").trim().toLowerCase();
+
+      var filtered = resourcesList.filter(function (r) {
+        if (resourcesActiveCategory && r.category !== resourcesActiveCategory) return false;
+        if (q && r.title.toLowerCase().indexOf(q) === -1 && (r.description || "").toLowerCase().indexOf(q) === -1) return false;
+        return true;
+      });
+
+      if (!filtered.length) {
+        container.innerHTML = '<div class="ressources-empty">Aucune ressource trouvée.</div>';
+        return;
+      }
+
+      var byCategory = {};
+      var order = [];
+      filtered.forEach(function (r) {
+        if (!byCategory[r.category]) { byCategory[r.category] = []; order.push(r.category); }
+        byCategory[r.category].push(r);
+      });
+      order = sortByCategoryOrder(order);
+
+      order.forEach(function (cat) {
+        var section = document.createElement("div");
+        section.className = "ressources-category";
+        var head = document.createElement("div");
+        head.className = "ressources-category-head";
+        head.textContent = cat;
+        section.appendChild(head);
+
+        byCategory[cat].forEach(function (r) {
+          var item = document.createElement("div");
+          item.className = "glass-card ressource-item";
+
+          var info = document.createElement("div");
+          info.className = "ressource-item-info";
+          var titleEl = document.createElement("div");
+          titleEl.className = "ressource-item-title";
+          titleEl.textContent = r.title;
+          var descEl = document.createElement("div");
+          descEl.className = "ressource-item-desc";
+          descEl.textContent = r.description || "";
+          info.appendChild(titleEl);
+          info.appendChild(descEl);
+          item.appendChild(info);
+
+          var typeEl = document.createElement("span");
+          typeEl.className = "ressource-item-type";
+          typeEl.textContent = r.resource_type === "prompt" ? "Prompt" : ((r.file_url || "").toLowerCase().indexOf(".pdf") !== -1 ? "PDF" : "Fichier");
+          item.appendChild(typeEl);
+
+          if (r.resource_type === "prompt") {
+            var copyBtn = document.createElement("button");
+            copyBtn.type = "button";
+            copyBtn.className = "btn blue btn-sm";
+            copyBtn.textContent = "Copier";
+            copyBtn.addEventListener("click", function () {
+              var text = r.prompt_text || "";
+              if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function () { showToast("Copié !"); });
+              } else {
+                showToast("Copie non disponible sur ce navigateur.");
+              }
+            });
+            item.appendChild(copyBtn);
+          } else if (r.file_url) {
+            var dlBtn = document.createElement("a");
+            dlBtn.className = "btn orange btn-sm";
+            dlBtn.textContent = "Télécharger";
+            dlBtn.href = r.file_url;
+            dlBtn.target = "_blank";
+            dlBtn.rel = "noopener";
+            item.appendChild(dlBtn);
+          }
+
+          section.appendChild(item);
+        });
+
+        container.appendChild(section);
+      });
+    }
+
+    var ressourcesSearchInput = document.getElementById("ressources-search-input");
+    if (ressourcesSearchInput) {
+      ressourcesSearchInput.addEventListener("input", function () { renderResourcesList(); });
+    }
+
+    // ---------- Page Progression (+ badges) ----------
+    // Réutilise les modules/leçons/progression de la page Cours.
+    // Les badges (définitions + débloqués) viennent de Supabase (voir
+    // progression-badges.sql) ; seule la condition de déblocage de
+    // chaque badge doit forcément être du code (badgeConditionMet).
+
+    var BADGE_DEFINITIONS = {};
+    var myUnlockedBadges = {};
+    var badgesDataLoaded = false;
+
+    function loadBadgesData(userId) {
+      if (badgesDataLoaded) return;
+      badgesDataLoaded = true;
+      Promise.all([
+        supabase.from("badges").select("code,position,icon,label,condition_text").order("position"),
+        supabase.from("user_badges").select("badge_code").eq("user_id", userId)
+      ]).then(function (results) {
+        var badgesRes = results[0], userBadgesRes = results[1];
+        if (badgesRes && badgesRes.data) {
+          badgesRes.data.forEach(function (b) { BADGE_DEFINITIONS[b.code] = b; });
+        }
+        myUnlockedBadges = {};
+        if (userBadgesRes && userBadgesRes.data) {
+          userBadgesRes.data.forEach(function (row) { myUnlockedBadges[row.badge_code] = true; });
+        }
+        renderBadges();
+        checkAndUnlockBadges();
+      });
+    }
+
+    function badgeConditionMet(code) {
+      if (code === "first_lesson") {
+        return Object.keys(courseProgress).length > 0;
+      }
+      if (code === "module1_done") {
+        var sortedModules = courseModules.slice().sort(function (a, b) { return a.position - b.position; });
+        var mod1 = sortedModules[0];
+        if (!mod1) return false;
+        var lessonsInMod1 = courseLessons.filter(function (l) { return l.module_id === mod1.id; });
+        return lessonsInMod1.length > 0 && lessonsInMod1.every(function (l) { return courseProgress[l.id]; });
+      }
+      if (code === "first_submission") {
+        return myProjectSubmissions.length > 0;
+      }
+      if (code === "streak7") {
+        return !!(me && (me.streak_count || 0) >= 7);
+      }
+      return false;
+    }
+
+    function checkAndUnlockBadges() {
+      if (!me) return;
+      Object.keys(BADGE_DEFINITIONS).forEach(function (code) {
+        if (myUnlockedBadges[code]) return;
+        if (!badgeConditionMet(code)) return;
+        myUnlockedBadges[code] = true;
+        supabase.from("user_badges").insert({ user_id: me.id, badge_code: code }).then(function (res) {
+          if (res && res.error) myUnlockedBadges[code] = false;
+        });
+      });
+      renderBadges();
+    }
+
+    function renderBadges() {
+      var grid = document.getElementById("progression-badges-grid");
+      if (!grid) return;
+      grid.innerHTML = "";
+      var codes = Object.keys(BADGE_DEFINITIONS).sort(function (a, b) {
+        return BADGE_DEFINITIONS[a].position - BADGE_DEFINITIONS[b].position;
+      });
+      if (!codes.length) {
+        grid.innerHTML = '<div class="cours-empty">Aucun badge pour le moment.</div>';
+        return;
+      }
+      codes.forEach(function (code) {
+        var b = BADGE_DEFINITIONS[code];
+        var unlocked = !!myUnlockedBadges[code];
+        var card = document.createElement("div");
+        card.className = "progression-badge" + (unlocked ? " unlocked" : "");
+        var iconEl = document.createElement("div");
+        iconEl.className = "progression-badge-icon";
+        iconEl.textContent = b.icon;
+        var labelEl = document.createElement("div");
+        labelEl.className = "progression-badge-label";
+        labelEl.textContent = b.label;
+        var condEl = document.createElement("div");
+        condEl.className = "progression-badge-cond";
+        condEl.textContent = unlocked ? "Débloqué" : b.condition_text;
+        card.appendChild(iconEl);
+        card.appendChild(labelEl);
+        card.appendChild(condEl);
+        grid.appendChild(card);
+      });
+    }
+
+    // "Streak" (jours d'affilée) pour le badge streak7 : comparé en
+    // date Europe/Paris, incrémenté une fois par jour de visite.
+    function updateStreak() {
+      if (!me) return;
+      var todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
+      if (me.streak_last_date === todayStr) { checkAndUnlockBadges(); return; }
+      var yesterdayStr = new Date(Date.now() - 86400000).toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
+      var newStreak = me.streak_last_date === yesterdayStr ? (me.streak_count || 0) + 1 : 1;
+      me.streak_count = newStreak;
+      me.streak_last_date = todayStr;
+      supabase.from("profiles").update({ streak_count: newStreak, streak_last_date: todayStr }).eq("id", me.id).then(function (res) {
+        if (!res || !res.error) checkAndUnlockBadges();
+      });
+    }
+
+    function renderProgressionPage() {
+      var ordered = getOrderedLessons();
+      var doneCount = ordered.filter(function (l) { return courseProgress[l.id]; }).length;
+      var total = ordered.length;
+      var pct = total ? Math.round((doneCount / total) * 100) : 0;
+      var fill = document.getElementById("progression-global-fill");
+      if (fill) fill.style.width = pct + "%";
+      var text = document.getElementById("progression-global-text");
+      if (text) text.textContent = doneCount + " leçon" + (doneCount > 1 ? "s" : "") + " terminée" + (doneCount > 1 ? "s" : "") + " sur " + total;
+      var pctEl = document.getElementById("progression-global-pct");
+      if (pctEl) pctEl.textContent = pct + "%";
+
+      var list = document.getElementById("progression-modules-list");
+      if (!list) return;
+      list.innerHTML = "";
+      if (!courseModules.length) {
+        list.innerHTML = '<div class="cours-empty">Aucun module pour le moment.</div>';
+        return;
+      }
+      courseModules.slice().sort(function (a, b) { return a.position - b.position; }).forEach(function (mod) {
+        var lessons = courseLessons.filter(function (l) { return l.module_id === mod.id; });
+        var done = lessons.filter(function (l) { return courseProgress[l.id]; }).length;
+        var mPct = lessons.length ? Math.round((done / lessons.length) * 100) : 0;
+
+        var row = document.createElement("div");
+        row.className = "progression-module-row";
+        var head = document.createElement("div");
+        head.className = "progression-module-row-head";
+        var titleEl = document.createElement("span");
+        titleEl.textContent = mod.title;
+        var countEl = document.createElement("span");
+        countEl.textContent = done + "/" + lessons.length;
+        head.appendChild(titleEl);
+        head.appendChild(countEl);
+        var track = document.createElement("div");
+        track.className = "progress-track";
+        var fillEl = document.createElement("div");
+        fillEl.className = "progress-fill prog-blue";
+        fillEl.style.width = mPct + "%";
+        track.appendChild(fillEl);
+        row.appendChild(head);
+        row.appendChild(track);
+        list.appendChild(row);
+      });
+    }
+
+    // ---------- Page Calendrier ----------
+    // Événements dans la table "calendar_events" (voir calendrier.sql).
+
+    var calendarEvents = [];
+    var calendarDataLoaded = false;
+
+    function loadCalendarData() {
+      if (calendarDataLoaded) return;
+      calendarDataLoaded = true;
+      supabase.from("calendar_events").select("id,title,description,starts_at,ends_at,join_url,replay_url").order("starts_at").then(function (res) {
+        if (res && res.data) calendarEvents = res.data;
+        renderCalendar();
+      });
+    }
+
+    function formatParisDate(iso) {
+      var d = new Date(iso);
+      return {
+        day: d.toLocaleDateString("fr-FR", { day: "2-digit", timeZone: "Europe/Paris" }),
+        month: d.toLocaleDateString("fr-FR", { month: "short", timeZone: "Europe/Paris" }),
+        full: d.toLocaleString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" })
+      };
+    }
+
+    // Génère un fichier .ics minimal pour un événement et le télécharge.
+    function downloadIcs(evt) {
+      function toIcsDate(iso) {
+        return new Date(iso).toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+      }
+      var lines = [
+        "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ZENOA//Calendrier//FR", "BEGIN:VEVENT",
+        "UID:" + evt.id + "@zenoa",
+        "DTSTAMP:" + toIcsDate(new Date().toISOString()),
+        "DTSTART:" + toIcsDate(evt.starts_at)
+      ];
+      if (evt.ends_at) lines.push("DTEND:" + toIcsDate(evt.ends_at));
+      lines.push("SUMMARY:" + (evt.title || "").replace(/\n/g, " "));
+      if (evt.description) lines.push("DESCRIPTION:" + evt.description.replace(/\n/g, "\\n"));
+      if (evt.join_url) lines.push("LOCATION:" + evt.join_url);
+      lines.push("END:VEVENT", "END:VCALENDAR");
+      var blob = new Blob([lines.join("\r\n")], { type: "text/calendar" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = (evt.title || "evenement").replace(/[^a-z0-9]+/gi, "-") + ".ics";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
+
+    function renderCalendarList(containerId, events, isPast) {
+      var container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = "";
+      if (!events.length) {
+        container.innerHTML = '<div class="calendrier-empty">' + (isPast ? "Aucun événement passé." : "Aucun événement prévu pour le moment.") + "</div>";
+        return;
+      }
+      events.forEach(function (evt) {
+        var d = formatParisDate(evt.starts_at);
+        var card = document.createElement("div");
+        card.className = "glass-card calendrier-event" + (isPast ? " past" : "");
+
+        var dateCol = document.createElement("div");
+        dateCol.className = "calendrier-event-date";
+        var dayEl = document.createElement("div");
+        dayEl.className = "calendrier-event-date-day";
+        dayEl.textContent = d.day;
+        var monthEl = document.createElement("div");
+        monthEl.className = "calendrier-event-date-month";
+        monthEl.textContent = d.month;
+        dateCol.appendChild(dayEl);
+        dateCol.appendChild(monthEl);
+        card.appendChild(dateCol);
+
+        var body = document.createElement("div");
+        body.className = "calendrier-event-body";
+        var titleEl = document.createElement("div");
+        titleEl.className = "calendrier-event-title";
+        titleEl.textContent = evt.title;
+        var timeEl = document.createElement("div");
+        timeEl.className = "calendrier-event-time";
+        timeEl.textContent = d.full + " (Europe/Paris)";
+        body.appendChild(titleEl);
+        body.appendChild(timeEl);
+        if (evt.description) {
+          var descEl = document.createElement("div");
+          descEl.className = "calendrier-event-desc";
+          descEl.textContent = evt.description;
+          body.appendChild(descEl);
+        }
+        var actions = document.createElement("div");
+        actions.className = "calendrier-event-actions";
+        if (!isPast && evt.join_url) {
+          var joinBtn = document.createElement("a");
+          joinBtn.className = "btn blue btn-sm";
+          joinBtn.textContent = "Rejoindre";
+          joinBtn.href = evt.join_url;
+          joinBtn.target = "_blank";
+          joinBtn.rel = "noopener";
+          actions.appendChild(joinBtn);
+        }
+        if (isPast && evt.replay_url) {
+          var replayBtn = document.createElement("a");
+          replayBtn.className = "btn orange btn-sm";
+          replayBtn.textContent = "Voir le replay";
+          replayBtn.href = evt.replay_url;
+          replayBtn.target = "_blank";
+          replayBtn.rel = "noopener";
+          actions.appendChild(replayBtn);
+        }
+        if (!isPast) {
+          var icsBtn = document.createElement("button");
+          icsBtn.type = "button";
+          icsBtn.className = "btn btn-sm";
+          icsBtn.textContent = "Ajouter à mon calendrier";
+          icsBtn.addEventListener("click", function () { downloadIcs(evt); });
+          actions.appendChild(icsBtn);
+        }
+        body.appendChild(actions);
+        card.appendChild(body);
+        container.appendChild(card);
+      });
+    }
+
+    function renderCalendar() {
+      var now = new Date();
+      var upcoming = calendarEvents.filter(function (e) { return new Date(e.starts_at) >= now; });
+      var past = calendarEvents.filter(function (e) { return new Date(e.starts_at) < now; }).slice().reverse();
+      renderCalendarList("calendrier-upcoming-list", upcoming, false);
+      renderCalendarList("calendrier-past-list", past, true);
     }
 
     var previousViewBeforeSettings = "accueil";
@@ -737,19 +1394,22 @@
         });
         switchToView(isChef ? "tableau-de-bord" : "accueil");
 
-        // Case "Fait" de la mission du moment : récupérée à part, pour
-        // ne jamais bloquer le reste de l'appli (nav, page Accueil) si
-        // la migration accueil-mission.sql n'a pas encore été exécutée
-        // et que la colonne profiles.mission_done n'existe pas encore.
-        supabase.from("profiles").select("mission_done").eq("id", userId).single().then(function (res2) {
+        // Champs ajoutés par des migrations plus récentes (mission_done,
+        // streak) : récupérés à part, pour ne jamais bloquer le reste de
+        // l'appli (nav, page Accueil) si une migration n'a pas encore
+        // été exécutée et qu'une colonne n'existe pas encore.
+        supabase.from("profiles").select("mission_done,streak_count,streak_last_date").eq("id", userId).single().then(function (res2) {
           if (!res2 || !res2.data) return;
           me.mission_done = res2.data.mission_done;
+          me.streak_count = res2.data.streak_count;
+          me.streak_last_date = res2.data.streak_last_date;
           var missionCheck = document.getElementById("accueil-mission-check");
           var missionRow = document.getElementById("accueil-mission-row");
           if (missionCheck) {
             missionCheck.checked = !!me.mission_done;
             if (missionRow) missionRow.classList.toggle("done", missionCheck.checked);
           }
+          updateStreak();
         });
       });
     }
@@ -759,12 +1419,20 @@
       if (session && session.user) {
         boot(session.user.id);
         loadCourseData(session.user.id);
+        loadProjectData(session.user.id);
+        loadResourcesData();
+        loadBadgesData(session.user.id);
+        loadCalendarData();
       }
     });
     supabase.auth.onAuthStateChange(function (event, session) {
       if (session && session.user) {
         boot(session.user.id);
         loadCourseData(session.user.id);
+        loadProjectData(session.user.id);
+        loadResourcesData();
+        loadBadgesData(session.user.id);
+        loadCalendarData();
       }
     });
   }
