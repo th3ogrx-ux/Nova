@@ -120,9 +120,9 @@
 
     /* Empêche la sélection de texte accidentelle au clic/tap partout dans l'app */
     html,body{-webkit-user-select:none;-moz-user-select:none;user-select:none;-webkit-touch-callout:none;}
-    /* Le flash bleu par défaut au tap (Android/Chrome) remplacé par du violet,
-       cohérent avec le thème — ex: en appuyant sur un item du menu. */
-    *{-webkit-tap-highlight-color:rgba(191,90,242,.35);}
+    /* Flash au tap (Android/Chrome) en gris neutre plutôt qu'en violet,
+       visible aussi bien sur le menu noir que sur le fond blanc. */
+    *{-webkit-tap-highlight-color:rgba(140,140,150,.35);}
 
     /* Item de menu actif en bloc plein violet (au lieu du fond quasi
        invisible d'origine), même esprit que la référence envoyée. */
