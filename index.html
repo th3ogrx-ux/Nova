@@ -294,6 +294,39 @@
     .accueil-news-item.clickable:hover .accueil-news-title{color:#7c3aed;}
     .accueil-quick-access{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
     .accueil-quick-access .btn{flex:1;min-width:140px;}
+
+    /* ---------- Page Cours ---------- */
+    .btn.orange{background:linear-gradient(120deg,#f6923d,#f6b93d);border:none;color:#2b1604;font-weight:700;}
+    .btn.orange:hover{background:linear-gradient(120deg,#f6b93d,#f6923d);color:#2b1604;}
+    .cours-page-head{margin-bottom:18px;}
+    .cours-page-title{font-size:22px;font-weight:700;margin-bottom:4px;}
+    .cours-page-sub{font-size:13.5px;color:#6b6478;}
+    .cours-search-field{margin-bottom:18px;}
+    .cours-module{margin-bottom:12px;padding:0;overflow:hidden;}
+    .cours-module-head{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:18px 20px;font-family:inherit;color:inherit;}
+    .cours-module-title{font-size:15px;font-weight:700;margin-bottom:3px;}
+    .cours-module-desc{font-size:12.5px;color:#6b6478;}
+    .cours-module-caret{font-size:11px;opacity:.5;transition:transform .2s ease;flex-shrink:0;}
+    .cours-module.open .cours-module-caret{transform:rotate(180deg);}
+    .cours-module-progress{padding:0 20px 14px;}
+    .cours-module-lessons{display:none;padding:0 10px 14px;}
+    .cours-module.open .cours-module-lessons{display:block;}
+    .cours-lesson{display:flex;align-items:center;gap:12px;padding:12px 10px;border-radius:12px;cursor:pointer;}
+    .cours-lesson:hover{background:rgba(28,20,48,.04);}
+    .cours-lesson-num{width:24px;height:24px;border-radius:50%;background:rgba(28,20,48,.07);display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:#6b6478;flex-shrink:0;}
+    .cours-lesson.done .cours-lesson-num{background:#4FBF7A;color:#fff;}
+    .cours-lesson-info{flex:1;min-width:0;}
+    .cours-lesson-title{font-size:13.5px;font-weight:600;}
+    .cours-lesson-meta{font-size:11.5px;color:#6b6478;margin-top:2px;}
+    .cours-lesson-status{font-size:10.5px;letter-spacing:.06em;padding:4px 10px;border-radius:20px;flex-shrink:0;font-weight:600;white-space:nowrap;}
+    .cours-lesson-status.status-todo{color:#6b6478;background:rgba(28,20,48,.06);}
+    .cours-lesson-status.status-done{color:#2f8a56;background:rgba(79,191,122,.14);}
+    .cours-empty{padding:40px 10px;text-align:center;color:#6b6478;font-size:13.5px;}
+    .lecon-meta{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6b6478;margin-bottom:6px;}
+    .lecon-title{font-size:19px;font-weight:700;margin-bottom:16px;}
+    .lecon-body{font-size:14px;line-height:1.7;color:#1c1430;margin-bottom:22px;white-space:pre-wrap;}
+    .lecon-body video{width:100%;border-radius:14px;display:block;margin-bottom:16px;}
+    .lecon-actions{display:flex;gap:10px;flex-wrap:wrap;}
   </style>
 </head>
 <body>
@@ -780,6 +813,33 @@
         <div class="view" id="view-cours">
           <div class="dash-toolbar">
             <h1 class="home-hero-name">Cours</h1>
+          </div>
+
+          <div class="cours-page-head">
+            <h2 class="cours-page-title">Cours</h2>
+            <p class="cours-page-sub">Tous les modules et leçons de ton accompagnement, dans l'ordre.</p>
+          </div>
+
+          <div class="field cours-search-field">
+            <input type="text" id="cours-search-input" placeholder="Rechercher une leçon...">
+          </div>
+
+          <div id="cours-modules-list"></div>
+        </div>
+
+        <div class="view" id="view-lecon">
+          <div class="view-head">
+            <div class="back-btn" id="btn-back-lecon">←</div>
+            <h1 class="home-hero-name" style="display:block;">Leçon</h1>
+          </div>
+          <div class="glass-card panel-section">
+            <div class="lecon-meta" id="lecon-meta">—</div>
+            <h2 class="lecon-title" id="lecon-title">—</h2>
+            <div class="lecon-body" id="lecon-body"></div>
+            <div class="lecon-actions">
+              <button type="button" class="btn primary" id="lecon-complete-btn">Marquer comme terminée</button>
+              <button type="button" class="btn" id="lecon-next-btn">Leçon suivante →</button>
+            </div>
           </div>
         </div>
 
