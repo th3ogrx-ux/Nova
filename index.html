@@ -106,9 +106,13 @@
        (top bouton 14px + moitié de ses 30px = 29px) : alignés sur la
        même ligne. */
     .sidebar-logo{position:absolute;top:calc(1px + env(safe-area-inset-top));left:14px;width:56px;height:56px;object-fit:contain;pointer-events:none;z-index:5;}
-    /* Le logo disparaît quand le menu est réduit (icônes seules) : plus
-       de place pour lui à côté du bouton recentré. */
-    #screen-app.sidebar-collapsed .sidebar-logo{display:none;}
+    /* Texte "ZENOA" à côté du logo, centré sur la même ligne (29px,
+       même repère que le logo/bouton), dégradé violet façon capture
+       envoyée, police Orbitron déjà utilisée ailleurs sur le site. */
+    .sidebar-brand-text{position:absolute;top:calc(29px + env(safe-area-inset-top));left:80px;transform:translateY(-50%);font-family:'Orbitron',sans-serif;font-weight:900;font-size:19px;letter-spacing:.08em;background:linear-gradient(180deg,#f1eefb 0%,#bf5af2 50%,#4c1d95 100%);-webkit-background-clip:text;background-clip:text;color:transparent;pointer-events:none;z-index:5;white-space:nowrap;}
+    /* Le logo et le texte disparaissent quand le menu est réduit
+       (icônes seules) : plus de place à côté du bouton recentré. */
+    #screen-app.sidebar-collapsed .sidebar-logo,#screen-app.sidebar-collapsed .sidebar-brand-text{display:none;}
     #screen-app.sidebar-collapsed .sidebar{width:76px!important;}
     #screen-app.sidebar-collapsed .topbar{margin-left:calc(76px + 16px)!important;}
     #screen-app.sidebar-collapsed .sidebar-toggle{right:50%;transform:translateX(50%);}
@@ -419,6 +423,7 @@
         <div class="glow-divider" style="margin:10px 0 0; width:auto;"></div>
       </div>
       <img class="sidebar-logo" src="/sidebar-logo.png" alt="">
+      <span class="sidebar-brand-text">ZENOA</span>
       <button type="button" class="sidebar-toggle" id="sidebar-toggle" title="Réduire le menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="10" y1="4" x2="10" y2="20"/></svg></button>
       <div class="nav-list">
         <!-- Navigation élève : visible uniquement pour les comptes non-chef
