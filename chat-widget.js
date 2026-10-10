@@ -2264,7 +2264,7 @@
       var oldLine = document.getElementById("my-custom-role-display");
       if (oldLine) oldLine.remove();
       if (!myRoleDisplayEl || !me || me.role === "chef") { currentDesiredRoleText = null; return; }
-      currentDesiredRoleText = customRole || "Rôle non défini";
+      currentDesiredRoleText = customRole || "Élève";
       myRoleDisplayEl.textContent = currentDesiredRoleText;
       if (!roleObserverStarted) {
         roleObserverStarted = true;
@@ -2277,11 +2277,13 @@
     }
 
     // Sur l'écran de création de compte, le pill de rôle du bundle affiche
-    // "Membre" par défaut : on le remplace par un libellé neutre.
+    // "Membre" par défaut : il n'y a que deux rôles possibles (chef, qui
+    // crée son compte autrement, et tous les autres qui sont des élèves),
+    // donc on l'affiche clairement comme tel.
     var rolePillCreate = document.getElementById("role-pill-create");
     if (rolePillCreate) {
       new MutationObserver(function () {
-        if (rolePillCreate.textContent === "Membre") rolePillCreate.textContent = "Rôle non défini";
+        if (rolePillCreate.textContent === "Membre") rolePillCreate.textContent = "Élève";
       }).observe(rolePillCreate, { childList: true, characterData: true, subtree: true });
     }
 
