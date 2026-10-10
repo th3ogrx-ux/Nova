@@ -1327,25 +1327,20 @@
     // ---------- Tableau de bord ----------
     var dashboardStudents = [];
     var dashboardDoneByUser = {};
-    var dashboardLastCompletion = {};
 
     function loadDashboardData() {
       var statsEl = document.getElementById("admin-stats-grid");
       if (!statsEl) return;
       Promise.all([
         supabase.from("profiles").select("id,pseudo,email,created_at,last_seen_at,is_active").eq("role", "membre"),
-        supabase.from("user_lesson_progress").select("user_id,completed_at").eq("completed", true)
+        supabase.from("user_lesson_progress").select("user_id").eq("completed", true)
       ]).then(function (results) {
         dashboardStudents = (results[0] && results[0].data) || [];
         var progressRows = (results[1] && results[1].data) || [];
 
         dashboardDoneByUser = {};
-        dashboardLastCompletion = {};
         progressRows.forEach(function (row) {
           dashboardDoneByUser[row.user_id] = (dashboardDoneByUser[row.user_id] || 0) + 1;
-          if (!dashboardLastCompletion[row.user_id] || new Date(row.completed_at) > new Date(dashboardLastCompletion[row.user_id])) {
-            dashboardLastCompletion[row.user_id] = row.completed_at;
-          }
         });
 
         var totalLessons = courseLessons.filter(function (l) { return l.status !== "draft"; }).length;
@@ -1395,8 +1390,6 @@
             });
           }
         }
-
-        renderStuckStudents();
       });
     }
 
@@ -1422,58 +1415,6 @@
       row.addEventListener("click", function () { openEleveDetail(student.id); });
       return row;
     }
-
-    function renderStuckStudents() {
-      var list = document.getElementById("admin-stuck-list");
-      if (!list) return;
-      var daysInput = document.getElementById("admin-stuck-days-input");
-      var threshold = (daysInput && parseInt(daysInput.value, 10)) || 7;
-      var cutoff = Date.now() - threshold * 86400000;
-      // "Sans connexion OU sans leçon terminée depuis X jours" : on
-      // signale dès que l'un des deux signaux d'activité est trop ancien
-      // (ou inexistant), c'est le signal le plus utile pour savoir qui
-      // relancer.
-      var stuck = dashboardStudents.filter(function (s) {
-        var lastSeenTime = s.last_seen_at ? new Date(s.last_seen_at).getTime() : 0;
-        var lastDoneTime = dashboardLastCompletion[s.id] ? new Date(dashboardLastCompletion[s.id]).getTime() : 0;
-        return lastSeenTime < cutoff || lastDoneTime < cutoff;
-      });
-      list.innerHTML = "";
-      if (!stuck.length) {
-        list.innerHTML = '<div class="cours-empty">Personne de bloqué pour le moment 🎉</div>';
-        return;
-      }
-      stuck.forEach(function (s) {
-        var row = document.createElement("div");
-        row.className = "admin-student-row";
-        row.style.cursor = "pointer";
-        var info = document.createElement("div");
-        info.className = "admin-student-row-info";
-        var nameEl = document.createElement("div");
-        nameEl.className = "admin-student-row-name";
-        nameEl.textContent = s.pseudo || s.email;
-        var metaEl = document.createElement("div");
-        metaEl.className = "admin-student-row-meta";
-        metaEl.textContent = s.last_seen_at ? ("Dernière connexion : " + formatShortDate(s.last_seen_at)) : "Jamais connecté";
-        info.appendChild(nameEl);
-        info.appendChild(metaEl);
-        var btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "btn orange btn-sm";
-        btn.textContent = "Lui écrire";
-        btn.addEventListener("click", function (e) {
-          e.stopPropagation();
-          window.location.href = "mailto:" + s.email;
-        });
-        row.appendChild(info);
-        row.appendChild(btn);
-        row.addEventListener("click", function () { openEleveDetail(s.id); });
-        list.appendChild(row);
-      });
-    }
-
-    var adminStuckDaysInput = document.getElementById("admin-stuck-days-input");
-    if (adminStuckDaysInput) adminStuckDaysInput.addEventListener("input", renderStuckStudents);
 
     // ---------- Page Élèves ----------
     var elevesList = [];
