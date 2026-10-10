@@ -488,24 +488,23 @@
     }
 
     // ---------- Page Mon projet ----------
-    // Étapes partagées (project_steps), avancement + réseaux sociaux
-    // propres à chaque élève (user_project, user_project_steps). Voir
-    // mon-projet.sql et mon-projet-reseaux.sql.
+    // "Mes étapes" montre les tâches que le chef a assignées à cet
+    // élève précisément (table student_tasks, gérée depuis la fiche
+    // élève côté admin) : l'élève peut seulement les cocher, pas en
+    // ajouter/supprimer. Réseaux sociaux propres à chaque élève
+    // (user_project). Voir student-tasks.sql et mon-projet-reseaux.sql.
 
-    var PROJECT_STEPS_TEMPLATE = [];
-    var myProjectSteps = {};
+    var myTasks = [];
     var projectDataLoaded = false;
 
     function loadProjectData(userId) {
       if (projectDataLoaded) return;
       projectDataLoaded = true;
       Promise.all([
-        supabase.from("project_steps").select("id,position,label").order("position"),
         supabase.from("user_project").select("instagram_url,tiktok_url,youtube_url").eq("user_id", userId).single(),
-        supabase.from("user_project_steps").select("step_id,done").eq("user_id", userId)
+        supabase.from("student_tasks").select("id,label,done,position").eq("user_id", userId).order("position")
       ]).then(function (results) {
-        var stepsRes = results[0], projectRes = results[1], userStepsRes = results[2];
-        if (stepsRes && stepsRes.data) PROJECT_STEPS_TEMPLATE = stepsRes.data;
+        var projectRes = results[0], tasksRes = results[1];
         var project = (projectRes && projectRes.data) || {};
         var instaInput = document.getElementById("projet-instagram-input");
         if (instaInput) instaInput.value = project.instagram_url || "";
@@ -513,17 +512,14 @@
         if (tiktokInput) tiktokInput.value = project.tiktok_url || "";
         var youtubeInput = document.getElementById("projet-youtube-input");
         if (youtubeInput) youtubeInput.value = project.youtube_url || "";
-        myProjectSteps = {};
-        if (userStepsRes && userStepsRes.data) {
-          userStepsRes.data.forEach(function (row) { if (row.done) myProjectSteps[row.step_id] = true; });
-        }
+        myTasks = (tasksRes && tasksRes.data) || [];
         renderProjectSteps();
       });
     }
 
     function updateProjectStepsProgress() {
-      var total = PROJECT_STEPS_TEMPLATE.length;
-      var done = PROJECT_STEPS_TEMPLATE.filter(function (s) { return myProjectSteps[s.id]; }).length;
+      var total = myTasks.length;
+      var done = myTasks.filter(function (t) { return t.done; }).length;
       var pct = total ? Math.round((done / total) * 100) : 0;
       var fill = document.getElementById("projet-steps-fill");
       if (fill) fill.style.width = pct + "%";
@@ -537,24 +533,28 @@
       var list = document.getElementById("projet-steps-list");
       if (!list) return;
       list.innerHTML = "";
-      PROJECT_STEPS_TEMPLATE.slice().sort(function (a, b) { return a.position - b.position; }).forEach(function (step) {
-        var isDone = !!myProjectSteps[step.id];
+      if (!myTasks.length) {
+        list.innerHTML = '<div class="cours-empty">Ton coach ne t\'a pas encore assigné de tâche.</div>';
+        updateProjectStepsProgress();
+        return;
+      }
+      myTasks.slice().sort(function (a, b) { return a.position - b.position; }).forEach(function (task) {
         var row = document.createElement("label");
-        row.className = "projet-step-row" + (isDone ? " done" : "");
+        row.className = "projet-step-row" + (task.done ? " done" : "");
         var cb = document.createElement("input");
         cb.type = "checkbox";
-        cb.checked = isDone;
+        cb.checked = task.done;
         cb.addEventListener("change", function () {
           if (!me) return;
-          myProjectSteps[step.id] = cb.checked;
+          task.done = cb.checked;
           row.classList.toggle("done", cb.checked);
           updateProjectStepsProgress();
-          supabase.from("user_project_steps")
-            .upsert({ user_id: me.id, step_id: step.id, done: cb.checked }, { onConflict: "user_id,step_id" })
-            .then(function (res) { if (res && res.error) alert("Erreur : " + res.error.message); });
+          supabase.from("student_tasks").update({ done: cb.checked }).eq("id", task.id).then(function (res) {
+            if (res && res.error) alert("Erreur : " + res.error.message);
+          });
         });
         var span = document.createElement("span");
-        span.textContent = step.label;
+        span.textContent = task.label;
         row.appendChild(cb);
         row.appendChild(span);
         list.appendChild(row);
@@ -1200,7 +1200,8 @@
       if (content) content.innerHTML = '<div class="cours-empty">Chargement…</div>';
       Promise.all([
         supabase.from("profiles").select("id,pseudo,email,created_at,last_seen_at,is_active,access_expires_at,admin_notes").eq("id", studentId).single(),
-        supabase.from("user_lesson_progress").select("completed").eq("user_id", studentId).eq("completed", true)
+        supabase.from("user_lesson_progress").select("completed").eq("user_id", studentId).eq("completed", true),
+        supabase.from("student_tasks").select("id,label,done,position").eq("user_id", studentId).order("position")
       ]).then(function (results) {
         var student = results[0] && results[0].data;
         if (!student) {
@@ -1208,11 +1209,12 @@
           return;
         }
         var doneCount = ((results[1] && results[1].data) || []).length;
-        renderEleveDetail(student, doneCount);
+        var tasks = (results[2] && results[2].data) || [];
+        renderEleveDetail(student, doneCount, tasks);
       });
     }
 
-    function renderEleveDetail(student, doneCount) {
+    function renderEleveDetail(student, doneCount, tasks) {
       var content = document.getElementById("eleve-detail-content");
       if (!content) return;
       var totalLessons = courseLessons.filter(function (l) { return l.status !== "draft"; }).length;
@@ -1285,6 +1287,74 @@
       });
       actions.appendChild(deleteBtn);
       content.appendChild(actions);
+
+      // ----- Tâches assignées par le chef -----
+      var tasksSection = document.createElement("div");
+      tasksSection.className = "glass-card panel-section";
+      var tasksTitle = document.createElement("div");
+      tasksTitle.className = "panel-title";
+      tasksTitle.textContent = "Tâches";
+      tasksSection.appendChild(tasksTitle);
+
+      var tasksList = document.createElement("div");
+      if (!tasks.length) {
+        tasksList.innerHTML = '<div class="cours-empty">Aucune tâche assignée pour le moment.</div>';
+      } else {
+        tasks.slice().sort(function (a, b) { return a.position - b.position; }).forEach(function (task) {
+          var row = document.createElement("div");
+          row.className = "admin-task-row";
+          var cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = task.done;
+          cb.disabled = true;
+          cb.title = "Coché par l'élève lui-même";
+          var span = document.createElement("span");
+          span.className = "admin-task-label" + (task.done ? " done" : "");
+          span.textContent = task.label;
+          var deleteTaskBtn = document.createElement("button");
+          deleteTaskBtn.type = "button";
+          deleteTaskBtn.className = "btn danger btn-sm admin-icon-x-btn";
+          deleteTaskBtn.textContent = "✕";
+          deleteTaskBtn.title = "Supprimer cette tâche";
+          deleteTaskBtn.addEventListener("click", function () {
+            zenoaConfirm('Supprimer la tâche "' + task.label + '" ?', { danger: true, confirmLabel: "Supprimer" }).then(function (ok) {
+              if (!ok) return;
+              supabase.from("student_tasks").delete().eq("id", task.id).then(function (res) {
+                if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+                openEleveDetail(student.id);
+              });
+            });
+          });
+          row.appendChild(cb);
+          row.appendChild(span);
+          row.appendChild(deleteTaskBtn);
+          tasksList.appendChild(row);
+        });
+      }
+      tasksSection.appendChild(tasksList);
+
+      var newTaskRow = document.createElement("div");
+      newTaskRow.className = "admin-task-new-row";
+      var newTaskInput = document.createElement("input");
+      newTaskInput.type = "text";
+      newTaskInput.placeholder = "Nouvelle tâche...";
+      var addTaskBtn = document.createElement("button");
+      addTaskBtn.type = "button";
+      addTaskBtn.className = "btn btn-sm";
+      addTaskBtn.textContent = "+ Ajouter";
+      addTaskBtn.addEventListener("click", function () {
+        var label = newTaskInput.value.trim();
+        if (!label) return;
+        supabase.from("student_tasks").insert({ user_id: student.id, label: label, position: tasks.length }).then(function (res) {
+          if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+          openEleveDetail(student.id);
+        });
+      });
+      newTaskRow.appendChild(newTaskInput);
+      newTaskRow.appendChild(addTaskBtn);
+      tasksSection.appendChild(newTaskRow);
+
+      content.appendChild(tasksSection);
 
       // ----- Notes privées -----
       var notesSection = document.createElement("div");
