@@ -339,20 +339,10 @@
     .lecon-actions{display:flex;gap:10px;flex-wrap:wrap;}
 
     /* ---------- Page Mon projet ---------- */
-    .projet-title-row{display:flex;gap:10px;flex-wrap:wrap;}
-    .projet-title-row input{flex:1;min-width:160px;}
     .projet-steps-list{margin-top:14px;display:flex;flex-direction:column;gap:2px;}
     .projet-step-row{display:flex;align-items:center;gap:12px;padding:10px 4px;cursor:pointer;font-size:14px;}
     .projet-step-row input[type="checkbox"]{width:18px;height:18px;flex-shrink:0;accent-color:#2f80ff;cursor:pointer;}
     .projet-step-row.done span{text-decoration:line-through;color:#6b6478;}
-    .projet-submission-item{padding:14px 0;border-bottom:1px solid rgba(28,20,48,.08);}
-    .projet-submission-item:last-child{border-bottom:none;}
-    .projet-submission-date{font-size:11px;color:#6b6478;margin-bottom:4px;}
-    .projet-submission-note{font-size:13.5px;margin-bottom:4px;white-space:pre-wrap;}
-    .projet-submission-link,.projet-submission-file{font-size:12.5px;color:#2f80ff;word-break:break-all;display:block;text-decoration:none;cursor:pointer;}
-    .projet-submission-link:hover,.projet-submission-file:hover{text-decoration:underline;}
-    .projet-submission-feedback{margin-top:8px;padding:10px 12px;border-radius:10px;background:rgba(47,128,255,.06);border:1px solid rgba(47,128,255,.15);}
-    .projet-submission-feedback-text{font-size:13px;margin-top:6px;white-space:pre-wrap;color:#1c1430;}
 
     /* ---------- Page Ressources ---------- */
     .ressources-categories{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
@@ -912,15 +902,24 @@
 
           <div class="cours-page-head">
             <h2 class="cours-page-title">Mon projet</h2>
-            <p class="cours-page-sub">Suis ton avancement et dépose ton travail ici.</p>
+            <p class="cours-page-sub">Tes réseaux et ton avancement, au même endroit.</p>
           </div>
 
           <div class="glass-card panel-section">
-            <div class="panel-title">Titre du projet</div>
-            <div class="projet-title-row">
-              <input type="text" id="projet-title-input" placeholder="Ex : Mon produit digital">
-              <button type="button" class="btn btn-sm" id="projet-title-save-btn">Enregistrer</button>
+            <div class="panel-title">Mes réseaux</div>
+            <div class="field">
+              <label class="field-label">Instagram</label>
+              <input type="url" id="projet-instagram-input" placeholder="https://instagram.com/...">
             </div>
+            <div class="field">
+              <label class="field-label">TikTok</label>
+              <input type="url" id="projet-tiktok-input" placeholder="https://tiktok.com/@...">
+            </div>
+            <div class="field">
+              <label class="field-label">YouTube</label>
+              <input type="url" id="projet-youtube-input" placeholder="https://youtube.com/@...">
+            </div>
+            <button type="button" class="btn btn-sm" id="projet-socials-save-btn">Enregistrer</button>
           </div>
 
           <div class="glass-card panel-section">
@@ -928,39 +927,6 @@
             <div class="progress-track"><div class="progress-fill prog-blue" id="projet-steps-fill" style="width:0%;"></div></div>
             <div class="progress-label"><span id="projet-steps-text">0 étape</span><span id="projet-steps-pct">0%</span></div>
             <div class="projet-steps-list" id="projet-steps-list"></div>
-          </div>
-
-          <div class="glass-card panel-section">
-            <div class="panel-title">Déposer mon travail</div>
-            <div class="field">
-              <label class="field-label">Note / description</label>
-              <textarea id="projet-submit-note" rows="3" placeholder="Décris ce que tu déposes..."></textarea>
-            </div>
-            <div class="field">
-              <label class="field-label">Lien (optionnel)</label>
-              <input type="url" id="projet-submit-link" placeholder="https://...">
-            </div>
-            <div class="field">
-              <label class="field-label">Fichier (image ou PDF, 10 Mo max, optionnel)</label>
-              <input type="file" id="projet-submit-file" accept="image/png,image/jpeg,image/webp,application/pdf">
-            </div>
-            <div class="error-msg" id="projet-submit-error"></div>
-            <div class="info-msg" id="projet-submit-success"></div>
-            <button type="button" class="btn primary" id="projet-submit-btn">Envoyer</button>
-          </div>
-
-          <div class="glass-card panel-section">
-            <div class="panel-title">Historique de mes dépôts</div>
-            <div id="projet-submissions-list"></div>
-          </div>
-
-          <div class="glass-card panel-section">
-            <div class="panel-title">Ma question pour le coach</div>
-            <div class="field">
-              <textarea id="projet-question-input" rows="3" placeholder="Pose ta question ici..."></textarea>
-            </div>
-            <div class="info-msg" id="projet-question-success"></div>
-            <button type="button" class="btn blue" id="projet-question-send-btn">Envoyer ma question</button>
           </div>
         </div>
 
