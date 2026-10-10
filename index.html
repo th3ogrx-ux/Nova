@@ -301,7 +301,7 @@
     .btn.orange{background:linear-gradient(120deg,#f6923d,#f6b93d);border:none;color:#2b1604;font-weight:700;}
     .btn.orange:hover{background:linear-gradient(120deg,#f6b93d,#f6923d);color:#2b1604;}
     /* Accent bleu électrique, utilisé à côté de l'orange sur les
-       nouvelles pages (Mon projet, Ressources, Progression, Calendrier). */
+       nouvelles pages (Mon projet, Ressources, Calendrier). */
     .btn.blue{background:linear-gradient(120deg,#2f80ff,#5ba6ff);border:none;color:#fff;font-weight:700;}
     .btn.blue:hover{background:linear-gradient(120deg,#5ba6ff,#2f80ff);color:#fff;}
     /* .btn est parfois posé sur un <a> (bouton Télécharger, Rejoindre...) :
@@ -366,18 +366,6 @@
     .ressource-item-desc{font-size:12.5px;color:#6b6478;}
     .ressource-item-type{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:20px;background:rgba(47,128,255,.12);color:#2f80ff;font-weight:700;flex-shrink:0;}
     .ressources-empty{padding:30px 10px;text-align:center;color:#6b6478;font-size:13.5px;}
-
-    /* ---------- Page Progression ---------- */
-    .progression-module-row{padding:14px 0;border-bottom:1px solid rgba(28,20,48,.08);}
-    .progression-module-row:last-child{border-bottom:none;}
-    .progression-module-row-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:13.5px;font-weight:600;}
-    .progression-badges-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
-    .progression-badge{padding:16px 14px;border-radius:14px;text-align:center;background:rgba(28,20,48,.04);border:1px solid rgba(28,20,48,.08);}
-    .progression-badge-icon{font-size:28px;margin-bottom:8px;opacity:.3;filter:grayscale(1);}
-    .progression-badge.unlocked{background:linear-gradient(160deg,rgba(47,128,255,.1),rgba(246,146,61,.1));border-color:rgba(47,128,255,.25);}
-    .progression-badge.unlocked .progression-badge-icon{opacity:1;filter:none;}
-    .progression-badge-label{font-size:12.5px;font-weight:700;margin-bottom:3px;}
-    .progression-badge-cond{font-size:11px;color:#6b6478;}
 
     /* ---------- Page Calendrier ---------- */
     .calendrier-event{display:flex;gap:16px;padding:18px 20px;margin-bottom:10px;align-items:flex-start;flex-wrap:wrap;}
@@ -607,7 +595,6 @@
         <div class="nav-item eleve-only" id="nav-eleve-projet" data-view="mon-projet" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></span><span class="nav-label">Mon projet</span></div>
         <div class="nav-item eleve-only" id="nav-eleve-ressources" data-view="resources" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5C4 3.7 4.7 3 5.5 3H12v18H5.5c-.8 0-1.5-.7-1.5-1.5v-15z"/><path d="M20 4.5c0-.8-.7-1.5-1.5-1.5H12v18h6.5c.8 0 1.5-.7 1.5-1.5v-15z"/></svg></span><span class="nav-label">Ressources</span></div>
         <div class="nav-item eleve-only" id="nav-eleve-cours" data-view="cours" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span><span class="nav-label">Cours</span></div>
-        <div class="nav-item eleve-only" id="nav-eleve-progression" data-view="progression" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span><span class="nav-label">Progression</span></div>
         <div class="nav-item eleve-only" id="nav-eleve-calendrier" data-view="calendrier" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></span><span class="nav-label">Calendrier</span></div>
 
         <!-- Navigation chef : visible uniquement pour le compte chef,
@@ -1026,33 +1013,6 @@
               <button type="button" class="btn primary" id="lecon-complete-btn">Marquer comme terminée</button>
               <button type="button" class="btn" id="lecon-next-btn">Leçon suivante →</button>
             </div>
-          </div>
-        </div>
-
-        <div class="view" id="view-progression">
-          <div class="dash-toolbar">
-            <h1 class="home-hero-name">Progression</h1>
-          </div>
-
-          <div class="cours-page-head">
-            <h2 class="cours-page-title">Progression</h2>
-            <p class="cours-page-sub">Ce que tu as fait, ce qu'il te reste, et tes badges.</p>
-          </div>
-
-          <div class="glass-card panel-section">
-            <div class="panel-title">Avancement global</div>
-            <div class="progress-track"><div class="progress-fill prog-blue" id="progression-global-fill" style="width:0%;"></div></div>
-            <div class="progress-label"><span id="progression-global-text">0 leçon terminée sur 0</span><span id="progression-global-pct">0%</span></div>
-          </div>
-
-          <div class="glass-card panel-section">
-            <div class="panel-title">Par module</div>
-            <div id="progression-modules-list"></div>
-          </div>
-
-          <div class="glass-card panel-section">
-            <div class="panel-title">Mes badges</div>
-            <div class="progression-badges-grid" id="progression-badges-grid"></div>
           </div>
         </div>
 
