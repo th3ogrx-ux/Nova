@@ -1918,11 +1918,12 @@
     }
 
     function openLessonModal(mod, lesson) {
+      // Pas de choix de type de contenu : toutes les leçons sont des
+      // vidéos (content_type fixé à "video" automatiquement).
       openAdminModal(lesson ? "Modifier la leçon" : "Ajouter une leçon",
         '<div class="field"><label class="field-label">Titre</label><input type="text" id="cf-title"></div>' +
-        '<div class="field"><label class="field-label">Type de contenu</label><select id="cf-type"><option value="text">Texte</option><option value="video">Vidéo</option></select></div>' +
-        '<div class="field"><label class="field-label">Lien vidéo (si type vidéo)</label><input type="text" id="cf-video" placeholder="https://..."></div>' +
-        '<div class="field"><label class="field-label">Texte / description</label><textarea id="cf-text" rows="3"></textarea></div>' +
+        '<div class="field"><label class="field-label">Lien vidéo</label><input type="text" id="cf-video" placeholder="https://..."></div>' +
+        '<div class="field"><label class="field-label">Texte / description (optionnel)</label><textarea id="cf-text" rows="3"></textarea></div>' +
         '<div class="field"><label class="field-label">Durée (minutes)</label><input type="number" id="cf-duration" min="1"></div>' +
         '<div class="field"><label class="field-label">Statut</label><select id="cf-status"><option value="published">Publiée</option><option value="draft">Brouillon</option></select></div>',
         function (done) {
@@ -1931,7 +1932,7 @@
           var durationVal = document.getElementById("cf-duration").value;
           var payload = {
             title: title,
-            content_type: document.getElementById("cf-type").value,
+            content_type: "video",
             video_url: document.getElementById("cf-video").value.trim() || null,
             content_text: document.getElementById("cf-text").value.trim() || null,
             duration_minutes: durationVal ? parseInt(durationVal, 10) : null,
@@ -1950,7 +1951,6 @@
           });
         });
       document.getElementById("cf-title").value = lesson ? lesson.title : "";
-      document.getElementById("cf-type").value = lesson ? lesson.content_type : "text";
       document.getElementById("cf-video").value = (lesson && lesson.video_url) || "";
       document.getElementById("cf-text").value = (lesson && lesson.content_text) || "";
       document.getElementById("cf-duration").value = (lesson && lesson.duration_minutes) || "";
