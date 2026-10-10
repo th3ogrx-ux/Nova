@@ -372,7 +372,6 @@
 
           var row = document.createElement("div");
           row.className = "cours-lesson" + (isDone ? " done" : "");
-          row.setAttribute("data-lesson-title", lesson.title.toLowerCase());
 
           var numEl = document.createElement("span");
           numEl.className = "cours-lesson-num";
@@ -485,25 +484,6 @@
         var ordered = getOrderedLessons();
         var idx = ordered.findIndex(function (l) { return l.id === currentLessonId; });
         if (idx !== -1 && idx < ordered.length - 1) openLesson(ordered[idx + 1].id);
-      });
-    }
-
-    // Recherche simple : filtre les leçons par titre, et ouvre les
-    // modules qui contiennent un résultat.
-    var coursSearchInput = document.getElementById("cours-search-input");
-    if (coursSearchInput) {
-      coursSearchInput.addEventListener("input", function () {
-        var q = coursSearchInput.value.trim().toLowerCase();
-        document.querySelectorAll(".cours-module").forEach(function (block) {
-          var anyVisible = false;
-          block.querySelectorAll(".cours-lesson").forEach(function (row) {
-            var match = !q || (row.getAttribute("data-lesson-title") || "").indexOf(q) !== -1;
-            row.style.display = match ? "" : "none";
-            if (match) anyVisible = true;
-          });
-          block.style.display = anyVisible ? "" : "none";
-          if (q && anyVisible) block.classList.add("open");
-        });
       });
     }
 
@@ -2282,7 +2262,11 @@
         document.querySelectorAll(".chef-only").forEach(function (el) {
           el.style.display = isChef ? "flex" : "none";
         });
-        switchToView(isChef ? "tableau-de-bord" : "accueil");
+        var landingView = isChef ? "tableau-de-bord" : "accueil";
+        switchToView(landingView);
+        document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
+        var landingNav = document.querySelector('.nav-item[data-view="' + landingView + '"]');
+        if (landingNav) landingNav.classList.add("active");
         if (isChef) loadDashboardData();
 
         // Champ ajouté par une migration plus récente (mission_done) :
