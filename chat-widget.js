@@ -1196,6 +1196,24 @@
           icsBtn.addEventListener("click", function () { downloadIcs(evt); });
           actions.appendChild(icsBtn);
         }
+        if (me && me.role === "chef") {
+          var deleteEventBtn = document.createElement("button");
+          deleteEventBtn.type = "button";
+          deleteEventBtn.className = "btn danger btn-sm admin-icon-x-btn";
+          deleteEventBtn.textContent = "✕";
+          deleteEventBtn.title = "Supprimer cet événement";
+          deleteEventBtn.addEventListener("click", function () {
+            zenoaConfirm('Supprimer l\'événement "' + evt.title + '" ?', { danger: true, confirmLabel: "Supprimer" }).then(function (ok) {
+              if (!ok) return;
+              supabase.from("calendar_events").delete().eq("id", evt.id).then(function (res) {
+                if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+                calendarDataLoaded = false;
+                loadCalendarData();
+              });
+            });
+          });
+          actions.appendChild(deleteEventBtn);
+        }
         body.appendChild(actions);
         card.appendChild(body);
         container.appendChild(card);
@@ -1209,6 +1227,45 @@
       renderCalendarList("calendrier-upcoming-list", upcoming, false);
       renderCalendarList("calendrier-past-list", past, true);
     }
+
+    // Ajout d'un événement par le chef : apparaît aussitôt dans le
+    // calendrier de tous les élèves (même table calendar_events,
+    // policy "admin can write events" dans admin-panel.sql).
+    function openEventModal() {
+      openAdminModal("Ajouter un événement",
+        '<div class="field"><label class="field-label">Titre</label><input type="text" id="cf-title"></div>' +
+        '<div class="field"><label class="field-label">Date</label><input type="date" id="cf-date"></div>' +
+        '<div class="field"><label class="field-label">Heure (Europe/Paris)</label><input type="time" id="cf-time"></div>' +
+        '<div class="field"><label class="field-label">Lien de connexion (optionnel)</label><input type="text" id="cf-join-url" placeholder="https://..."></div>' +
+        '<div class="field"><label class="field-label">Description (optionnel)</label><textarea id="cf-desc" rows="3"></textarea></div>',
+        function (done) {
+          var title = document.getElementById("cf-title").value.trim();
+          var date = document.getElementById("cf-date").value;
+          if (!title) { done("Le titre est obligatoire."); return; }
+          if (!date) { done("La date est obligatoire."); return; }
+          var payload = {
+            title: title,
+            event_date: date,
+            event_time: document.getElementById("cf-time").value || null,
+            join_url: document.getElementById("cf-join-url").value.trim() || null,
+            description: document.getElementById("cf-desc").value.trim() || null,
+            created_by: me.id
+          };
+          supabase.from("calendar_events").insert(payload).then(function (res) {
+            if (res && res.error) { done("Erreur : " + res.error.message); return; }
+            done();
+            calendarDataLoaded = false;
+            loadCalendarData();
+          });
+        });
+      document.getElementById("cf-title").value = "";
+      document.getElementById("cf-date").value = "";
+      document.getElementById("cf-time").value = "";
+      document.getElementById("cf-join-url").value = "";
+      document.getElementById("cf-desc").value = "";
+    }
+    var calendrierAddEventBtn = document.getElementById("calendrier-add-event-btn");
+    if (calendrierAddEventBtn) calendrierAddEventBtn.addEventListener("click", function () { openEventModal(); });
 
     // ============================================================
     // ---------- PARTIE ADMIN (visible seulement par le "chef") ----------
