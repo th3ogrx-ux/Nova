@@ -122,10 +122,10 @@
     }
 
     // Navigation élève (Accueil, Mon projet, Ressources, Cours,
-    // Progression, Calendrier) et navigation chef (Tableau de bord,
-    // Élèves, Contenu, Accès et codes) : chacune visible
-    // uniquement pour le rôle correspondant, affichée/masquée dans
-    // boot() une fois le rôle connu.
+    // Calendrier) et navigation chef (Tableau de bord, Élèves, Contenu,
+    // Calendrier, Accès et codes) : chacune visible uniquement pour le
+    // rôle correspondant, affichée/masquée dans boot() une fois le
+    // rôle connu.
     document.querySelectorAll(".eleve-only[data-view], .chef-only[data-view]").forEach(function (navEl) {
       navEl.addEventListener("click", function () {
         document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
@@ -299,8 +299,6 @@
           });
         }
         renderCoursModules();
-        renderProgressionPage();
-        checkAndUnlockBadges();
       });
     }
 
@@ -473,8 +471,6 @@
         courseProgress[currentLessonId] = newDone;
         updateLessonCompleteButton();
         renderCoursModules();
-        renderProgressionPage();
-        checkAndUnlockBadges();
         supabase.from("user_lesson_progress")
           .upsert({ user_id: me.id, lesson_id: currentLessonId, completed: newDone, completed_at: newDone ? new Date().toISOString() : null }, { onConflict: "user_id,lesson_id" })
           .then(function (res) {
@@ -724,7 +720,6 @@
             if (fileInput) fileInput.value = "";
             if (res && res.data) myProjectSubmissions.unshift(res.data);
             renderProjectSubmissions();
-            checkAndUnlockBadges();
           })
           .catch(function (err) {
             projetSubmitBtn.disabled = false;
@@ -890,162 +885,6 @@
     var ressourcesSearchInput = document.getElementById("ressources-search-input");
     if (ressourcesSearchInput) {
       ressourcesSearchInput.addEventListener("input", function () { renderResourcesList(); });
-    }
-
-    // ---------- Page Progression (+ badges) ----------
-    // Réutilise les modules/leçons/progression de la page Cours.
-    // Les badges (définitions + débloqués) viennent de Supabase (voir
-    // progression-badges.sql) ; seule la condition de déblocage de
-    // chaque badge doit forcément être du code (badgeConditionMet).
-
-    var BADGE_DEFINITIONS = {};
-    var myUnlockedBadges = {};
-    var badgesDataLoaded = false;
-
-    function loadBadgesData(userId) {
-      if (badgesDataLoaded) return;
-      badgesDataLoaded = true;
-      Promise.all([
-        supabase.from("badges").select("code,position,icon,label,condition_text").order("position"),
-        supabase.from("user_badges").select("badge_code").eq("user_id", userId)
-      ]).then(function (results) {
-        var badgesRes = results[0], userBadgesRes = results[1];
-        if (badgesRes && badgesRes.data) {
-          badgesRes.data.forEach(function (b) { BADGE_DEFINITIONS[b.code] = b; });
-        }
-        myUnlockedBadges = {};
-        if (userBadgesRes && userBadgesRes.data) {
-          userBadgesRes.data.forEach(function (row) { myUnlockedBadges[row.badge_code] = true; });
-        }
-        renderBadges();
-        checkAndUnlockBadges();
-      });
-    }
-
-    function badgeConditionMet(code) {
-      if (code === "first_lesson") {
-        return Object.keys(courseProgress).length > 0;
-      }
-      if (code === "module1_done") {
-        var sortedModules = courseModules.slice().sort(function (a, b) { return a.position - b.position; });
-        var mod1 = sortedModules[0];
-        if (!mod1) return false;
-        var lessonsInMod1 = courseLessons.filter(function (l) { return l.module_id === mod1.id; });
-        return lessonsInMod1.length > 0 && lessonsInMod1.every(function (l) { return courseProgress[l.id]; });
-      }
-      if (code === "first_submission") {
-        return myProjectSubmissions.length > 0;
-      }
-      if (code === "streak7") {
-        return !!(me && (me.streak_count || 0) >= 7);
-      }
-      return false;
-    }
-
-    function checkAndUnlockBadges() {
-      if (!me) return;
-      Object.keys(BADGE_DEFINITIONS).forEach(function (code) {
-        if (myUnlockedBadges[code]) return;
-        if (!badgeConditionMet(code)) return;
-        myUnlockedBadges[code] = true;
-        supabase.from("user_badges").insert({ user_id: me.id, badge_code: code }).then(function (res) {
-          if (res && res.error) myUnlockedBadges[code] = false;
-        });
-      });
-      renderBadges();
-    }
-
-    function renderBadges() {
-      var grid = document.getElementById("progression-badges-grid");
-      if (!grid) return;
-      grid.innerHTML = "";
-      var codes = Object.keys(BADGE_DEFINITIONS).sort(function (a, b) {
-        return BADGE_DEFINITIONS[a].position - BADGE_DEFINITIONS[b].position;
-      });
-      if (!codes.length) {
-        grid.innerHTML = '<div class="cours-empty">Aucun badge pour le moment.</div>';
-        return;
-      }
-      codes.forEach(function (code) {
-        var b = BADGE_DEFINITIONS[code];
-        var unlocked = !!myUnlockedBadges[code];
-        var card = document.createElement("div");
-        card.className = "progression-badge" + (unlocked ? " unlocked" : "");
-        var iconEl = document.createElement("div");
-        iconEl.className = "progression-badge-icon";
-        iconEl.textContent = b.icon;
-        var labelEl = document.createElement("div");
-        labelEl.className = "progression-badge-label";
-        labelEl.textContent = b.label;
-        var condEl = document.createElement("div");
-        condEl.className = "progression-badge-cond";
-        condEl.textContent = unlocked ? "Débloqué" : b.condition_text;
-        card.appendChild(iconEl);
-        card.appendChild(labelEl);
-        card.appendChild(condEl);
-        grid.appendChild(card);
-      });
-    }
-
-    // "Streak" (jours d'affilée) pour le badge streak7 : comparé en
-    // date Europe/Paris, incrémenté une fois par jour de visite.
-    function updateStreak() {
-      if (!me) return;
-      var todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
-      if (me.streak_last_date === todayStr) { checkAndUnlockBadges(); return; }
-      var yesterdayStr = new Date(Date.now() - 86400000).toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
-      var newStreak = me.streak_last_date === yesterdayStr ? (me.streak_count || 0) + 1 : 1;
-      me.streak_count = newStreak;
-      me.streak_last_date = todayStr;
-      supabase.from("profiles").update({ streak_count: newStreak, streak_last_date: todayStr }).eq("id", me.id).then(function (res) {
-        if (!res || !res.error) checkAndUnlockBadges();
-      });
-    }
-
-    function renderProgressionPage() {
-      var ordered = getOrderedLessons();
-      var doneCount = ordered.filter(function (l) { return courseProgress[l.id]; }).length;
-      var total = ordered.length;
-      var pct = total ? Math.round((doneCount / total) * 100) : 0;
-      var fill = document.getElementById("progression-global-fill");
-      if (fill) fill.style.width = pct + "%";
-      var text = document.getElementById("progression-global-text");
-      if (text) text.textContent = doneCount + " leçon" + (doneCount > 1 ? "s" : "") + " terminée" + (doneCount > 1 ? "s" : "") + " sur " + total;
-      var pctEl = document.getElementById("progression-global-pct");
-      if (pctEl) pctEl.textContent = pct + "%";
-
-      var list = document.getElementById("progression-modules-list");
-      if (!list) return;
-      list.innerHTML = "";
-      if (!courseModules.length) {
-        list.innerHTML = '<div class="cours-empty">Aucun module pour le moment.</div>';
-        return;
-      }
-      courseModules.slice().sort(function (a, b) { return a.position - b.position; }).forEach(function (mod) {
-        var lessons = courseLessons.filter(function (l) { return l.module_id === mod.id; });
-        var done = lessons.filter(function (l) { return courseProgress[l.id]; }).length;
-        var mPct = lessons.length ? Math.round((done / lessons.length) * 100) : 0;
-
-        var row = document.createElement("div");
-        row.className = "progression-module-row";
-        var head = document.createElement("div");
-        head.className = "progression-module-row-head";
-        var titleEl = document.createElement("span");
-        titleEl.textContent = mod.title;
-        var countEl = document.createElement("span");
-        countEl.textContent = done + "/" + lessons.length;
-        head.appendChild(titleEl);
-        head.appendChild(countEl);
-        var track = document.createElement("div");
-        track.className = "progress-track";
-        var fillEl = document.createElement("div");
-        fillEl.className = "progress-fill prog-blue";
-        fillEl.style.width = mPct + "%";
-        track.appendChild(fillEl);
-        row.appendChild(head);
-        row.appendChild(track);
-        list.appendChild(row);
-      });
     }
 
     // ---------- Page Calendrier ----------
@@ -2446,22 +2285,19 @@
         switchToView(isChef ? "tableau-de-bord" : "accueil");
         if (isChef) loadDashboardData();
 
-        // Champs ajoutés par des migrations plus récentes (mission_done,
-        // streak) : récupérés à part, pour ne jamais bloquer le reste de
-        // l'appli (nav, page Accueil) si une migration n'a pas encore
-        // été exécutée et qu'une colonne n'existe pas encore.
-        supabase.from("profiles").select("mission_done,streak_count,streak_last_date").eq("id", userId).single().then(function (res2) {
+        // Champ ajouté par une migration plus récente (mission_done) :
+        // récupéré à part, pour ne jamais bloquer le reste de l'appli
+        // (nav, page Accueil) si la migration n'a pas encore été
+        // exécutée et que la colonne n'existe pas encore.
+        supabase.from("profiles").select("mission_done").eq("id", userId).single().then(function (res2) {
           if (!res2 || !res2.data) return;
           me.mission_done = res2.data.mission_done;
-          me.streak_count = res2.data.streak_count;
-          me.streak_last_date = res2.data.streak_last_date;
           var missionCheck = document.getElementById("accueil-mission-check");
           var missionRow = document.getElementById("accueil-mission-row");
           if (missionCheck) {
             missionCheck.checked = !!me.mission_done;
             if (missionRow) missionRow.classList.toggle("done", missionCheck.checked);
           }
-          updateStreak();
         });
       });
     }
@@ -2473,7 +2309,6 @@
         loadCourseData(session.user.id);
         loadProjectData(session.user.id);
         loadResourcesData();
-        loadBadgesData(session.user.id);
         loadCalendarData();
         loadHomeNews();
       }
@@ -2484,7 +2319,6 @@
         loadCourseData(session.user.id);
         loadProjectData(session.user.id);
         loadResourcesData();
-        loadBadgesData(session.user.id);
         loadCalendarData();
         loadHomeNews();
       }
