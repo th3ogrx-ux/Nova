@@ -95,7 +95,7 @@
     // Ce n'est qu'une protection côté interface : la vraie sécurité est
     // dans les policies RLS (admin-panel.sql), qui bloquent aussi les
     // lectures/écritures même si l'affichage était contourné.
-    var ADMIN_ONLY_VIEWS = ["tableau-de-bord", "eleves", "eleve-detail", "contenu", "retours", "acces-codes"];
+    var ADMIN_ONLY_VIEWS = ["tableau-de-bord", "eleves", "eleve-detail", "contenu", "acces-codes"];
     function switchToView(viewName) {
       if (ADMIN_ONLY_VIEWS.indexOf(viewName) !== -1 && !(me && me.role === "chef")) return;
       document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
@@ -123,7 +123,7 @@
 
     // Navigation élève (Accueil, Mon projet, Ressources, Cours,
     // Progression, Calendrier) et navigation chef (Tableau de bord,
-    // Élèves, Contenu, Retours, Accès et codes) : chacune visible
+    // Élèves, Contenu, Accès et codes) : chacune visible
     // uniquement pour le rôle correspondant, affichée/masquée dans
     // boot() une fois le rôle connu.
     document.querySelectorAll(".eleve-only[data-view], .chef-only[data-view]").forEach(function (navEl) {
@@ -631,8 +631,9 @@
           });
           item.appendChild(fileEl);
         }
-        // Retour de l'admin sur ce dépôt (page Retours côté admin) :
-        // visible ici dès qu'il a écrit quelque chose, avec le statut.
+        // Retour de l'admin sur ce dépôt (renseigné directement en base
+        // pour l'instant, la page Retours ayant été retirée) : visible
+        // ici dès qu'il a écrit quelque chose, avec le statut.
         if (sub.admin_feedback || sub.corrected) {
           var feedbackBox = document.createElement("div");
           feedbackBox.className = "projet-submission-feedback";
@@ -1228,24 +1229,6 @@
       return new Date(value).toLocaleString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
     }
 
-    // Déplace un item d'une liste triée par "position" vers le haut/bas
-    // puis réécrit les 2 positions touchées en base. Simple et suffisant
-    // pour réordonner du contenu admin (pas de drag-and-drop).
-    function reorderItem(table, items, item, direction, onDone) {
-      var sorted = items.slice().sort(function (a, b) { return a.position - b.position; });
-      var idx = sorted.indexOf(item);
-      var swapIdx = idx + direction;
-      if (swapIdx < 0 || swapIdx >= sorted.length) return;
-      var other = sorted[swapIdx];
-      var tmpPos = item.position;
-      item.position = other.position;
-      other.position = tmpPos;
-      Promise.all([
-        supabase.from(table).update({ position: item.position }).eq("id", item.id),
-        supabase.from(table).update({ position: other.position }).eq("id", other.id)
-      ]).then(function () { onDone(); });
-    }
-
     // ----- Modal générique (admin-modal-*), réutilisé par toutes les
     // actions d'ajout/édition de contenu, pour éviter un modal par type. -----
     var adminModalOverlay = document.getElementById("admin-modal-overlay");
@@ -1294,12 +1277,10 @@
       if (!statsEl) return;
       Promise.all([
         supabase.from("profiles").select("id,pseudo,email,created_at,last_seen_at,is_active").eq("role", "membre"),
-        supabase.from("user_lesson_progress").select("user_id,completed_at").eq("completed", true),
-        supabase.from("project_submissions").select("id,corrected")
+        supabase.from("user_lesson_progress").select("user_id,completed_at").eq("completed", true)
       ]).then(function (results) {
         dashboardStudents = (results[0] && results[0].data) || [];
         var progressRows = (results[1] && results[1].data) || [];
-        var submissions = (results[2] && results[2].data) || [];
 
         dashboardDoneByUser = {};
         dashboardLastCompletion = {};
@@ -1359,10 +1340,6 @@
         }
 
         renderStuckStudents();
-
-        var pendingCount = submissions.filter(function (sub) { return !sub.corrected; }).length;
-        var pendingEl = document.getElementById("admin-pending-count");
-        if (pendingEl) pendingEl.textContent = String(pendingCount);
       });
     }
 
@@ -1539,37 +1516,6 @@
     var elevesSearchInput = document.getElementById("eleves-search-input");
     if (elevesSearchInput) elevesSearchInput.addEventListener("input", renderElevesList);
 
-    var elevesExportCsvBtn = document.getElementById("eleves-export-csv-btn");
-    if (elevesExportCsvBtn) {
-      elevesExportCsvBtn.addEventListener("click", function () {
-        var totalLessons = courseLessons.filter(function (l) { return l.status !== "draft"; }).length;
-        var rows = [["Nom", "E-mail", "Date d'inscription", "Dernière connexion", "Progression %", "Statut"]];
-        elevesList.forEach(function (s) {
-          var pct = totalLessons > 0 ? Math.round(((elevesDoneByUser[s.id] || 0) / totalLessons) * 100) : 0;
-          rows.push([
-            s.pseudo || "",
-            s.email || "",
-            s.created_at ? formatShortDate(s.created_at) : "",
-            s.last_seen_at ? formatShortDate(s.last_seen_at) : "Jamais",
-            String(pct),
-            eleveAccessStatusLabel(eleveAccessStatus(s))
-          ]);
-        });
-        var csv = rows.map(function (r) {
-          return r.map(function (cell) { return '"' + String(cell).replace(/"/g, '""') + '"'; }).join(",");
-        }).join("\n");
-        var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement("a");
-        a.href = url;
-        a.download = "eleves-zenoa-" + new Date().toISOString().slice(0, 10) + ".csv";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      });
-    }
-
     // ----- Fiche élève -----
     var btnBackEleveDetail = document.getElementById("btn-back-eleve-detail");
     if (btnBackEleveDetail) btnBackEleveDetail.addEventListener("click", function () { switchToView("eleves"); });
@@ -1742,65 +1688,19 @@
     }
 
     // ---------- Page Contenu ----------
+    // Simplifié à la demande : uniquement l'ajout de modules (titre +
+    // image de couverture). Les leçons/ressources/nouveautés/événements
+    // restent dans Supabase (tables course_lessons/resources/home_news/
+    // calendar_events, toujours lues côté élève) mais n'ont plus
+    // d'interface d'ajout/édition dédiée ici : à gérer depuis le Table
+    // Editor de Supabase si besoin, pour garder cette page minimale.
     var adminModules = [];
-    var adminLessons = [];
-    var adminResources = [];
-    var adminNewsItems = [];
-    var adminEvents = [];
 
     function loadContenuData() {
-      Promise.all([
-        supabase.from("course_modules").select("id,position,title,description").order("position"),
-        supabase.from("course_lessons").select("id,module_id,position,title,duration_minutes,content_type,content_text,video_url,status").order("position"),
-        supabase.from("resources").select("id,category,title,description,resource_type,file_url,prompt_text,position").order("position"),
-        supabase.from("home_news").select("id,position,date_label,title,link_view").order("position"),
-        supabase.from("calendar_events").select("id,title,description,event_date,event_time,join_url,replay_url").order("event_date")
-      ]).then(function (results) {
-        adminModules = (results[0] && results[0].data) || [];
-        adminLessons = (results[1] && results[1].data) || [];
-        adminResources = (results[2] && results[2].data) || [];
-        adminNewsItems = (results[3] && results[3].data) || [];
-        adminEvents = (results[4] && results[4].data) || [];
+      supabase.from("course_modules").select("id,position,title,cover_url").order("position").then(function (res) {
+        adminModules = (res && res.data) || [];
         renderContenuModules();
-        renderContenuResources();
-        renderContenuNews();
-        renderContenuEvents();
       });
-    }
-
-    document.querySelectorAll("#contenu-tabs [data-tab]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        document.querySelectorAll("#contenu-tabs [data-tab]").forEach(function (b) { b.classList.remove("active"); });
-        btn.classList.add("active");
-        var tab = btn.getAttribute("data-tab");
-        ["modules", "ressources", "nouveautes", "calendrier"].forEach(function (t) {
-          var panel = document.getElementById("contenu-tab-" + t);
-          if (panel) panel.hidden = t !== tab;
-        });
-      });
-    });
-
-    function buildAdminContentItemRow(title, meta, isDraft) {
-      var row = document.createElement("div");
-      row.className = "admin-content-item" + (isDraft ? " draft" : "");
-      row.innerHTML =
-        '<div class="admin-content-item-info">' +
-          '<div class="admin-content-item-title"></div>' +
-          '<div class="admin-content-item-meta"></div>' +
-        '</div>' +
-        '<div class="admin-content-item-actions"></div>';
-      row.querySelector(".admin-content-item-title").textContent = title;
-      row.querySelector(".admin-content-item-meta").textContent = meta;
-      return row;
-    }
-    function addRowActionBtn(row, label, cls, onClick) {
-      var btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "btn btn-sm" + (cls ? " " + cls : "");
-      btn.textContent = label;
-      btn.addEventListener("click", onClick);
-      row.querySelector(".admin-content-item-actions").appendChild(btn);
-      return btn;
     }
 
     function renderContenuModules() {
@@ -1811,448 +1711,72 @@
         list.innerHTML = '<div class="cours-empty">Aucun module pour le moment.</div>';
         return;
       }
+      var grid = document.createElement("div");
+      grid.className = "contenu-modules-grid";
       adminModules.slice().sort(function (a, b) { return a.position - b.position; }).forEach(function (mod) {
         var card = document.createElement("div");
-        card.className = "glass-card panel-section";
-
-        var head = buildAdminContentItemRow(mod.title, mod.description || "", false);
-        addRowActionBtn(head, "↑", "", function () { reorderItem("course_modules", adminModules, mod, -1, loadContenuData); });
-        addRowActionBtn(head, "↓", "", function () { reorderItem("course_modules", adminModules, mod, 1, loadContenuData); });
-        addRowActionBtn(head, "Modifier", "blue", function () { openModuleModal(mod); });
-        addRowActionBtn(head, "Suppr.", "danger", function () {
-          zenoaConfirm('Supprimer le module "' + mod.title + '" et toutes ses leçons ? Cette action est irréversible.', { danger: true, confirmLabel: "Supprimer" }).then(function (ok) {
-            if (!ok) return;
-            supabase.from("course_modules").delete().eq("id", mod.id).then(function (res) {
-              if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-              loadContenuData();
-            });
-          });
-        });
-        card.appendChild(head);
-
-        var lessons = adminLessons.filter(function (l) { return l.module_id === mod.id; }).sort(function (a, b) { return a.position - b.position; });
-        lessons.forEach(function (lesson) {
-          var isDraft = lesson.status === "draft";
-          var meta = (lesson.content_type === "video" ? "Vidéo" : "Texte") +
-            (lesson.duration_minutes ? " · " + lesson.duration_minutes + " min" : "") +
-            " · " + (isDraft ? "Brouillon" : "Publiée");
-          var row = buildAdminContentItemRow(lesson.title, meta, isDraft);
-          row.style.marginLeft = "18px";
-          addRowActionBtn(row, "↑", "", function () { reorderItem("course_lessons", lessons, lesson, -1, loadContenuData); });
-          addRowActionBtn(row, "↓", "", function () { reorderItem("course_lessons", lessons, lesson, 1, loadContenuData); });
-          addRowActionBtn(row, isDraft ? "Publier" : "Repasser en brouillon", "", function () {
-            supabase.from("course_lessons").update({ status: isDraft ? "published" : "draft" }).eq("id", lesson.id).then(function (res) {
-              if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-              loadContenuData();
-            });
-          });
-          addRowActionBtn(row, "Modifier", "blue", function () { openLessonModal(mod, lesson); });
-          addRowActionBtn(row, "Suppr.", "danger", function () {
-            zenoaConfirm('Supprimer la leçon "' + lesson.title + '" ?', { danger: true, confirmLabel: "Supprimer" }).then(function (ok) {
-              if (!ok) return;
-              supabase.from("course_lessons").delete().eq("id", lesson.id).then(function (res) {
-                if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-                loadContenuData();
-              });
-            });
-          });
-          card.appendChild(row);
-        });
-
-        var addLessonBtn = document.createElement("button");
-        addLessonBtn.type = "button";
-        addLessonBtn.className = "btn btn-sm";
-        addLessonBtn.style.marginTop = "8px";
-        addLessonBtn.textContent = "+ Ajouter une leçon";
-        addLessonBtn.addEventListener("click", function () { openLessonModal(mod, null); });
-        card.appendChild(addLessonBtn);
-
-        list.appendChild(card);
+        card.className = "glass-card contenu-module-card";
+        if (mod.cover_url) {
+          var img = document.createElement("img");
+          img.className = "contenu-module-cover";
+          img.src = mod.cover_url;
+          img.alt = mod.title;
+          card.appendChild(img);
+        } else {
+          var placeholder = document.createElement("div");
+          placeholder.className = "contenu-module-cover-placeholder";
+          placeholder.textContent = "Pas d'image";
+          card.appendChild(placeholder);
+        }
+        var titleEl = document.createElement("div");
+        titleEl.className = "contenu-module-title";
+        titleEl.textContent = mod.title;
+        card.appendChild(titleEl);
+        grid.appendChild(card);
       });
+      list.appendChild(grid);
     }
 
-    function openModuleModal(mod) {
-      openAdminModal(mod ? "Modifier le module" : "Ajouter un module",
+    var MODULE_COVER_MAX_BYTES = 5 * 1024 * 1024; // 5 Mo
+    var MODULE_COVER_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
+
+    function openModuleModal() {
+      openAdminModal("Ajouter un module",
         '<div class="field"><label class="field-label">Titre</label><input type="text" id="cf-title"></div>' +
-        '<div class="field"><label class="field-label">Description</label><textarea id="cf-desc" rows="2"></textarea></div>',
+        '<div class="field"><label class="field-label">Image de couverture (format rectangulaire, optionnelle)</label><input type="file" id="cf-cover" accept="image/png,image/jpeg,image/webp"></div>',
         function (done) {
           var title = document.getElementById("cf-title").value.trim();
           if (!title) { done("Le titre est obligatoire."); return; }
-          var payload = { title: title, description: document.getElementById("cf-desc").value.trim() || null };
-          var query = mod
-            ? supabase.from("course_modules").update(payload).eq("id", mod.id)
-            : supabase.from("course_modules").insert(Object.assign({ position: adminModules.length }, payload));
-          query.then(function (res) {
-            if (res && res.error) { done("Erreur : " + res.error.message); return; }
-            done();
-            loadContenuData();
-          });
+          var fileInput = document.getElementById("cf-cover");
+          var file = fileInput && fileInput.files && fileInput.files[0];
+          if (file && file.size > MODULE_COVER_MAX_BYTES) { done("L'image dépasse 5 Mo."); return; }
+          if (file && MODULE_COVER_ALLOWED_TYPES.indexOf(file.type) === -1) { done("Type d'image non autorisé (PNG, JPEG ou WebP uniquement)."); return; }
+
+          var uploadPromise = file
+            ? supabase.storage.from("module-covers").upload(Date.now() + "-" + file.name, file).then(function (res) {
+                if (res && res.error) throw res.error;
+                var pub = supabase.storage.from("module-covers").getPublicUrl(res.data.path);
+                return (pub && pub.data && pub.data.publicUrl) || null;
+              })
+            : Promise.resolve(null);
+
+          uploadPromise
+            .then(function (coverUrl) {
+              return supabase.from("course_modules").insert({ title: title, position: adminModules.length, cover_url: coverUrl });
+            })
+            .then(function (res) {
+              if (res && res.error) { done("Erreur : " + res.error.message); return; }
+              done();
+              loadContenuData();
+            })
+            .catch(function (err) {
+              done("Erreur : " + (err && err.message ? err.message : "envoi de l'image impossible."));
+            });
         });
-      document.getElementById("cf-title").value = mod ? mod.title : "";
-      document.getElementById("cf-desc").value = (mod && mod.description) || "";
+      document.getElementById("cf-title").value = "";
     }
     var contenuAddModuleBtn = document.getElementById("contenu-add-module-btn");
-    if (contenuAddModuleBtn) contenuAddModuleBtn.addEventListener("click", function () { openModuleModal(null); });
-
-    function openLessonModal(mod, lesson) {
-      openAdminModal(lesson ? "Modifier la leçon" : "Ajouter une leçon",
-        '<div class="field"><label class="field-label">Titre</label><input type="text" id="cf-title"></div>' +
-        '<div class="field"><label class="field-label">Type de contenu</label><select id="cf-type"><option value="text">Texte</option><option value="video">Vidéo</option></select></div>' +
-        '<div class="field"><label class="field-label">Lien vidéo (si type vidéo)</label><input type="text" id="cf-video" placeholder="https://..."></div>' +
-        '<div class="field"><label class="field-label">Texte / description</label><textarea id="cf-text" rows="3"></textarea></div>' +
-        '<div class="field"><label class="field-label">Durée (minutes)</label><input type="number" id="cf-duration" min="1"></div>' +
-        '<div class="field"><label class="field-label">Statut</label><select id="cf-status"><option value="published">Publiée</option><option value="draft">Brouillon</option></select></div>',
-        function (done) {
-          var title = document.getElementById("cf-title").value.trim();
-          if (!title) { done("Le titre est obligatoire."); return; }
-          var durationVal = document.getElementById("cf-duration").value;
-          var payload = {
-            title: title,
-            content_type: document.getElementById("cf-type").value,
-            video_url: document.getElementById("cf-video").value.trim() || null,
-            content_text: document.getElementById("cf-text").value.trim() || null,
-            duration_minutes: durationVal ? parseInt(durationVal, 10) : null,
-            status: document.getElementById("cf-status").value
-          };
-          var query = lesson
-            ? supabase.from("course_lessons").update(payload).eq("id", lesson.id)
-            : supabase.from("course_lessons").insert(Object.assign({
-                module_id: mod.id,
-                position: adminLessons.filter(function (l) { return l.module_id === mod.id; }).length
-              }, payload));
-          query.then(function (res) {
-            if (res && res.error) { done("Erreur : " + res.error.message); return; }
-            done();
-            loadContenuData();
-          });
-        });
-      document.getElementById("cf-title").value = lesson ? lesson.title : "";
-      document.getElementById("cf-type").value = lesson ? lesson.content_type : "text";
-      document.getElementById("cf-video").value = (lesson && lesson.video_url) || "";
-      document.getElementById("cf-text").value = (lesson && lesson.content_text) || "";
-      document.getElementById("cf-duration").value = (lesson && lesson.duration_minutes) || "";
-      document.getElementById("cf-status").value = (lesson && lesson.status) || "published";
-    }
-
-    function renderContenuResources() {
-      var list = document.getElementById("contenu-resources-list");
-      if (!list) return;
-      list.innerHTML = "";
-      if (!adminResources.length) {
-        list.innerHTML = '<div class="cours-empty">Aucune ressource pour le moment.</div>';
-        return;
-      }
-      adminResources.slice().sort(function (a, b) { return a.position - b.position; }).forEach(function (r) {
-        var row = document.createElement("div");
-        row.className = "glass-card";
-        var inner = buildAdminContentItemRow(r.title, r.category + " · " + (r.resource_type === "prompt" ? "Prompt" : "Fichier"), false);
-        row.appendChild(inner);
-        addRowActionBtn(inner, "↑", "", function () { reorderItem("resources", adminResources, r, -1, loadContenuData); });
-        addRowActionBtn(inner, "↓", "", function () { reorderItem("resources", adminResources, r, 1, loadContenuData); });
-        addRowActionBtn(inner, "Modifier", "blue", function () { openResourceModal(r); });
-        addRowActionBtn(inner, "Suppr.", "danger", function () {
-          zenoaConfirm('Supprimer la ressource "' + r.title + '" ?', { danger: true, confirmLabel: "Supprimer" }).then(function (ok) {
-            if (!ok) return;
-            supabase.from("resources").delete().eq("id", r.id).then(function (res) {
-              if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-              loadContenuData();
-            });
-          });
-        });
-        list.appendChild(row);
-      });
-    }
-
-    function openResourceModal(r) {
-      openAdminModal(r ? "Modifier la ressource" : "Ajouter une ressource",
-        '<div class="field"><label class="field-label">Catégorie</label><input type="text" id="cf-category" placeholder="Templates, Prompts, Guides PDF, Outils..."></div>' +
-        '<div class="field"><label class="field-label">Titre</label><input type="text" id="cf-title"></div>' +
-        '<div class="field"><label class="field-label">Description</label><textarea id="cf-desc" rows="2"></textarea></div>' +
-        '<div class="field"><label class="field-label">Type</label><select id="cf-type"><option value="file">Fichier à télécharger</option><option value="prompt">Prompt à copier</option></select></div>' +
-        '<div class="field"><label class="field-label">Lien du fichier (si type fichier)</label><input type="text" id="cf-file-url" placeholder="https://..."></div>' +
-        '<div class="field"><label class="field-label">Texte du prompt (si type prompt)</label><textarea id="cf-prompt" rows="3"></textarea></div>',
-        function (done) {
-          var title = document.getElementById("cf-title").value.trim();
-          var category = document.getElementById("cf-category").value.trim();
-          if (!title || !category) { done("Catégorie et titre sont obligatoires."); return; }
-          var payload = {
-            category: category,
-            title: title,
-            description: document.getElementById("cf-desc").value.trim() || null,
-            resource_type: document.getElementById("cf-type").value,
-            file_url: document.getElementById("cf-file-url").value.trim() || null,
-            prompt_text: document.getElementById("cf-prompt").value.trim() || null
-          };
-          var query = r
-            ? supabase.from("resources").update(payload).eq("id", r.id)
-            : supabase.from("resources").insert(Object.assign({ position: adminResources.length }, payload));
-          query.then(function (res) {
-            if (res && res.error) { done("Erreur : " + res.error.message); return; }
-            done();
-            loadContenuData();
-            resourcesDataLoaded = false;
-            loadResourcesData();
-          });
-        });
-      document.getElementById("cf-category").value = r ? r.category : "";
-      document.getElementById("cf-title").value = r ? r.title : "";
-      document.getElementById("cf-desc").value = (r && r.description) || "";
-      document.getElementById("cf-type").value = r ? r.resource_type : "file";
-      document.getElementById("cf-file-url").value = (r && r.file_url) || "";
-      document.getElementById("cf-prompt").value = (r && r.prompt_text) || "";
-    }
-    var contenuAddResourceBtn = document.getElementById("contenu-add-resource-btn");
-    if (contenuAddResourceBtn) contenuAddResourceBtn.addEventListener("click", function () { openResourceModal(null); });
-
-    function renderContenuNews() {
-      var list = document.getElementById("contenu-news-list");
-      if (!list) return;
-      list.innerHTML = "";
-      if (!adminNewsItems.length) {
-        list.innerHTML = '<div class="cours-empty">Aucune nouveauté pour le moment.</div>';
-        return;
-      }
-      adminNewsItems.slice().sort(function (a, b) { return a.position - b.position; }).forEach(function (n) {
-        var row = document.createElement("div");
-        row.className = "glass-card";
-        var inner = buildAdminContentItemRow(n.title, n.date_label + (n.link_view ? " · lien vers " + n.link_view : ""), false);
-        row.appendChild(inner);
-        addRowActionBtn(inner, "↑", "", function () { reorderItem("home_news", adminNewsItems, n, -1, loadContenuData); });
-        addRowActionBtn(inner, "↓", "", function () { reorderItem("home_news", adminNewsItems, n, 1, loadContenuData); });
-        addRowActionBtn(inner, "Modifier", "blue", function () { openNewsModal(n); });
-        addRowActionBtn(inner, "Suppr.", "danger", function () {
-          zenoaConfirm('Supprimer la nouveauté "' + n.title + '" ?', { danger: true, confirmLabel: "Supprimer" }).then(function (ok) {
-            if (!ok) return;
-            supabase.from("home_news").delete().eq("id", n.id).then(function (res) {
-              if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-              loadContenuData();
-              loadHomeNews();
-            });
-          });
-        });
-        list.appendChild(row);
-      });
-    }
-
-    function openNewsModal(n) {
-      openAdminModal(n ? "Modifier la nouveauté" : "Ajouter une nouveauté",
-        '<div class="field"><label class="field-label">Date affichée (ex : Oct.)</label><input type="text" id="cf-date-label"></div>' +
-        '<div class="field"><label class="field-label">Titre</label><input type="text" id="cf-title"></div>' +
-        '<div class="field"><label class="field-label">Page liée au clic (optionnel)</label>' +
-        '<select id="cf-link-view"><option value="">Aucune</option><option value="resources">Ressources</option><option value="cours">Cours</option><option value="calendrier">Calendrier</option><option value="mon-projet">Mon projet</option><option value="progression">Progression</option></select></div>',
-        function (done) {
-          var title = document.getElementById("cf-title").value.trim();
-          var dateLabel = document.getElementById("cf-date-label").value.trim();
-          if (!title || !dateLabel) { done("La date et le titre sont obligatoires."); return; }
-          var payload = { title: title, date_label: dateLabel, link_view: document.getElementById("cf-link-view").value || null };
-          var query = n
-            ? supabase.from("home_news").update(payload).eq("id", n.id)
-            : supabase.from("home_news").insert(Object.assign({ position: adminNewsItems.length }, payload));
-          query.then(function (res) {
-            if (res && res.error) { done("Erreur : " + res.error.message); return; }
-            done();
-            loadContenuData();
-            loadHomeNews();
-          });
-        });
-      document.getElementById("cf-date-label").value = n ? n.date_label : "";
-      document.getElementById("cf-title").value = n ? n.title : "";
-      document.getElementById("cf-link-view").value = (n && n.link_view) || "";
-    }
-    var contenuAddNewsBtn = document.getElementById("contenu-add-news-btn");
-    if (contenuAddNewsBtn) contenuAddNewsBtn.addEventListener("click", function () { openNewsModal(null); });
-
-    function renderContenuEvents() {
-      var list = document.getElementById("contenu-events-list");
-      if (!list) return;
-      list.innerHTML = "";
-      if (!adminEvents.length) {
-        list.innerHTML = '<div class="cours-empty">Aucun événement pour le moment.</div>';
-        return;
-      }
-      adminEvents.slice().sort(function (a, b) { return (a.event_date + "T" + a.event_time).localeCompare(b.event_date + "T" + b.event_time); }).forEach(function (ev) {
-        var row = document.createElement("div");
-        row.className = "glass-card";
-        var inner = buildAdminContentItemRow(ev.title, formatShortDate(ev.event_date) + " à " + (ev.event_time || "").slice(0, 5), false);
-        row.appendChild(inner);
-        addRowActionBtn(inner, "Modifier", "blue", function () { openEventModal(ev); });
-        addRowActionBtn(inner, "Suppr.", "danger", function () {
-          zenoaConfirm('Supprimer l\'événement "' + ev.title + '" ?', { danger: true, confirmLabel: "Supprimer" }).then(function (ok) {
-            if (!ok) return;
-            supabase.from("calendar_events").delete().eq("id", ev.id).then(function (res) {
-              if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-              loadContenuData();
-              calendarDataLoaded = false;
-              loadCalendarData();
-            });
-          });
-        });
-        list.appendChild(row);
-      });
-    }
-
-    function openEventModal(ev) {
-      openAdminModal(ev ? "Modifier l'événement" : "Ajouter un événement",
-        '<div class="field"><label class="field-label">Titre</label><input type="text" id="cf-title"></div>' +
-        '<div class="field"><label class="field-label">Description</label><textarea id="cf-desc" rows="2"></textarea></div>' +
-        '<div class="field"><label class="field-label">Date</label><input type="date" id="cf-date"></div>' +
-        '<div class="field"><label class="field-label">Heure (Paris)</label><input type="time" id="cf-time"></div>' +
-        '<div class="field"><label class="field-label">Lien de connexion (optionnel)</label><input type="text" id="cf-join" placeholder="https://..."></div>' +
-        '<div class="field"><label class="field-label">Lien du replay (optionnel)</label><input type="text" id="cf-replay" placeholder="https://..."></div>',
-        function (done) {
-          var title = document.getElementById("cf-title").value.trim();
-          var date = document.getElementById("cf-date").value;
-          var time = document.getElementById("cf-time").value;
-          if (!title || !date || !time) { done("Titre, date et heure sont obligatoires."); return; }
-          var payload = {
-            title: title,
-            description: document.getElementById("cf-desc").value.trim() || null,
-            event_date: date,
-            event_time: time + ":00",
-            join_url: document.getElementById("cf-join").value.trim() || null,
-            replay_url: document.getElementById("cf-replay").value.trim() || null
-          };
-          var query = ev
-            ? supabase.from("calendar_events").update(payload).eq("id", ev.id)
-            : supabase.from("calendar_events").insert(Object.assign({ created_by: me.id }, payload));
-          query.then(function (res) {
-            if (res && res.error) { done("Erreur : " + res.error.message); return; }
-            done();
-            loadContenuData();
-            calendarDataLoaded = false;
-            loadCalendarData();
-          });
-        });
-      document.getElementById("cf-title").value = ev ? ev.title : "";
-      document.getElementById("cf-desc").value = (ev && ev.description) || "";
-      document.getElementById("cf-date").value = ev ? ev.event_date : "";
-      document.getElementById("cf-time").value = ev ? (ev.event_time || "").slice(0, 5) : "";
-      document.getElementById("cf-join").value = (ev && ev.join_url) || "";
-      document.getElementById("cf-replay").value = (ev && ev.replay_url) || "";
-    }
-    var contenuAddEventBtn = document.getElementById("contenu-add-event-btn");
-    if (contenuAddEventBtn) contenuAddEventBtn.addEventListener("click", function () { openEventModal(null); });
-
-    // ---------- Page Retours ----------
-    var retoursSubmissions = [];
-    var retoursFilter = "pending";
-
-    function loadRetoursData() {
-      Promise.all([
-        supabase.from("project_submissions").select("id,user_id,note,link_url,file_name,file_path,created_at,admin_feedback,corrected").order("created_at", { ascending: false }),
-        supabase.from("profiles").select("id,pseudo,email").eq("role", "membre")
-      ]).then(function (results) {
-        var subs = (results[0] && results[0].data) || [];
-        var byId = {};
-        ((results[1] && results[1].data) || []).forEach(function (s) { byId[s.id] = s; });
-        retoursSubmissions = subs.map(function (sub) {
-          var student = byId[sub.user_id];
-          sub._studentName = student ? (student.pseudo || student.email) : "Élève inconnu";
-          return sub;
-        });
-        renderRetoursFilterPills();
-        renderRetoursList();
-      });
-    }
-
-    function renderRetoursFilterPills() {
-      var wrap = document.getElementById("retours-filter-pills");
-      if (!wrap) return;
-      wrap.innerHTML = "";
-      [{ key: "pending", label: "À corriger" }, { key: "corrected", label: "Corrigés" }, { key: "all", label: "Tous" }].forEach(function (f) {
-        var pill = document.createElement("button");
-        pill.type = "button";
-        pill.className = "ressources-cat-pill" + (retoursFilter === f.key ? " active" : "");
-        pill.textContent = f.label;
-        pill.addEventListener("click", function () { retoursFilter = f.key; renderRetoursFilterPills(); renderRetoursList(); });
-        wrap.appendChild(pill);
-      });
-    }
-
-    function renderRetoursList() {
-      var list = document.getElementById("retours-list");
-      if (!list) return;
-      var filtered = retoursSubmissions.filter(function (sub) {
-        if (retoursFilter === "pending") return !sub.corrected;
-        if (retoursFilter === "corrected") return sub.corrected;
-        return true;
-      });
-      list.innerHTML = "";
-      if (!filtered.length) {
-        list.innerHTML = '<div class="cours-empty">Aucun dépôt dans cette catégorie.</div>';
-        return;
-      }
-
-      filtered.forEach(function (sub) {
-        var item = document.createElement("div");
-        item.className = "glass-card retour-item";
-        item.innerHTML =
-          '<div class="retour-item-head"><span class="retour-item-student"></span><span class="retour-item-date"></span></div>' +
-          '<div class="retour-item-body"></div>' +
-          '<div class="field"><label class="field-label">Ton retour</label><textarea rows="3" class="retour-feedback-textarea"></textarea></div>' +
-          '<div class="admin-content-item-actions">' +
-            '<button type="button" class="btn blue btn-sm" data-act="save">Enregistrer le retour</button>' +
-            '<button type="button" class="btn btn-sm" data-act="toggle"></button>' +
-          '</div>';
-        item.querySelector(".retour-item-student").textContent = sub._studentName;
-        item.querySelector(".retour-item-date").textContent = formatShortDateTime(sub.created_at);
-
-        var body = item.querySelector(".retour-item-body");
-        if (sub.note) {
-          var noteEl = document.createElement("div");
-          noteEl.className = "projet-submission-note";
-          noteEl.textContent = sub.note;
-          body.appendChild(noteEl);
-        }
-        if (sub.link_url) {
-          var linkEl = document.createElement("a");
-          linkEl.className = "projet-submission-link";
-          linkEl.href = sub.link_url;
-          linkEl.target = "_blank";
-          linkEl.rel = "noopener";
-          linkEl.textContent = "🔗 " + sub.link_url;
-          body.appendChild(linkEl);
-        }
-        if (sub.file_path) {
-          var fileEl = document.createElement("a");
-          fileEl.className = "projet-submission-file";
-          fileEl.href = "#";
-          fileEl.textContent = "📎 " + (sub.file_name || "Fichier joint");
-          fileEl.addEventListener("click", function (e) {
-            e.preventDefault();
-            supabase.storage.from("project-uploads").createSignedUrl(sub.file_path, 3600).then(function (res) {
-              if (res && res.data && res.data.signedUrl) window.open(res.data.signedUrl, "_blank");
-              else alert("Impossible d'ouvrir ce fichier pour le moment.");
-            });
-          });
-          body.appendChild(fileEl);
-        }
-
-        var feedbackTextarea = item.querySelector(".retour-feedback-textarea");
-        feedbackTextarea.value = sub.admin_feedback || "";
-        item.querySelector('[data-act="save"]').addEventListener("click", function () {
-          supabase.from("project_submissions").update({ admin_feedback: feedbackTextarea.value }).eq("id", sub.id).then(function (res) {
-            if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-            sub.admin_feedback = feedbackTextarea.value;
-            showToast("Retour enregistré.");
-          });
-        });
-        var toggleBtn = item.querySelector('[data-act="toggle"]');
-        toggleBtn.textContent = sub.corrected ? "Repasser à corriger" : "Marquer comme corrigé";
-        toggleBtn.className = "btn btn-sm" + (sub.corrected ? "" : " orange");
-        toggleBtn.addEventListener("click", function () {
-          var newCorrected = !sub.corrected;
-          supabase.from("project_submissions").update({ corrected: newCorrected, corrected_at: newCorrected ? new Date().toISOString() : null }).eq("id", sub.id).then(function (res) {
-            if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-            sub.corrected = newCorrected;
-            renderRetoursList();
-            loadDashboardData();
-          });
-        });
-
-        list.appendChild(item);
-      });
-    }
+    if (contenuAddModuleBtn) contenuAddModuleBtn.addEventListener("click", function () { openModuleModal(); });
 
     // ---------- Page Accès et codes ----------
     var adminCodes = [];
@@ -2398,40 +1922,31 @@
     if (codesSearchInput) codesSearchInput.addEventListener("input", renderCodesList);
 
     var codesGenerateBtn = document.getElementById("codes-generate-btn");
+    var codesGeneratedBox = document.getElementById("codes-generated-box");
+    var codesGeneratedValue = document.getElementById("codes-generated-value");
+    var codesGeneratedCopyBtn = document.getElementById("codes-generated-copy-btn");
     if (codesGenerateBtn) {
       codesGenerateBtn.addEventListener("click", function () {
-        var qtyInput = document.getElementById("codes-qty-input");
-        var durationInput = document.getElementById("codes-duration-input");
-        var pseudoInput = document.getElementById("codes-pseudo-input");
-        var emailInput = document.getElementById("codes-email-input");
-        var noteInput = document.getElementById("codes-note-input");
-        var successEl = document.getElementById("codes-generate-success");
-        var qty = Math.max(1, Math.min(50, parseInt(qtyInput.value, 10) || 1));
-        var durationDays = durationInput.value ? parseInt(durationInput.value, 10) : null;
-        var rows = [];
-        for (var i = 0; i < qty; i++) {
-          rows.push({
-            code: generateRandomCode(),
-            type: "membre",
-            expires_access_days: durationDays,
-            intended_pseudo: pseudoInput.value.trim() || null,
-            intended_email: emailInput.value.trim() || null,
-            note: noteInput.value.trim() || null
-          });
-        }
+        var code = generateRandomCode();
         codesGenerateBtn.disabled = true;
-        if (successEl) successEl.textContent = "";
-        supabase.from("access_codes").insert(rows).then(function (res) {
+        supabase.from("access_codes").insert({ code: code, type: "membre" }).then(function (res) {
           codesGenerateBtn.disabled = false;
-          if (res && res.error) { if (successEl) successEl.textContent = "Erreur : " + res.error.message; return; }
-          if (successEl) successEl.textContent = qty > 1 ? qty + " codes créés." : "Code créé : " + rows[0].code;
-          qtyInput.value = "1";
-          durationInput.value = "";
-          pseudoInput.value = "";
-          emailInput.value = "";
-          noteInput.value = "";
+          if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+          if (codesGeneratedValue) codesGeneratedValue.textContent = code;
+          if (codesGeneratedBox) codesGeneratedBox.hidden = false;
           loadCodesData();
         });
+      });
+    }
+    if (codesGeneratedCopyBtn) {
+      codesGeneratedCopyBtn.addEventListener("click", function () {
+        var code = codesGeneratedValue ? codesGeneratedValue.textContent : "";
+        if (!code) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code).then(function () { showToast("Code copié !"); });
+        } else {
+          showToast("Copie non disponible sur ce navigateur.");
+        }
       });
     }
 
@@ -2444,13 +1959,8 @@
     if (navChefEleves) navChefEleves.addEventListener("click", loadElevesData);
     var navChefContenu = document.getElementById("nav-chef-contenu");
     if (navChefContenu) navChefContenu.addEventListener("click", loadContenuData);
-    var navChefRetours = document.getElementById("nav-chef-retours");
-    if (navChefRetours) navChefRetours.addEventListener("click", loadRetoursData);
     var navChefCodes = document.getElementById("nav-chef-codes");
     if (navChefCodes) navChefCodes.addEventListener("click", loadCodesData);
-    document.querySelectorAll(".admin-pending-row [data-view]").forEach(function (btn) {
-      btn.addEventListener("click", function () { goToView(btn.getAttribute("data-view")); });
-    });
 
     var previousViewBeforeSettings = "accueil";
     if (settingsBtn) {
