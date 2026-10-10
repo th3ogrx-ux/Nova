@@ -488,13 +488,12 @@
     }
 
     // ---------- Page Mon projet ----------
-    // Étapes partagées (project_steps), titre + avancement + dépôts
-    // propres à chaque élève (user_project, user_project_steps,
-    // project_submissions). Voir mon-projet.sql.
+    // Étapes partagées (project_steps), avancement + réseaux sociaux
+    // propres à chaque élève (user_project, user_project_steps). Voir
+    // mon-projet.sql et mon-projet-reseaux.sql.
 
     var PROJECT_STEPS_TEMPLATE = [];
     var myProjectSteps = {};
-    var myProjectSubmissions = [];
     var projectDataLoaded = false;
 
     function loadProjectData(userId) {
@@ -502,21 +501,23 @@
       projectDataLoaded = true;
       Promise.all([
         supabase.from("project_steps").select("id,position,label").order("position"),
-        supabase.from("user_project").select("title").eq("user_id", userId).single(),
-        supabase.from("user_project_steps").select("step_id,done").eq("user_id", userId),
-        supabase.from("project_submissions").select("id,note,link_url,file_name,file_path,created_at,admin_feedback,corrected").eq("user_id", userId).order("created_at", { ascending: false })
+        supabase.from("user_project").select("instagram_url,tiktok_url,youtube_url").eq("user_id", userId).single(),
+        supabase.from("user_project_steps").select("step_id,done").eq("user_id", userId)
       ]).then(function (results) {
-        var stepsRes = results[0], projectRes = results[1], userStepsRes = results[2], subsRes = results[3];
+        var stepsRes = results[0], projectRes = results[1], userStepsRes = results[2];
         if (stepsRes && stepsRes.data) PROJECT_STEPS_TEMPLATE = stepsRes.data;
-        var titleInput = document.getElementById("projet-title-input");
-        if (titleInput) titleInput.value = (projectRes && projectRes.data && projectRes.data.title) || "Mon produit digital";
+        var project = (projectRes && projectRes.data) || {};
+        var instaInput = document.getElementById("projet-instagram-input");
+        if (instaInput) instaInput.value = project.instagram_url || "";
+        var tiktokInput = document.getElementById("projet-tiktok-input");
+        if (tiktokInput) tiktokInput.value = project.tiktok_url || "";
+        var youtubeInput = document.getElementById("projet-youtube-input");
+        if (youtubeInput) youtubeInput.value = project.youtube_url || "";
         myProjectSteps = {};
         if (userStepsRes && userStepsRes.data) {
           userStepsRes.data.forEach(function (row) { if (row.done) myProjectSteps[row.step_id] = true; });
         }
-        if (subsRes && subsRes.data) myProjectSubmissions = subsRes.data;
         renderProjectSteps();
-        renderProjectSubmissions();
       });
     }
 
@@ -561,165 +562,21 @@
       updateProjectStepsProgress();
     }
 
-    function renderProjectSubmissions() {
-      var list = document.getElementById("projet-submissions-list");
-      if (!list) return;
-      list.innerHTML = "";
-      if (!myProjectSubmissions.length) {
-        list.innerHTML = '<div class="cours-empty">Aucun dépôt pour le moment.</div>';
-        return;
-      }
-      myProjectSubmissions.forEach(function (sub) {
-        var item = document.createElement("div");
-        item.className = "projet-submission-item";
-        var dateEl = document.createElement("div");
-        dateEl.className = "projet-submission-date";
-        dateEl.textContent = new Date(sub.created_at).toLocaleString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
-        item.appendChild(dateEl);
-        if (sub.note) {
-          var noteEl = document.createElement("div");
-          noteEl.className = "projet-submission-note";
-          noteEl.textContent = sub.note;
-          item.appendChild(noteEl);
-        }
-        if (sub.link_url) {
-          var linkEl = document.createElement("a");
-          linkEl.className = "projet-submission-link";
-          linkEl.href = sub.link_url;
-          linkEl.target = "_blank";
-          linkEl.rel = "noopener";
-          linkEl.textContent = "🔗 " + sub.link_url;
-          item.appendChild(linkEl);
-        }
-        if (sub.file_path) {
-          var fileEl = document.createElement("a");
-          fileEl.className = "projet-submission-file";
-          fileEl.textContent = "📎 " + (sub.file_name || "Fichier joint");
-          fileEl.href = "#";
-          fileEl.addEventListener("click", function (e) {
-            e.preventDefault();
-            // Bucket privé : on génère un lien signé temporaire à la demande
-            // plutôt que de stocker une URL publique.
-            supabase.storage.from("project-uploads").createSignedUrl(sub.file_path, 3600).then(function (res) {
-              if (res && res.data && res.data.signedUrl) window.open(res.data.signedUrl, "_blank");
-              else alert("Impossible d'ouvrir ce fichier pour le moment.");
-            });
-          });
-          item.appendChild(fileEl);
-        }
-        // Retour de l'admin sur ce dépôt (renseigné directement en base
-        // pour l'instant, la page Retours ayant été retirée) : visible
-        // ici dès qu'il a écrit quelque chose, avec le statut.
-        if (sub.admin_feedback || sub.corrected) {
-          var feedbackBox = document.createElement("div");
-          feedbackBox.className = "projet-submission-feedback";
-          var statusPill = document.createElement("span");
-          statusPill.className = "status-pill " + (sub.corrected ? "status-actif" : "status-churn");
-          statusPill.textContent = sub.corrected ? "Corrigé" : "En attente de correction";
-          feedbackBox.appendChild(statusPill);
-          if (sub.admin_feedback) {
-            var feedbackText = document.createElement("div");
-            feedbackText.className = "projet-submission-feedback-text";
-            feedbackText.textContent = sub.admin_feedback;
-            feedbackBox.appendChild(feedbackText);
-          }
-          item.appendChild(feedbackBox);
-        }
-        list.appendChild(item);
-      });
-    }
-
-    var projetTitleSaveBtn = document.getElementById("projet-title-save-btn");
-    if (projetTitleSaveBtn) {
-      projetTitleSaveBtn.addEventListener("click", function () {
+    var projetSocialsSaveBtn = document.getElementById("projet-socials-save-btn");
+    if (projetSocialsSaveBtn) {
+      projetSocialsSaveBtn.addEventListener("click", function () {
         if (!me) return;
-        var input = document.getElementById("projet-title-input");
-        var title = input ? input.value.trim() : "";
-        if (!title) return;
-        supabase.from("user_project").upsert({ user_id: me.id, title: title }, { onConflict: "user_id" }).then(function (res) {
-          if (res && res.error) alert("Erreur : " + res.error.message);
-        });
-      });
-    }
-
-    var PROJECT_FILE_MAX_BYTES = 10 * 1024 * 1024; // 10 Mo
-    var PROJECT_FILE_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "application/pdf"];
-
-    var projetSubmitBtn = document.getElementById("projet-submit-btn");
-    if (projetSubmitBtn) {
-      projetSubmitBtn.addEventListener("click", function () {
-        if (!me) return;
-        var errorEl = document.getElementById("projet-submit-error");
-        var successEl = document.getElementById("projet-submit-success");
-        if (errorEl) errorEl.textContent = "";
-        if (successEl) successEl.textContent = "";
-        var noteInput = document.getElementById("projet-submit-note");
-        var linkInput = document.getElementById("projet-submit-link");
-        var fileInput = document.getElementById("projet-submit-file");
-        var note = noteInput ? noteInput.value.trim() : "";
-        var link = linkInput ? linkInput.value.trim() : "";
-        var file = fileInput && fileInput.files && fileInput.files[0];
-
-        if (!note && !link && !file) {
-          if (errorEl) errorEl.textContent = "Ajoute au moins une note, un lien ou un fichier.";
-          return;
-        }
-        if (file && file.size > PROJECT_FILE_MAX_BYTES) {
-          if (errorEl) errorEl.textContent = "Le fichier dépasse 10 Mo.";
-          return;
-        }
-        if (file && PROJECT_FILE_ALLOWED_TYPES.indexOf(file.type) === -1) {
-          if (errorEl) errorEl.textContent = "Type de fichier non autorisé (image ou PDF uniquement).";
-          return;
-        }
-
-        projetSubmitBtn.disabled = true;
-        var uploadPromise = file
-          ? supabase.storage.from("project-uploads").upload(me.id + "/" + Date.now() + "-" + file.name, file).then(function (res) {
-              if (res && res.error) throw res.error;
-              return { path: res.data.path, name: file.name };
-            })
-          : Promise.resolve(null);
-
-        uploadPromise
-          .then(function (uploaded) {
-            return supabase.from("project_submissions").insert({
-              user_id: me.id,
-              note: note || null,
-              link_url: link || null,
-              file_path: uploaded ? uploaded.path : null,
-              file_name: uploaded ? uploaded.name : null
-            }).select().single();
-          })
-          .then(function (res) {
-            projetSubmitBtn.disabled = false;
-            if (res && res.error) { if (errorEl) errorEl.textContent = "Erreur : " + res.error.message; return; }
-            if (successEl) successEl.textContent = "Envoyé !";
-            if (noteInput) noteInput.value = "";
-            if (linkInput) linkInput.value = "";
-            if (fileInput) fileInput.value = "";
-            if (res && res.data) myProjectSubmissions.unshift(res.data);
-            renderProjectSubmissions();
-          })
-          .catch(function (err) {
-            projetSubmitBtn.disabled = false;
-            if (errorEl) errorEl.textContent = "Erreur : " + (err && err.message ? err.message : "envoi impossible.");
-          });
-      });
-    }
-
-    var projetQuestionSendBtn = document.getElementById("projet-question-send-btn");
-    if (projetQuestionSendBtn) {
-      projetQuestionSendBtn.addEventListener("click", function () {
-        if (!me) return;
-        var input = document.getElementById("projet-question-input");
-        var successEl = document.getElementById("projet-question-success");
-        var q = input ? input.value.trim() : "";
-        if (!q) return;
-        supabase.from("coach_questions").insert({ user_id: me.id, question: q }).then(function (res) {
+        var instaInput = document.getElementById("projet-instagram-input");
+        var tiktokInput = document.getElementById("projet-tiktok-input");
+        var youtubeInput = document.getElementById("projet-youtube-input");
+        supabase.from("user_project").upsert({
+          user_id: me.id,
+          instagram_url: instaInput ? instaInput.value.trim() || null : null,
+          tiktok_url: tiktokInput ? tiktokInput.value.trim() || null : null,
+          youtube_url: youtubeInput ? youtubeInput.value.trim() || null : null
+        }, { onConflict: "user_id" }).then(function (res) {
           if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-          if (successEl) successEl.textContent = "Question envoyée au coach.";
-          if (input) input.value = "";
+          showToast("Réseaux enregistrés.");
         });
       });
     }
