@@ -1880,17 +1880,14 @@
     }
 
     function codeStatus(c) {
-      if (c.disabled) return "disabled";
       if (c.used_by) return "used";
       return "available";
     }
     function codeStatusLabel(status) {
-      if (status === "disabled") return "Désactivé";
       if (status === "used") return "Utilisé";
       return "Disponible";
     }
     function codeStatusPillClass(status) {
-      if (status === "disabled") return "status-suspended";
       if (status === "used") return "status-churn";
       return "status-actif";
     }
@@ -1899,7 +1896,7 @@
       var wrap = document.getElementById("codes-filter-pills");
       if (!wrap) return;
       wrap.innerHTML = "";
-      [{ key: "all", label: "Tous" }, { key: "available", label: "Disponibles" }, { key: "used", label: "Utilisés" }, { key: "disabled", label: "Désactivés" }].forEach(function (f) {
+      [{ key: "all", label: "Tous" }, { key: "available", label: "Disponibles" }, { key: "used", label: "Utilisés" }].forEach(function (f) {
         var pill = document.createElement("button");
         pill.type = "button";
         pill.className = "ressources-cat-pill" + (codesFilter === f.key ? " active" : "");
@@ -1964,33 +1961,31 @@
         });
         actions.appendChild(copyBtn);
 
-        if (status !== "disabled") {
-          var disableBtn = document.createElement("button");
-          disableBtn.type = "button";
-          disableBtn.className = "btn danger btn-sm codes-disable-btn";
-          disableBtn.textContent = "✕";
-          disableBtn.title = "Suspendre ce code";
-          disableBtn.addEventListener("click", function () {
-            // Si quelqu'un s'est déjà inscrit avec ce code, le suspendre
-            // coupe aussi son accès immédiatement (sinon désactiver le
-            // code ne ferait que bloquer de FUTURES inscriptions, pas
-            // la personne déjà connectée avec ce compte).
-            var msg = c._usedByProfile
-              ? "Suspendre ce code ? " + (c._usedByProfile.pseudo || c._usedByProfile.email) + " ne pourra plus se connecter."
-              : "Suspendre ce code ? Il ne pourra plus être utilisé pour s'inscrire.";
-            zenoaConfirm(msg, { danger: true, confirmLabel: "Suspendre" }).then(function (ok) {
-              if (!ok) return;
-              var tasks = [supabase.from("access_codes").update({ disabled: true }).eq("code", c.code)];
-              if (c.used_by) tasks.push(supabase.from("profiles").update({ is_active: false }).eq("id", c.used_by));
-              Promise.all(tasks).then(function (results) {
-                var errRes = results.find(function (r) { return r && r.error; });
-                if (errRes) { alert("Erreur : " + errRes.error.message); return; }
-                loadCodesData();
-              });
+        var deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "btn danger btn-sm codes-disable-btn";
+        deleteBtn.textContent = "✕";
+        deleteBtn.title = "Supprimer ce code";
+        deleteBtn.addEventListener("click", function () {
+          // Si quelqu'un s'est déjà inscrit avec ce code, le supprimer
+          // coupe aussi son accès immédiatement (sinon ça n'empêcherait
+          // que de FUTURES inscriptions, pas la personne déjà connectée
+          // avec ce compte).
+          var msg = c._usedByProfile
+            ? "Supprimer ce code ? " + (c._usedByProfile.pseudo || c._usedByProfile.email) + " ne pourra plus se connecter."
+            : "Supprimer ce code ? Il ne pourra plus être utilisé pour s'inscrire.";
+          zenoaConfirm(msg, { danger: true, confirmLabel: "Supprimer" }).then(function (ok) {
+            if (!ok) return;
+            var tasks = [supabase.from("access_codes").delete().eq("code", c.code)];
+            if (c.used_by) tasks.push(supabase.from("profiles").update({ is_active: false }).eq("id", c.used_by));
+            Promise.all(tasks).then(function (results) {
+              var errRes = results.find(function (r) { return r && r.error; });
+              if (errRes) { alert("Erreur : " + errRes.error.message); return; }
+              loadCodesData();
             });
           });
-          actions.appendChild(disableBtn);
-        }
+        });
+        actions.appendChild(deleteBtn);
 
         list.appendChild(item);
       });
