@@ -1801,30 +1801,52 @@
             '<div class="contenu-resource-item-meta"></div>' +
           '</div>';
         item.querySelector(".contenu-resource-item-title").textContent = r.title;
-        item.querySelector(".contenu-resource-item-meta").textContent = r.category + " · " + (r.resource_type === "prompt" ? "Prompt" : "Fichier");
+        item.querySelector(".contenu-resource-item-meta").textContent = r.resource_type === "prompt" ? "Texte" : "Lien";
+
+        var deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "btn danger btn-sm admin-icon-x-btn";
+        deleteBtn.textContent = "✕";
+        deleteBtn.title = "Supprimer cette ressource";
+        deleteBtn.addEventListener("click", function () {
+          zenoaConfirm('Supprimer la ressource "' + r.title + '" ?', { danger: true, confirmLabel: "Supprimer" }).then(function (ok) {
+            if (!ok) return;
+            supabase.from("resources").delete().eq("id", r.id).then(function (res) {
+              if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+              loadContenuData();
+              resourcesDataLoaded = false;
+              loadResourcesData();
+            });
+          });
+        });
+        item.appendChild(deleteBtn);
+
         list.appendChild(item);
       });
     }
 
+    // Catégorie fixe (le choix de catégorie a été retiré du formulaire
+    // pour rester simple) : les ressources ajoutées ici tombent toutes
+    // dans un même groupe "Ressources" sur la page élève.
+    var DEFAULT_RESOURCE_CATEGORY = "Ressources";
+
     function openResourceModal() {
       openAdminModal("Ajouter une ressource",
-        '<div class="field"><label class="field-label">Catégorie</label><input type="text" id="cf-category" placeholder="Templates, Prompts, Guides PDF, Outils..."></div>' +
         '<div class="field"><label class="field-label">Titre</label><input type="text" id="cf-title"></div>' +
-        '<div class="field"><label class="field-label">Description (optionnelle)</label><textarea id="cf-desc" rows="2"></textarea></div>' +
-        '<div class="field"><label class="field-label">Type</label><select id="cf-type"><option value="file">Fichier à télécharger</option><option value="prompt">Prompt à copier</option></select></div>' +
-        '<div class="field"><label class="field-label">Lien du fichier (si type fichier)</label><input type="text" id="cf-file-url" placeholder="https://..."></div>' +
-        '<div class="field"><label class="field-label">Texte du prompt (si type prompt)</label><textarea id="cf-prompt" rows="3"></textarea></div>',
+        '<div class="field"><label class="field-label">Lien (si c\'est un fichier/une page à ouvrir)</label><input type="text" id="cf-file-url" placeholder="https://..."></div>' +
+        '<div class="field"><label class="field-label">Ou directement du texte (si pas de lien)</label><textarea id="cf-prompt" rows="4"></textarea></div>',
         function (done) {
           var title = document.getElementById("cf-title").value.trim();
-          var category = document.getElementById("cf-category").value.trim();
-          if (!title || !category) { done("Catégorie et titre sont obligatoires."); return; }
+          var fileUrl = document.getElementById("cf-file-url").value.trim();
+          var text = document.getElementById("cf-prompt").value.trim();
+          if (!title) { done("Le titre est obligatoire."); return; }
+          if (!fileUrl && !text) { done("Ajoute un lien ou du texte."); return; }
           var payload = {
-            category: category,
+            category: DEFAULT_RESOURCE_CATEGORY,
             title: title,
-            description: document.getElementById("cf-desc").value.trim() || null,
-            resource_type: document.getElementById("cf-type").value,
-            file_url: document.getElementById("cf-file-url").value.trim() || null,
-            prompt_text: document.getElementById("cf-prompt").value.trim() || null,
+            resource_type: fileUrl ? "file" : "prompt",
+            file_url: fileUrl || null,
+            prompt_text: fileUrl ? null : text,
             position: adminResources.length
           };
           supabase.from("resources").insert(payload).then(function (res) {
@@ -1835,10 +1857,7 @@
             loadResourcesData();
           });
         });
-      document.getElementById("cf-category").value = "";
       document.getElementById("cf-title").value = "";
-      document.getElementById("cf-desc").value = "";
-      document.getElementById("cf-type").value = "file";
       document.getElementById("cf-file-url").value = "";
       document.getElementById("cf-prompt").value = "";
     }
@@ -1963,7 +1982,7 @@
 
         var deleteBtn = document.createElement("button");
         deleteBtn.type = "button";
-        deleteBtn.className = "btn danger btn-sm codes-disable-btn";
+        deleteBtn.className = "btn danger btn-sm admin-icon-x-btn";
         deleteBtn.textContent = "✕";
         deleteBtn.title = "Supprimer ce code";
         deleteBtn.addEventListener("click", function () {
