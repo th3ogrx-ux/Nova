@@ -4,14 +4,6 @@
   var SUPABASE_URL = "https://mfdqxzccmzumxiichdqw.supabase.co";
   var SUPABASE_KEY = "sb_publishable_Qes5VQ0OcaAEVh_kMjej6A_HJ6yxY3T";
 
-  // ===== Page Accueil : contenu éditable =====
-  // Nouveautés affichées sur l'accueil (3 maximum). "view" est optionnel :
-  // si renseigné (ex: "resources"), cliquer sur l'item ouvre cette page.
-  var ACCUEIL_NEWS = [
-    { date: "Oct.", titre: "Nouveau design de l'espace membre", view: null },
-    { date: "Oct.", titre: "Page Ressources mise à jour", view: "resources" },
-    { date: "Oct.", titre: "Calendrier disponible", view: "calendrier" }
-  ];
   // DONNÉES DE TEST : la progression n'est pas encore stockée en base
   // (pas de table leçons/modules pour l'instant). À brancher plus tard
   // sur de vraies données (ex: tables "lessons" et
@@ -131,14 +123,6 @@
       });
     });
 
-    // Navigue vers une page via son item de menu (réutilise le clic déjà
-    // câblé juste au-dessus, pour garder le surlignage du menu cohérent).
-    function goToView(viewName) {
-      var navEl = document.querySelector('.nav-item[data-view="' + viewName + '"]');
-      if (navEl) navEl.click();
-      else switchToView(viewName);
-    }
-
     function showToast(message) {
       var toast = document.getElementById("toast");
       if (!toast) return;
@@ -165,61 +149,6 @@
       if (progressPct) progressPct.textContent = pct + "%";
       var progressModule = document.getElementById("accueil-progress-module");
       if (progressModule) progressModule.textContent = p.module;
-
-      renderAccueilNews();
-    }
-
-    // Nouveautés affichées sur l'accueil : viennent de la table
-    // home_news, gérée par l'admin depuis Contenu > Nouveautés. En
-    // attendant le premier chargement (ou si la migration admin-panel.sql
-    // n'a pas encore été exécutée), on affiche les 3 nouveautés d'origine
-    // codées en dur, pour ne jamais laisser la page vide.
-    var homeNewsList = ACCUEIL_NEWS.map(function (item) {
-      return { date_label: item.date, title: item.titre, link_view: item.view };
-    });
-    var homeNewsLoaded = false;
-
-    function loadHomeNews() {
-      supabase.from("home_news").select("id,position,date_label,title,link_view").order("position").then(function (res) {
-        if (res && res.data && res.data.length) homeNewsList = res.data;
-        homeNewsLoaded = true;
-        renderAccueilNews();
-      });
-    }
-
-    function renderAccueilNews() {
-      var newsList = document.getElementById("accueil-news-list");
-      if (!newsList) return;
-      newsList.innerHTML = "";
-      homeNewsList.slice(0, 3).forEach(function (item) {
-        var row = document.createElement("div");
-        row.className = "accueil-news-item" + (item.link_view ? " clickable" : "");
-        var dateEl = document.createElement("span");
-        dateEl.className = "accueil-news-date";
-        dateEl.textContent = item.date_label;
-        var titleEl = document.createElement("span");
-        titleEl.className = "accueil-news-title";
-        titleEl.textContent = item.title;
-        row.appendChild(dateEl);
-        row.appendChild(titleEl);
-        if (item.link_view) row.addEventListener("click", function () { goToView(item.link_view); });
-        newsList.appendChild(row);
-      });
-    }
-
-    document.querySelectorAll(".accueil-quick-access [data-view]").forEach(function (btn) {
-      btn.addEventListener("click", function () { goToView(btn.getAttribute("data-view")); });
-    });
-
-    // Pas encore de vraie messagerie élève -> chef côté UI : affiche un
-    // message d'attente plutôt que de deviner un contact. À brancher sur
-    // une vraie fonctionnalité (ex: BoxMail, ou un mailto: vers une
-    // adresse de support confirmée) quand elle existera.
-    var accueilAskBtn = document.getElementById("accueil-ask-question");
-    if (accueilAskBtn) {
-      accueilAskBtn.addEventListener("click", function () {
-        showToast("La messagerie arrive bientôt.");
-      });
     }
 
     // ---------- Page Cours ----------
@@ -1349,10 +1278,10 @@
     // ---------- Page Contenu ----------
     // Simplifié à la demande : ajout de modules (titre + image de
     // couverture) et de ressources (titre + catégorie + fichier ou
-    // prompt). Les leçons/nouveautés/événements restent dans Supabase
-    // (tables course_lessons/home_news/calendar_events, toujours lues
-    // côté élève) mais n'ont plus d'interface d'ajout/édition dédiée
-    // ici : à gérer depuis le Table Editor de Supabase si besoin.
+    // prompt). Les leçons restent dans Supabase (table course_lessons,
+    // toujours lue côté élève) mais n'ont plus d'interface d'ajout/
+    // édition dédiée ici : à gérer depuis le Table Editor de Supabase
+    // si besoin.
     var adminModules = [];
     var adminResources = [];
 
@@ -2178,7 +2107,6 @@
         loadProjectData(session.user.id);
         loadResourcesData();
         loadCalendarData();
-        loadHomeNews();
       }
     });
     supabase.auth.onAuthStateChange(function (event, session) {
@@ -2188,7 +2116,6 @@
         loadProjectData(session.user.id);
         loadResourcesData();
         loadCalendarData();
-        loadHomeNews();
       }
     });
   }
