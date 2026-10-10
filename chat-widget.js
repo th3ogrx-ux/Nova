@@ -95,7 +95,7 @@
     // Ce n'est qu'une protection côté interface : la vraie sécurité est
     // dans les policies RLS (admin-panel.sql), qui bloquent aussi les
     // lectures/écritures même si l'affichage était contourné.
-    var ADMIN_ONLY_VIEWS = ["tableau-de-bord", "eleves", "eleve-detail", "contenu", "acces-codes"];
+    var ADMIN_ONLY_VIEWS = ["tableau-de-bord", "eleves", "eleve-detail", "contenu", "module-detail", "acces-codes"];
     function switchToView(viewName) {
       if (ADMIN_ONLY_VIEWS.indexOf(viewName) !== -1 && !(me && me.role === "chef")) return;
       document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
@@ -1734,10 +1734,30 @@
           placeholder.textContent = "Pas d'image";
           card.appendChild(placeholder);
         }
+        var titleRow = document.createElement("div");
+        titleRow.className = "contenu-module-title-row";
         var titleEl = document.createElement("div");
         titleEl.className = "contenu-module-title";
         titleEl.textContent = mod.title;
-        card.appendChild(titleEl);
+        titleRow.appendChild(titleEl);
+        var deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "btn danger btn-sm admin-icon-x-btn";
+        deleteBtn.textContent = "✕";
+        deleteBtn.title = "Supprimer ce module";
+        deleteBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          zenoaConfirm('Supprimer le module "' + mod.title + '" et toutes ses leçons ? Cette action est irréversible.', { danger: true, confirmLabel: "Supprimer" }).then(function (ok) {
+            if (!ok) return;
+            supabase.from("course_modules").delete().eq("id", mod.id).then(function (res) {
+              if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+              loadContenuData();
+            });
+          });
+        });
+        titleRow.appendChild(deleteBtn);
+        card.appendChild(titleRow);
+        card.addEventListener("click", function () { openModuleDetail(mod); });
         grid.appendChild(card);
       });
       list.appendChild(grid);
@@ -1746,10 +1766,10 @@
     var MODULE_COVER_MAX_BYTES = 5 * 1024 * 1024; // 5 Mo
     var MODULE_COVER_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
-    function openModuleModal() {
-      openAdminModal("Ajouter un module",
+    function openModuleModal(mod) {
+      openAdminModal(mod ? "Modifier le module" : "Ajouter un module",
         '<div class="field"><label class="field-label">Titre</label><input type="text" id="cf-title"></div>' +
-        '<div class="field"><label class="field-label">Image de couverture (format rectangulaire, optionnelle)</label><input type="file" id="cf-cover" accept="image/png,image/jpeg,image/webp"></div>',
+        '<div class="field"><label class="field-label">Image de couverture (format rectangulaire' + (mod ? ', laisse vide pour garder l\'actuelle' : ', optionnelle') + ')</label><input type="file" id="cf-cover" accept="image/png,image/jpeg,image/webp"></div>',
         function (done) {
           var title = document.getElementById("cf-title").value.trim();
           if (!title) { done("Le titre est obligatoire."); return; }
@@ -1764,25 +1784,178 @@
                 var pub = supabase.storage.from("module-covers").getPublicUrl(res.data.path);
                 return (pub && pub.data && pub.data.publicUrl) || null;
               })
-            : Promise.resolve(null);
+            : Promise.resolve(mod ? undefined : null);
 
           uploadPromise
             .then(function (coverUrl) {
-              return supabase.from("course_modules").insert({ title: title, position: adminModules.length, cover_url: coverUrl });
+              var payload = { title: title };
+              if (coverUrl !== undefined) payload.cover_url = coverUrl;
+              return mod
+                ? supabase.from("course_modules").update(payload).eq("id", mod.id)
+                : supabase.from("course_modules").insert(Object.assign({ position: adminModules.length }, payload));
             })
             .then(function (res) {
               if (res && res.error) { done("Erreur : " + res.error.message); return; }
               done();
               loadContenuData();
+              if (mod) { mod.title = title; openModuleDetail(mod); }
             })
             .catch(function (err) {
               done("Erreur : " + (err && err.message ? err.message : "envoi de l'image impossible."));
             });
         });
-      document.getElementById("cf-title").value = "";
+      document.getElementById("cf-title").value = mod ? mod.title : "";
     }
     var contenuAddModuleBtn = document.getElementById("contenu-add-module-btn");
     if (contenuAddModuleBtn) contenuAddModuleBtn.addEventListener("click", function () { openModuleModal(); });
+
+    // ---------- Détail d'un module : voir/ajouter/modifier/supprimer
+    // ses leçons ----------
+    var currentModuleDetail = null;
+    var moduleDetailLessons = [];
+
+    function openModuleDetail(mod) {
+      currentModuleDetail = mod;
+      switchToView("module-detail");
+      var titleEl = document.getElementById("module-detail-title");
+      if (titleEl) titleEl.textContent = mod.title;
+      var content = document.getElementById("module-detail-content");
+      if (content) content.innerHTML = '<div class="cours-empty">Chargement…</div>';
+      supabase.from("course_lessons").select("id,module_id,position,title,duration_minutes,content_type,content_text,video_url,status").eq("module_id", mod.id).order("position").then(function (res) {
+        moduleDetailLessons = (res && res.data) || [];
+        renderModuleDetail();
+      });
+    }
+
+    var btnBackModuleDetail = document.getElementById("btn-back-module-detail");
+    if (btnBackModuleDetail) btnBackModuleDetail.addEventListener("click", function () { switchToView("contenu"); });
+
+    function renderModuleDetail() {
+      var content = document.getElementById("module-detail-content");
+      if (!content || !currentModuleDetail) return;
+      content.innerHTML = "";
+
+      var infoCard = document.createElement("div");
+      infoCard.className = "glass-card panel-section";
+      infoCard.innerHTML =
+        '<div class="admin-panel-head">' +
+          '<div class="panel-title" style="margin-bottom:0;"></div>' +
+        '</div>';
+      infoCard.querySelector(".panel-title").textContent = currentModuleDetail.title;
+      var editModBtn = document.createElement("button");
+      editModBtn.type = "button";
+      editModBtn.className = "btn blue btn-sm";
+      editModBtn.textContent = "Modifier le titre / l'image";
+      editModBtn.addEventListener("click", function () { openModuleModal(currentModuleDetail); });
+      infoCard.querySelector(".admin-panel-head").appendChild(editModBtn);
+      content.appendChild(infoCard);
+
+      var addLessonBtn = document.createElement("button");
+      addLessonBtn.type = "button";
+      addLessonBtn.id = "module-detail-add-lesson-btn";
+      addLessonBtn.className = "btn blue btn-sm";
+      addLessonBtn.style.marginTop = "4px";
+      addLessonBtn.textContent = "+ Ajouter une leçon";
+      addLessonBtn.addEventListener("click", function () { openLessonModal(currentModuleDetail, null); });
+      content.appendChild(addLessonBtn);
+
+      var list = document.createElement("div");
+      list.id = "module-detail-lessons-list";
+      list.style.marginTop = "14px";
+      content.appendChild(list);
+      renderModuleDetailLessons();
+    }
+
+    function renderModuleDetailLessons() {
+      var list = document.getElementById("module-detail-lessons-list");
+      if (!list) return;
+      list.innerHTML = "";
+      if (!moduleDetailLessons.length) {
+        list.innerHTML = '<div class="cours-empty">Aucune leçon pour le moment.</div>';
+        return;
+      }
+      moduleDetailLessons.slice().sort(function (a, b) { return a.position - b.position; }).forEach(function (lesson) {
+        var item = document.createElement("div");
+        item.className = "glass-card contenu-resource-item";
+        item.innerHTML =
+          '<div class="contenu-resource-item-info">' +
+            '<div class="contenu-resource-item-title"></div>' +
+            '<div class="contenu-resource-item-meta"></div>' +
+          '</div>' +
+          '<div class="contenu-resource-item-actions"></div>';
+        item.querySelector(".contenu-resource-item-title").textContent = lesson.title;
+        item.querySelector(".contenu-resource-item-meta").textContent =
+          (lesson.content_type === "video" ? "Vidéo" : "Texte") +
+          (lesson.duration_minutes ? " · " + lesson.duration_minutes + " min" : "") +
+          " · " + (lesson.status === "draft" ? "Brouillon" : "Publiée");
+
+        var actions = item.querySelector(".contenu-resource-item-actions");
+        var editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "btn blue btn-sm";
+        editBtn.textContent = "Modifier";
+        editBtn.addEventListener("click", function () { openLessonModal(currentModuleDetail, lesson); });
+        actions.appendChild(editBtn);
+
+        var deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "btn danger btn-sm admin-icon-x-btn";
+        deleteBtn.textContent = "✕";
+        deleteBtn.title = "Supprimer cette leçon";
+        deleteBtn.addEventListener("click", function () {
+          zenoaConfirm('Supprimer la leçon "' + lesson.title + '" ?', { danger: true, confirmLabel: "Supprimer" }).then(function (ok) {
+            if (!ok) return;
+            supabase.from("course_lessons").delete().eq("id", lesson.id).then(function (res) {
+              if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+              openModuleDetail(currentModuleDetail);
+            });
+          });
+        });
+        actions.appendChild(deleteBtn);
+
+        list.appendChild(item);
+      });
+    }
+
+    function openLessonModal(mod, lesson) {
+      openAdminModal(lesson ? "Modifier la leçon" : "Ajouter une leçon",
+        '<div class="field"><label class="field-label">Titre</label><input type="text" id="cf-title"></div>' +
+        '<div class="field"><label class="field-label">Type de contenu</label><select id="cf-type"><option value="text">Texte</option><option value="video">Vidéo</option></select></div>' +
+        '<div class="field"><label class="field-label">Lien vidéo (si type vidéo)</label><input type="text" id="cf-video" placeholder="https://..."></div>' +
+        '<div class="field"><label class="field-label">Texte / description</label><textarea id="cf-text" rows="3"></textarea></div>' +
+        '<div class="field"><label class="field-label">Durée (minutes)</label><input type="number" id="cf-duration" min="1"></div>' +
+        '<div class="field"><label class="field-label">Statut</label><select id="cf-status"><option value="published">Publiée</option><option value="draft">Brouillon</option></select></div>',
+        function (done) {
+          var title = document.getElementById("cf-title").value.trim();
+          if (!title) { done("Le titre est obligatoire."); return; }
+          var durationVal = document.getElementById("cf-duration").value;
+          var payload = {
+            title: title,
+            content_type: document.getElementById("cf-type").value,
+            video_url: document.getElementById("cf-video").value.trim() || null,
+            content_text: document.getElementById("cf-text").value.trim() || null,
+            duration_minutes: durationVal ? parseInt(durationVal, 10) : null,
+            status: document.getElementById("cf-status").value
+          };
+          var query = lesson
+            ? supabase.from("course_lessons").update(payload).eq("id", lesson.id)
+            : supabase.from("course_lessons").insert(Object.assign({
+                module_id: mod.id,
+                position: moduleDetailLessons.length
+              }, payload));
+          query.then(function (res) {
+            if (res && res.error) { done("Erreur : " + res.error.message); return; }
+            done();
+            openModuleDetail(mod);
+          });
+        });
+      document.getElementById("cf-title").value = lesson ? lesson.title : "";
+      document.getElementById("cf-type").value = lesson ? lesson.content_type : "text";
+      document.getElementById("cf-video").value = (lesson && lesson.video_url) || "";
+      document.getElementById("cf-text").value = (lesson && lesson.content_text) || "";
+      document.getElementById("cf-duration").value = (lesson && lesson.duration_minutes) || "";
+      document.getElementById("cf-status").value = (lesson && lesson.status) || "published";
+    }
 
     function renderContenuResources() {
       var list = document.getElementById("contenu-resources-list");
