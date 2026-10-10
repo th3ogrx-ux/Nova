@@ -1688,18 +1688,24 @@
     }
 
     // ---------- Page Contenu ----------
-    // Simplifié à la demande : uniquement l'ajout de modules (titre +
-    // image de couverture). Les leçons/ressources/nouveautés/événements
-    // restent dans Supabase (tables course_lessons/resources/home_news/
-    // calendar_events, toujours lues côté élève) mais n'ont plus
-    // d'interface d'ajout/édition dédiée ici : à gérer depuis le Table
-    // Editor de Supabase si besoin, pour garder cette page minimale.
+    // Simplifié à la demande : ajout de modules (titre + image de
+    // couverture) et de ressources (titre + catégorie + fichier ou
+    // prompt). Les leçons/nouveautés/événements restent dans Supabase
+    // (tables course_lessons/home_news/calendar_events, toujours lues
+    // côté élève) mais n'ont plus d'interface d'ajout/édition dédiée
+    // ici : à gérer depuis le Table Editor de Supabase si besoin.
     var adminModules = [];
+    var adminResources = [];
 
     function loadContenuData() {
-      supabase.from("course_modules").select("id,position,title,cover_url").order("position").then(function (res) {
-        adminModules = (res && res.data) || [];
+      Promise.all([
+        supabase.from("course_modules").select("id,position,title,cover_url").order("position"),
+        supabase.from("resources").select("id,category,title,description,resource_type,file_url,prompt_text,position").order("position")
+      ]).then(function (results) {
+        adminModules = (results[0] && results[0].data) || [];
+        adminResources = (results[1] && results[1].data) || [];
         renderContenuModules();
+        renderContenuResources();
       });
     }
 
@@ -1777,6 +1783,67 @@
     }
     var contenuAddModuleBtn = document.getElementById("contenu-add-module-btn");
     if (contenuAddModuleBtn) contenuAddModuleBtn.addEventListener("click", function () { openModuleModal(); });
+
+    function renderContenuResources() {
+      var list = document.getElementById("contenu-resources-list");
+      if (!list) return;
+      list.innerHTML = "";
+      if (!adminResources.length) {
+        list.innerHTML = '<div class="cours-empty">Aucune ressource pour le moment.</div>';
+        return;
+      }
+      adminResources.slice().sort(function (a, b) { return a.position - b.position; }).forEach(function (r) {
+        var item = document.createElement("div");
+        item.className = "glass-card contenu-resource-item";
+        item.innerHTML =
+          '<div class="contenu-resource-item-info">' +
+            '<div class="contenu-resource-item-title"></div>' +
+            '<div class="contenu-resource-item-meta"></div>' +
+          '</div>';
+        item.querySelector(".contenu-resource-item-title").textContent = r.title;
+        item.querySelector(".contenu-resource-item-meta").textContent = r.category + " · " + (r.resource_type === "prompt" ? "Prompt" : "Fichier");
+        list.appendChild(item);
+      });
+    }
+
+    function openResourceModal() {
+      openAdminModal("Ajouter une ressource",
+        '<div class="field"><label class="field-label">Catégorie</label><input type="text" id="cf-category" placeholder="Templates, Prompts, Guides PDF, Outils..."></div>' +
+        '<div class="field"><label class="field-label">Titre</label><input type="text" id="cf-title"></div>' +
+        '<div class="field"><label class="field-label">Description (optionnelle)</label><textarea id="cf-desc" rows="2"></textarea></div>' +
+        '<div class="field"><label class="field-label">Type</label><select id="cf-type"><option value="file">Fichier à télécharger</option><option value="prompt">Prompt à copier</option></select></div>' +
+        '<div class="field"><label class="field-label">Lien du fichier (si type fichier)</label><input type="text" id="cf-file-url" placeholder="https://..."></div>' +
+        '<div class="field"><label class="field-label">Texte du prompt (si type prompt)</label><textarea id="cf-prompt" rows="3"></textarea></div>',
+        function (done) {
+          var title = document.getElementById("cf-title").value.trim();
+          var category = document.getElementById("cf-category").value.trim();
+          if (!title || !category) { done("Catégorie et titre sont obligatoires."); return; }
+          var payload = {
+            category: category,
+            title: title,
+            description: document.getElementById("cf-desc").value.trim() || null,
+            resource_type: document.getElementById("cf-type").value,
+            file_url: document.getElementById("cf-file-url").value.trim() || null,
+            prompt_text: document.getElementById("cf-prompt").value.trim() || null,
+            position: adminResources.length
+          };
+          supabase.from("resources").insert(payload).then(function (res) {
+            if (res && res.error) { done("Erreur : " + res.error.message); return; }
+            done();
+            loadContenuData();
+            resourcesDataLoaded = false;
+            loadResourcesData();
+          });
+        });
+      document.getElementById("cf-category").value = "";
+      document.getElementById("cf-title").value = "";
+      document.getElementById("cf-desc").value = "";
+      document.getElementById("cf-type").value = "file";
+      document.getElementById("cf-file-url").value = "";
+      document.getElementById("cf-prompt").value = "";
+    }
+    var contenuAddResourceBtn = document.getElementById("contenu-add-resource-btn");
+    if (contenuAddResourceBtn) contenuAddResourceBtn.addEventListener("click", function () { openResourceModal(); });
 
     // ---------- Page Accès et codes ----------
     var adminCodes = [];
@@ -1900,13 +1967,24 @@
         if (status !== "disabled") {
           var disableBtn = document.createElement("button");
           disableBtn.type = "button";
-          disableBtn.className = "btn danger btn-sm";
-          disableBtn.textContent = "Désactiver";
+          disableBtn.className = "btn danger btn-sm codes-disable-btn";
+          disableBtn.textContent = "✕";
+          disableBtn.title = "Suspendre ce code";
           disableBtn.addEventListener("click", function () {
-            zenoaConfirm("Désactiver ce code ? Il ne pourra plus être utilisé pour s'inscrire.", { danger: true, confirmLabel: "Désactiver" }).then(function (ok) {
+            // Si quelqu'un s'est déjà inscrit avec ce code, le suspendre
+            // coupe aussi son accès immédiatement (sinon désactiver le
+            // code ne ferait que bloquer de FUTURES inscriptions, pas
+            // la personne déjà connectée avec ce compte).
+            var msg = c._usedByProfile
+              ? "Suspendre ce code ? " + (c._usedByProfile.pseudo || c._usedByProfile.email) + " ne pourra plus se connecter."
+              : "Suspendre ce code ? Il ne pourra plus être utilisé pour s'inscrire.";
+            zenoaConfirm(msg, { danger: true, confirmLabel: "Suspendre" }).then(function (ok) {
               if (!ok) return;
-              supabase.from("access_codes").update({ disabled: true }).eq("code", c.code).then(function (res) {
-                if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+              var tasks = [supabase.from("access_codes").update({ disabled: true }).eq("code", c.code)];
+              if (c.used_by) tasks.push(supabase.from("profiles").update({ is_active: false }).eq("id", c.used_by));
+              Promise.all(tasks).then(function (results) {
+                var errRes = results.find(function (r) { return r && r.error; });
+                if (errRes) { alert("Erreur : " + errRes.error.message); return; }
                 loadCodesData();
               });
             });

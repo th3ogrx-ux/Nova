@@ -418,17 +418,24 @@
     .eleve-row-progress .progress-track{flex:1;margin-top:0;}
     .eleve-detail-actions{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
 
+    .contenu-add-buttons{display:flex;gap:10px;flex-wrap:wrap;}
     .contenu-modules-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:14px;}
     .contenu-module-card{overflow:hidden;padding:0;}
     .contenu-module-cover{width:100%;aspect-ratio:16/9;object-fit:cover;background:rgba(28,20,48,.06);display:block;}
     .contenu-module-cover-placeholder{width:100%;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;background:rgba(28,20,48,.06);color:#6b6478;font-size:12px;}
     .contenu-module-title{font-size:13.5px;font-weight:700;padding:12px 14px;}
 
+    .contenu-resource-item{display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:8px;flex-wrap:wrap;}
+    .contenu-resource-item-info{flex:1;min-width:140px;}
+    .contenu-resource-item-title{font-size:13.5px;font-weight:700;}
+    .contenu-resource-item-meta{font-size:11.5px;color:#6b6478;margin-top:2px;}
+
     .admin-code-item{padding:14px 16px;margin-bottom:8px;}
     .admin-code-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
     .admin-code-value{font-family:Consolas,Monaco,monospace;font-size:15px;font-weight:700;letter-spacing:.05em;}
     .admin-code-meta{font-size:11.5px;color:#6b6478;}
-    .admin-code-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+    .admin-code-actions{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap;}
+    .codes-disable-btn{width:30px;height:30px;padding:0;border-radius:50%;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
     .codes-generated-box{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px;padding:14px 16px;border-radius:12px;background:rgba(47,128,255,.06);border:1px solid rgba(47,128,255,.15);}
     .codes-generated-box[hidden]{display:none;}
     .codes-generated-value{font-family:Consolas,Monaco,monospace;font-size:18px;font-weight:700;letter-spacing:.05em;}
@@ -1128,11 +1135,17 @@
 
           <div class="cours-page-head">
             <h2 class="cours-page-title">Contenu</h2>
-            <p class="cours-page-sub">Modules du programme.</p>
+            <p class="cours-page-sub">Modules et ressources du programme.</p>
           </div>
 
-          <button type="button" class="btn blue btn-sm" id="contenu-add-module-btn">+ Ajouter un module</button>
+          <div class="contenu-add-buttons">
+            <button type="button" class="btn blue btn-sm" id="contenu-add-module-btn">+ Ajouter un module</button>
+            <button type="button" class="btn blue btn-sm" id="contenu-add-resource-btn">+ Ajouter une ressource</button>
+          </div>
           <div id="contenu-modules-list"></div>
+
+          <div class="panel-title" style="margin-top:22px;">Ressources</div>
+          <div id="contenu-resources-list"></div>
         </div>
 
         <div class="view" id="view-acces-codes">
