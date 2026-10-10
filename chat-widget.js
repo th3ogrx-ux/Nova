@@ -1526,8 +1526,7 @@
       if (content) content.innerHTML = '<div class="cours-empty">Chargement…</div>';
       Promise.all([
         supabase.from("profiles").select("id,pseudo,email,created_at,last_seen_at,is_active,access_expires_at,admin_notes").eq("id", studentId).single(),
-        supabase.from("user_lesson_progress").select("completed").eq("user_id", studentId).eq("completed", true),
-        supabase.from("project_submissions").select("id,note,created_at,corrected").eq("user_id", studentId).order("created_at", { ascending: false })
+        supabase.from("user_lesson_progress").select("completed").eq("user_id", studentId).eq("completed", true)
       ]).then(function (results) {
         var student = results[0] && results[0].data;
         if (!student) {
@@ -1535,12 +1534,11 @@
           return;
         }
         var doneCount = ((results[1] && results[1].data) || []).length;
-        var submissions = (results[2] && results[2].data) || [];
-        renderEleveDetail(student, doneCount, submissions);
+        renderEleveDetail(student, doneCount);
       });
     }
 
-    function renderEleveDetail(student, doneCount, submissions) {
+    function renderEleveDetail(student, doneCount) {
       var content = document.getElementById("eleve-detail-content");
       if (!content) return;
       var totalLessons = courseLessons.filter(function (l) { return l.status !== "draft"; }).length;
@@ -1592,26 +1590,6 @@
       });
       actions.appendChild(suspendBtn);
 
-      var extendBtn = document.createElement("button");
-      extendBtn.type = "button";
-      extendBtn.className = "btn blue btn-sm";
-      extendBtn.textContent = "Prolonger l'accès";
-      extendBtn.addEventListener("click", function () {
-        var days = window.prompt("Prolonger l'accès de combien de jours à partir d'aujourd'hui ? (laisse vide pour un accès illimité)", "30");
-        if (days === null) return;
-        var newExpiry = null;
-        if (days.trim() !== "") {
-          var n = parseInt(days, 10);
-          if (!n || n <= 0) { alert("Nombre de jours invalide."); return; }
-          newExpiry = new Date(Date.now() + n * 86400000).toISOString();
-        }
-        supabase.from("profiles").update({ access_expires_at: newExpiry }).eq("id", student.id).then(function (res) {
-          if (res && res.error) { alert("Erreur : " + res.error.message); return; }
-          openEleveDetail(student.id);
-        });
-      });
-      actions.appendChild(extendBtn);
-
       var deleteBtn = document.createElement("button");
       deleteBtn.type = "button";
       deleteBtn.className = "btn danger btn-sm";
@@ -1650,41 +1628,6 @@
         });
       });
       content.appendChild(notesSection);
-
-      // ----- Projets déposés -----
-      var subsSection = document.createElement("div");
-      subsSection.className = "glass-card panel-section";
-      var subsTitle = document.createElement("div");
-      subsTitle.className = "panel-title";
-      subsTitle.textContent = "Projets déposés";
-      subsSection.appendChild(subsTitle);
-      if (!submissions.length) {
-        var empty = document.createElement("div");
-        empty.className = "cours-empty";
-        empty.textContent = "Aucun dépôt pour le moment.";
-        subsSection.appendChild(empty);
-      } else {
-        submissions.forEach(function (sub) {
-          var item = document.createElement("div");
-          item.className = "projet-submission-item";
-          var dateEl = document.createElement("div");
-          dateEl.className = "projet-submission-date";
-          dateEl.textContent = formatShortDateTime(sub.created_at);
-          item.appendChild(dateEl);
-          if (sub.note) {
-            var noteEl = document.createElement("div");
-            noteEl.className = "projet-submission-note";
-            noteEl.textContent = sub.note;
-            item.appendChild(noteEl);
-          }
-          var statusPill = document.createElement("span");
-          statusPill.className = "status-pill " + (sub.corrected ? "status-actif" : "status-churn");
-          statusPill.textContent = sub.corrected ? "Corrigé" : "À corriger";
-          item.appendChild(statusPill);
-          subsSection.appendChild(item);
-        });
-      }
-      content.appendChild(subsSection);
     }
 
     // ---------- Page Contenu ----------
