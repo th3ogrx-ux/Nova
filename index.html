@@ -392,7 +392,7 @@
     .calendrier-event.past{opacity:.75;}
     .calendrier-empty{padding:30px 10px;text-align:center;color:#6b6478;font-size:13.5px;}
 
-    /* ---------- Partie admin (Tableau de bord, Élèves, Contenu, Retours, Accès et codes) ---------- */
+    /* ---------- Partie admin (Tableau de bord, Élèves, Contenu, Accès et codes) ---------- */
     .main .indicator-label,.main .indicator-sub,.main .activity-row-name,.main .activity-row-count{color:#6b6478;}
     #admin-top-active-list .activity-row-count{width:auto;max-width:150px;white-space:nowrap;font-weight:500;font-size:11px;}
     .main .indicator-value{color:#1c1430;}
@@ -406,7 +406,6 @@
     .admin-student-row-info{flex:1;min-width:160px;}
     .admin-student-row-name{font-size:13.5px;font-weight:600;}
     .admin-student-row-meta{font-size:11.5px;color:#6b6478;margin-top:2px;}
-    .admin-pending-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;font-size:14px;}
 
     .status-pill.status-expired{color:#f6923d;border-color:#f6923d66;background:#f6923d14;}
     .status-pill.status-suspended{color:#D9534F;border-color:#d9534f66;background:#d9534f14;}
@@ -419,24 +418,20 @@
     .eleve-row-progress .progress-track{flex:1;margin-top:0;}
     .eleve-detail-actions{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
 
-    .contenu-tab-panel[hidden]{display:none;}
-    .admin-content-item{display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:8px;flex-wrap:wrap;}
-    .admin-content-item-info{flex:1;min-width:140px;}
-    .admin-content-item-title{font-size:13.5px;font-weight:700;}
-    .admin-content-item-meta{font-size:11.5px;color:#6b6478;margin-top:2px;}
-    .admin-content-item-actions{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;}
-    .admin-content-item.draft{opacity:.65;}
+    .contenu-modules-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:14px;}
+    .contenu-module-card{overflow:hidden;padding:0;}
+    .contenu-module-cover{width:100%;aspect-ratio:16/9;object-fit:cover;background:rgba(28,20,48,.06);display:block;}
+    .contenu-module-cover-placeholder{width:100%;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;background:rgba(28,20,48,.06);color:#6b6478;font-size:12px;}
+    .contenu-module-title{font-size:13.5px;font-weight:700;padding:12px 14px;}
 
     .admin-code-item{padding:14px 16px;margin-bottom:8px;}
     .admin-code-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
     .admin-code-value{font-family:Consolas,Monaco,monospace;font-size:15px;font-weight:700;letter-spacing:.05em;}
     .admin-code-meta{font-size:11.5px;color:#6b6478;}
     .admin-code-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
-
-    .retour-item{padding:16px 18px;margin-bottom:10px;}
-    .retour-item-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
-    .retour-item-student{font-size:14px;font-weight:700;}
-    .retour-item-date{font-size:11.5px;color:#6b6478;}
+    .codes-generated-box{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px;padding:14px 16px;border-radius:12px;background:rgba(47,128,255,.06);border:1px solid rgba(47,128,255,.15);}
+    .codes-generated-box[hidden]{display:none;}
+    .codes-generated-value{font-family:Consolas,Monaco,monospace;font-size:18px;font-weight:700;letter-spacing:.05em;}
 
     /* Modal admin générique : couleurs explicites (pas scopées sous
        .main, le modal est en dehors pour couvrir tout l'écran). */
@@ -613,7 +608,6 @@
         <div class="nav-item chef-only" id="nav-chef-dashboard" data-view="tableau-de-bord" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span><span class="nav-label">Tableau de bord</span></div>
         <div class="nav-item chef-only" id="nav-chef-eleves" data-view="eleves" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14c2.6.3 4.5 2.5 4.5 6"/></svg></span><span class="nav-label">Élèves</span></div>
         <div class="nav-item chef-only" id="nav-chef-contenu" data-view="contenu" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 8h7M9 12h7M9 16h4"/></svg></span><span class="nav-label">Contenu</span></div>
-        <div class="nav-item chef-only" id="nav-chef-retours" data-view="retours" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg></span><span class="nav-label">Retours</span></div>
         <div class="nav-item chef-only" id="nav-chef-codes" data-view="acces-codes" style="display:none;"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.5 12.5L20 3M20 3h-4M20 3v4"/></svg></span><span class="nav-label">Accès et codes</span></div>
 
         <!-- Éléments conservés uniquement pour éviter un crash JS : le
@@ -871,7 +865,7 @@
           </div>
 
           <div class="accueil-welcome">
-            <h2 class="accueil-welcome-title">Salut <span id="accueil-welcome-name"></span> 👋</h2>
+            <h2 class="accueil-welcome-title">Salut <span id="accueil-welcome-name"></span></h2>
             <p class="accueil-welcome-sub">Content de te revoir, voyons où tu en es.</p>
           </div>
 
@@ -1099,14 +1093,6 @@
             </div>
             <div id="admin-stuck-list"></div>
           </div>
-
-          <div class="glass-card panel-section">
-            <div class="panel-title">Projets en attente de correction</div>
-            <div class="admin-pending-row">
-              <span><strong id="admin-pending-count">0</strong> projet(s) à corriger</span>
-              <button type="button" class="btn blue btn-sm" data-view="retours">Voir Retours</button>
-            </div>
-          </div>
         </div>
 
         <div class="view" id="view-eleves">
@@ -1125,7 +1111,6 @@
           <div class="ressources-categories" id="eleves-filter-pills"></div>
 
           <div id="eleves-list"></div>
-          <button type="button" class="btn btn-sm" id="eleves-export-csv-btn">Exporter en CSV</button>
         </div>
 
         <div class="view" id="view-eleve-detail">
@@ -1143,46 +1128,11 @@
 
           <div class="cours-page-head">
             <h2 class="cours-page-title">Contenu</h2>
-            <p class="cours-page-sub">Modules, leçons, ressources, nouveautés et calendrier.</p>
+            <p class="cours-page-sub">Modules du programme.</p>
           </div>
 
-          <div class="ressources-categories" id="contenu-tabs">
-            <button type="button" class="ressources-cat-pill active" data-tab="modules">Modules &amp; leçons</button>
-            <button type="button" class="ressources-cat-pill" data-tab="ressources">Ressources</button>
-            <button type="button" class="ressources-cat-pill" data-tab="nouveautes">Nouveautés</button>
-            <button type="button" class="ressources-cat-pill" data-tab="calendrier">Calendrier</button>
-          </div>
-
-          <div class="contenu-tab-panel" id="contenu-tab-modules">
-            <button type="button" class="btn blue btn-sm" id="contenu-add-module-btn">+ Ajouter un module</button>
-            <div id="contenu-modules-list"></div>
-          </div>
-          <div class="contenu-tab-panel" id="contenu-tab-ressources" hidden>
-            <button type="button" class="btn blue btn-sm" id="contenu-add-resource-btn">+ Ajouter une ressource</button>
-            <div id="contenu-resources-list"></div>
-          </div>
-          <div class="contenu-tab-panel" id="contenu-tab-nouveautes" hidden>
-            <button type="button" class="btn blue btn-sm" id="contenu-add-news-btn">+ Ajouter une nouveauté</button>
-            <div id="contenu-news-list"></div>
-          </div>
-          <div class="contenu-tab-panel" id="contenu-tab-calendrier" hidden>
-            <button type="button" class="btn blue btn-sm" id="contenu-add-event-btn">+ Ajouter un événement</button>
-            <div id="contenu-events-list"></div>
-          </div>
-        </div>
-
-        <div class="view" id="view-retours">
-          <div class="dash-toolbar">
-            <h1 class="home-hero-name">Retours</h1>
-          </div>
-
-          <div class="cours-page-head">
-            <h2 class="cours-page-title">Retours</h2>
-            <p class="cours-page-sub">Projets déposés par tes élèves.</p>
-          </div>
-
-          <div class="ressources-categories" id="retours-filter-pills"></div>
-          <div id="retours-list"></div>
+          <button type="button" class="btn blue btn-sm" id="contenu-add-module-btn">+ Ajouter un module</button>
+          <div id="contenu-modules-list"></div>
         </div>
 
         <div class="view" id="view-acces-codes">
@@ -1196,31 +1146,11 @@
           </div>
 
           <div class="glass-card panel-section">
-            <div class="panel-title">Créer un ou plusieurs codes</div>
-            <div class="panel-grid">
-              <div class="field">
-                <label class="field-label">Quantité</label>
-                <input type="number" id="codes-qty-input" value="1" min="1" max="50">
-              </div>
-              <div class="field">
-                <label class="field-label">Durée d'accès en jours (optionnel)</label>
-                <input type="number" id="codes-duration-input" placeholder="Illimité si vide" min="1">
-              </div>
-              <div class="field">
-                <label class="field-label">Pour qui (optionnel)</label>
-                <input type="text" id="codes-pseudo-input" placeholder="Nom de l'élève">
-              </div>
-              <div class="field">
-                <label class="field-label">E-mail (optionnel)</label>
-                <input type="email" id="codes-email-input" placeholder="eleve@email.com">
-              </div>
+            <button type="button" class="btn blue" id="codes-generate-btn">Générer un code</button>
+            <div class="codes-generated-box" id="codes-generated-box" hidden>
+              <span class="codes-generated-value" id="codes-generated-value"></span>
+              <button type="button" class="btn btn-sm" id="codes-generated-copy-btn">Copier</button>
             </div>
-            <div class="field">
-              <label class="field-label">Note (comment il a payé, optionnel)</label>
-              <input type="text" id="codes-note-input" placeholder="Ex : virement le 12/10">
-            </div>
-            <button type="button" class="btn blue" id="codes-generate-btn">Générer</button>
-            <div class="info-msg" id="codes-generate-success"></div>
           </div>
 
           <div class="field cours-search-field">
