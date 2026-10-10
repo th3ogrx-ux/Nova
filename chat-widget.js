@@ -12,14 +12,11 @@
     { date: "Oct.", titre: "Page Ressources mise à jour", view: "resources" },
     { date: "Oct.", titre: "Calendrier disponible", view: "calendrier" }
   ];
-  // Texte de la mission du moment, affiché à côté de la case à cocher.
-  var ACCUEIL_MISSION_TEXT = "Termine ta première leçon du module en cours.";
-  // DONNÉES DE TEST : la progression et la prochaine leçon ne sont pas
-  // encore stockées en base (pas de table leçons/modules pour l'instant).
-  // À brancher plus tard sur de vraies données (ex: tables "lessons" et
+  // DONNÉES DE TEST : la progression n'est pas encore stockée en base
+  // (pas de table leçons/modules pour l'instant). À brancher plus tard
+  // sur de vraies données (ex: tables "lessons" et
   // "user_lesson_progress") — en attendant, ces valeurs sont statiques.
   var ACCUEIL_TEST_PROGRESS = { done: 4, total: 12, module: "Module 2 — Les fondamentaux" };
-  var ACCUEIL_TEST_NEXT_LESSON = { titre: "Structurer ton premier message", module: "Module 2 — Les fondamentaux", duree: "12 min" };
 
   function loadSupabase(cb) {
     if (window.supabase && window.supabase.createClient) return cb();
@@ -169,20 +166,6 @@
       var progressModule = document.getElementById("accueil-progress-module");
       if (progressModule) progressModule.textContent = p.module;
 
-      var lessonTitle = document.getElementById("accueil-next-lesson-title");
-      if (lessonTitle) lessonTitle.textContent = ACCUEIL_TEST_NEXT_LESSON.titre;
-      var lessonMeta = document.getElementById("accueil-next-lesson-meta");
-      if (lessonMeta) lessonMeta.textContent = ACCUEIL_TEST_NEXT_LESSON.module + " · " + ACCUEIL_TEST_NEXT_LESSON.duree;
-
-      var missionText = document.getElementById("accueil-mission-text");
-      if (missionText) missionText.textContent = ACCUEIL_MISSION_TEXT;
-      var missionCheck = document.getElementById("accueil-mission-check");
-      var missionRow = document.getElementById("accueil-mission-row");
-      if (missionCheck) {
-        missionCheck.checked = !!me.mission_done;
-        if (missionRow) missionRow.classList.toggle("done", missionCheck.checked);
-      }
-
       renderAccueilNews();
     }
 
@@ -222,24 +205,6 @@
         if (item.link_view) row.addEventListener("click", function () { goToView(item.link_view); });
         newsList.appendChild(row);
       });
-    }
-
-    var accueilMissionCheck = document.getElementById("accueil-mission-check");
-    if (accueilMissionCheck) {
-      accueilMissionCheck.addEventListener("change", function () {
-        if (!me) return;
-        me.mission_done = accueilMissionCheck.checked;
-        var missionRow = document.getElementById("accueil-mission-row");
-        if (missionRow) missionRow.classList.toggle("done", accueilMissionCheck.checked);
-        supabase.from("profiles").update({ mission_done: accueilMissionCheck.checked }).eq("id", me.id).then(function (res) {
-          if (res && res.error) alert("Erreur : " + res.error.message);
-        });
-      });
-    }
-
-    var accueilContinueBtn = document.getElementById("accueil-continue-btn");
-    if (accueilContinueBtn) {
-      accueilContinueBtn.addEventListener("click", function () { goToView("cours"); });
     }
 
     document.querySelectorAll(".accueil-quick-access [data-view]").forEach(function (btn) {
@@ -513,7 +478,7 @@
         var youtubeInput = document.getElementById("projet-youtube-input");
         if (youtubeInput) youtubeInput.value = project.youtube_url || "";
         myTasks = (tasksRes && tasksRes.data) || [];
-        renderProjectSteps();
+        renderAllTaskLists();
       });
     }
 
@@ -529,13 +494,16 @@
       if (pctEl) pctEl.textContent = pct + "%";
     }
 
-    function renderProjectSteps() {
-      var list = document.getElementById("projet-steps-list");
+    // Les tâches assignées par le chef sont affichées à deux endroits
+    // (Accueil et Mon projet > Mes étapes) : les deux listes restent
+    // synchronisées, on les reconstruit toutes les deux à chaque
+    // changement plutôt que de ne toucher que celle cliquée.
+    function renderTaskListInto(containerId) {
+      var list = document.getElementById(containerId);
       if (!list) return;
       list.innerHTML = "";
       if (!myTasks.length) {
         list.innerHTML = '<div class="cours-empty">Ton coach ne t\'a pas encore assigné de tâche.</div>';
-        updateProjectStepsProgress();
         return;
       }
       myTasks.slice().sort(function (a, b) { return a.position - b.position; }).forEach(function (task) {
@@ -547,8 +515,7 @@
         cb.addEventListener("change", function () {
           if (!me) return;
           task.done = cb.checked;
-          row.classList.toggle("done", cb.checked);
-          updateProjectStepsProgress();
+          renderAllTaskLists();
           supabase.from("student_tasks").update({ done: cb.checked }).eq("id", task.id).then(function (res) {
             if (res && res.error) alert("Erreur : " + res.error.message);
           });
@@ -559,6 +526,11 @@
         row.appendChild(span);
         list.appendChild(row);
       });
+    }
+
+    function renderAllTaskLists() {
+      renderTaskListInto("projet-steps-list");
+      renderTaskListInto("accueil-tasks-list");
       updateProjectStepsProgress();
     }
 
@@ -2195,21 +2167,6 @@
         var landingNav = document.querySelector('.nav-item[data-view="' + landingView + '"]');
         if (landingNav) landingNav.classList.add("active");
         if (isChef) loadDashboardData();
-
-        // Champ ajouté par une migration plus récente (mission_done) :
-        // récupéré à part, pour ne jamais bloquer le reste de l'appli
-        // (nav, page Accueil) si la migration n'a pas encore été
-        // exécutée et que la colonne n'existe pas encore.
-        supabase.from("profiles").select("mission_done").eq("id", userId).single().then(function (res2) {
-          if (!res2 || !res2.data) return;
-          me.mission_done = res2.data.mission_done;
-          var missionCheck = document.getElementById("accueil-mission-check");
-          var missionRow = document.getElementById("accueil-mission-row");
-          if (missionCheck) {
-            missionCheck.checked = !!me.mission_done;
-            if (missionRow) missionRow.classList.toggle("done", missionCheck.checked);
-          }
-        });
       });
     }
 
