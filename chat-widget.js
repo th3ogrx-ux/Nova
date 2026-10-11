@@ -84,7 +84,7 @@
     // Ce n'est qu'une protection côté interface : la vraie sécurité est
     // dans les policies RLS (admin-panel.sql), qui bloquent aussi les
     // lectures/écritures même si l'affichage était contourné.
-    var ADMIN_ONLY_VIEWS = ["tableau-de-bord", "eleves", "eleve-detail", "eleve-payments", "eleve-tasks", "contenu", "module-detail", "acces-codes"];
+    var ADMIN_ONLY_VIEWS = ["tableau-de-bord", "eleves", "eleve-detail", "eleve-payments", "eleve-tasks", "eleve-issues", "contenu", "module-detail", "acces-codes"];
     function switchToView(viewName) {
       if (ADMIN_ONLY_VIEWS.indexOf(viewName) !== -1 && !(me && me.role === "chef")) return;
       document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
@@ -1035,6 +1035,7 @@
     var elevesDoneByUser = {};
     var elevesRevenueByUser = {};
     var elevesTasksByUser = {};
+    var elevesIssuesByUser = {};
     var elevesFilter = "all";
 
     function loadElevesData() {
@@ -1042,7 +1043,8 @@
         supabase.from("profiles").select("id,pseudo,email,created_at,last_seen_at,is_active,access_expires_at,admin_notes").eq("role", "membre"),
         supabase.from("user_lesson_progress").select("user_id").eq("completed", true),
         supabase.from("student_payments").select("user_id,amount"),
-        supabase.from("student_tasks").select("user_id,done")
+        supabase.from("student_tasks").select("user_id,done"),
+        supabase.from("student_issues").select("user_id")
       ]).then(function (results) {
         elevesList = (results[0] && results[0].data) || [];
         elevesDoneByUser = {};
@@ -1059,6 +1061,10 @@
           t.total++;
           if (row.done) t.done++;
           elevesTasksByUser[row.user_id] = t;
+        });
+        elevesIssuesByUser = {};
+        ((results[4] && results[4].data) || []).forEach(function (row) {
+          elevesIssuesByUser[row.user_id] = (elevesIssuesByUser[row.user_id] || 0) + 1;
         });
         renderElevesFilterPills();
         renderElevesList();
@@ -1128,6 +1134,7 @@
             '<div class="eleve-row-meta"></div>' +
           '</div>' +
           '<div class="eleve-row-progress"><div class="progress-track"><div class="progress-fill prog-green"></div></div><span></span></div>' +
+          '<button type="button" class="eleve-row-issues-btn"></button>' +
           '<button type="button" class="eleve-row-tasks-btn"></button>' +
           '<button type="button" class="eleve-row-revenue-btn"></button>';
         row.querySelector(".eleve-row-name-text").textContent = s.pseudo || "(sans nom)";
@@ -1137,6 +1144,12 @@
         row.querySelector(".eleve-row-meta").textContent = (s.email || "") + " · Inscrit le " + formatShortDate(s.created_at);
         row.querySelector(".progress-fill").style.width = pct + "%";
         row.querySelector(".eleve-row-progress span").textContent = pct + "%";
+        var issuesCount = elevesIssuesByUser[s.id] || 0;
+        row.querySelector(".eleve-row-issues-btn").textContent = issuesCount + " problème" + (issuesCount > 1 ? "s" : "");
+        row.querySelector(".eleve-row-issues-btn").addEventListener("click", function (e) {
+          e.stopPropagation();
+          openEleveIssues(s);
+        });
         var taskCounts = elevesTasksByUser[s.id] || { total: 0, done: 0 };
         row.querySelector(".eleve-row-tasks-btn").textContent = taskCounts.done + "/" + taskCounts.total + " tâches";
         row.querySelector(".eleve-row-tasks-btn").addEventListener("click", function (e) {
@@ -1367,6 +1380,98 @@
 
     var btnBackEleveTasks = document.getElementById("btn-back-eleve-tasks");
     if (btnBackEleveTasks) btnBackEleveTasks.addEventListener("click", function () { switchToView("eleves"); });
+
+    // ----- Problèmes rencontrés -----
+    // Table student_issues : entièrement réservée au chef (lecture ET
+    // écriture), aucun accès élève. Voir student-issues.sql.
+    var issuesStudent = null;
+    var issuesList = [];
+
+    function openEleveIssues(student) {
+      issuesStudent = student;
+      switchToView("eleve-issues");
+      var title = document.getElementById("eleve-issues-title");
+      if (title) title.textContent = "Problèmes — " + (student.pseudo || student.email || "");
+      var content = document.getElementById("eleve-issues-content");
+      if (content) content.innerHTML = '<div class="cours-empty">Chargement…</div>';
+      supabase.from("student_issues").select("id,description,created_at").eq("user_id", student.id).order("created_at", { ascending: false }).then(function (res) {
+        issuesList = (res && res.data) || [];
+        renderEleveIssuesView();
+      });
+    }
+
+    function renderEleveIssuesView() {
+      var content = document.getElementById("eleve-issues-content");
+      if (!content) return;
+      content.innerHTML = "";
+
+      var addSection = document.createElement("div");
+      addSection.className = "glass-card panel-section";
+      addSection.innerHTML =
+        '<div class="panel-title">Ajouter un problème</div>' +
+        '<textarea id="issue-new-input" rows="3" placeholder="Décris le problème rencontré..."></textarea>' +
+        '<button type="button" class="btn btn-sm" id="issue-add-btn" style="margin-top:8px;">+ Ajouter</button>';
+      addSection.querySelector("#issue-add-btn").addEventListener("click", function () {
+        var input = addSection.querySelector("#issue-new-input");
+        var description = input.value.trim();
+        if (!description) return;
+        supabase.from("student_issues").insert({ user_id: issuesStudent.id, description: description }).then(function (res) {
+          if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+          openEleveIssues(issuesStudent);
+          loadElevesData();
+        });
+      });
+      content.appendChild(addSection);
+
+      var historySection = document.createElement("div");
+      historySection.className = "glass-card panel-section";
+      var historyTitle = document.createElement("div");
+      historyTitle.className = "panel-title";
+      historyTitle.textContent = issuesList.length + " problème" + (issuesList.length > 1 ? "s" : "");
+      historySection.appendChild(historyTitle);
+      if (!issuesList.length) {
+        var empty = document.createElement("div");
+        empty.className = "cours-empty";
+        empty.textContent = "Aucun problème signalé pour le moment.";
+        historySection.appendChild(empty);
+      } else {
+        issuesList.forEach(function (issue) {
+          var row = document.createElement("div");
+          row.className = "issue-row";
+          var textWrap = document.createElement("div");
+          var textEl = document.createElement("div");
+          textEl.className = "issue-row-text";
+          textEl.textContent = issue.description;
+          var dateEl = document.createElement("div");
+          dateEl.className = "issue-row-date";
+          dateEl.textContent = formatShortDateTime(issue.created_at);
+          textWrap.appendChild(textEl);
+          textWrap.appendChild(dateEl);
+          var deleteBtn = document.createElement("button");
+          deleteBtn.type = "button";
+          deleteBtn.className = "btn danger btn-sm admin-icon-x-btn";
+          deleteBtn.textContent = "✕";
+          deleteBtn.title = "Supprimer ce problème";
+          deleteBtn.addEventListener("click", function () {
+            zenoaConfirm("Supprimer ce problème ?", { danger: true, confirmLabel: "Supprimer" }).then(function (ok) {
+              if (!ok) return;
+              supabase.from("student_issues").delete().eq("id", issue.id).then(function (res) {
+                if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+                openEleveIssues(issuesStudent);
+                loadElevesData();
+              });
+            });
+          });
+          row.appendChild(textWrap);
+          row.appendChild(deleteBtn);
+          historySection.appendChild(row);
+        });
+      }
+      content.appendChild(historySection);
+    }
+
+    var btnBackEleveIssues = document.getElementById("btn-back-eleve-issues");
+    if (btnBackEleveIssues) btnBackEleveIssues.addEventListener("click", function () { switchToView("eleves"); });
 
     // ----- Fiche élève -----
     var btnBackEleveDetail = document.getElementById("btn-back-eleve-detail");
