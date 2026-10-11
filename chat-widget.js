@@ -391,6 +391,33 @@
     var myTasks = [];
     var projectDataLoaded = false;
 
+    // L'élève tape seulement son pseudo (ex: "alice.creates"), jamais
+    // le lien entier : on reconstruit l'URL complète à partir du
+    // préfixe propre à chaque plateforme pour la stocker, et on
+    // n'affiche/préremplit que le pseudo. Si un lien complet est collé
+    // par réflexe, on en extrait quand même le pseudo plutôt que de
+    // stocker une URL invalide. Réutilisé côté chef (fiche élève) pour
+    // l'affichage.
+    function socialHandleFromUrl(url) {
+      if (!url) return "";
+      try {
+        var path = new URL(url).pathname.replace(/^\/+|\/+$/g, "");
+        var handle = path.split("/")[0] || "";
+        return handle.replace(/^@/, "");
+      } catch (e) {
+        return url.replace(/^@/, "");
+      }
+    }
+    var SOCIAL_URL_PREFIXES = {
+      instagram_url: "https://instagram.com/",
+      tiktok_url: "https://tiktok.com/@",
+      youtube_url: "https://youtube.com/@"
+    };
+    function buildSocialUrl(field, rawInput) {
+      var handle = socialHandleFromUrl((rawInput || "").trim());
+      return handle ? SOCIAL_URL_PREFIXES[field] + handle : null;
+    }
+
     function loadProjectData(userId) {
       if (projectDataLoaded) return;
       projectDataLoaded = true;
@@ -401,11 +428,11 @@
         var projectRes = results[0], tasksRes = results[1];
         var project = (projectRes && projectRes.data) || {};
         var instaInput = document.getElementById("projet-instagram-input");
-        if (instaInput) instaInput.value = project.instagram_url || "";
+        if (instaInput) instaInput.value = socialHandleFromUrl(project.instagram_url);
         var tiktokInput = document.getElementById("projet-tiktok-input");
-        if (tiktokInput) tiktokInput.value = project.tiktok_url || "";
+        if (tiktokInput) tiktokInput.value = socialHandleFromUrl(project.tiktok_url);
         var youtubeInput = document.getElementById("projet-youtube-input");
-        if (youtubeInput) youtubeInput.value = project.youtube_url || "";
+        if (youtubeInput) youtubeInput.value = socialHandleFromUrl(project.youtube_url);
         myTasks = (tasksRes && tasksRes.data) || [];
         renderAllTaskLists();
       });
@@ -472,9 +499,9 @@
         var youtubeInput = document.getElementById("projet-youtube-input");
         supabase.from("user_project").upsert({
           user_id: me.id,
-          instagram_url: instaInput ? instaInput.value.trim() || null : null,
-          tiktok_url: tiktokInput ? tiktokInput.value.trim() || null : null,
-          youtube_url: youtubeInput ? youtubeInput.value.trim() || null : null
+          instagram_url: buildSocialUrl("instagram_url", instaInput && instaInput.value),
+          tiktok_url: buildSocialUrl("tiktok_url", tiktokInput && tiktokInput.value),
+          youtube_url: buildSocialUrl("youtube_url", youtubeInput && youtubeInput.value)
         }, { onConflict: "user_id" }).then(function (res) {
           if (res && res.error) { alert("Erreur : " + res.error.message); return; }
           showToast("Réseaux enregistrés.");
@@ -866,14 +893,8 @@
     // Affiche juste le pseudo (ex: "@alice.creates") au lieu du lien
     // entier dans la fiche élève, en gardant l'URL complète pour le href.
     function extractSocialHandle(url) {
-      try {
-        var path = new URL(url).pathname.replace(/^\/+|\/+$/g, "");
-        var handle = path.split("/")[0];
-        if (!handle) return url;
-        return "@" + handle.replace(/^@/, "");
-      } catch (e) {
-        return url;
-      }
+      var handle = socialHandleFromUrl(url);
+      return handle ? "@" + handle : url;
     }
 
     // ----- Modal générique (admin-modal-*), réutilisé par toutes les
