@@ -1122,7 +1122,7 @@
         });
       } else if (elevesFilter === "new") {
         filtered.sort(function (a, b) {
-          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+          return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
         });
       }
 
