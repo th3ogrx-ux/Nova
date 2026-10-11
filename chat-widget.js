@@ -1106,11 +1106,9 @@
       if (!container) return;
       var searchInput = document.getElementById("eleves-search-input");
       var q = (searchInput ? searchInput.value : "").trim().toLowerCase();
-      var weekAgo = Date.now() - 7 * 86400000;
 
       var filtered = elevesList.filter(function (s) {
         if (q && (s.pseudo || "").toLowerCase().indexOf(q) === -1 && (s.email || "").toLowerCase().indexOf(q) === -1) return false;
-        if (elevesFilter === "new") return s.created_at && new Date(s.created_at).getTime() >= weekAgo;
         return true;
       });
 
@@ -1121,6 +1119,10 @@
       } else if (elevesFilter === "least_tasks") {
         filtered.sort(function (a, b) {
           return (elevesTasksByUser[a.id] ? elevesTasksByUser[a.id].done : 0) - (elevesTasksByUser[b.id] ? elevesTasksByUser[b.id].done : 0);
+        });
+      } else if (elevesFilter === "new") {
+        filtered.sort(function (a, b) {
+          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
         });
       }
 
