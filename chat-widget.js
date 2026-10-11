@@ -1088,8 +1088,8 @@
       wrap.innerHTML = "";
       [
         { key: "all", label: "Tous" },
-        { key: "active", label: "Actifs" },
-        { key: "blocked", label: "Bloqués" },
+        { key: "most_issues", label: "Plus de problèmes" },
+        { key: "least_tasks", label: "Moins de tâches réalisées" },
         { key: "new", label: "Nouveaux" }
       ].forEach(function (f) {
         var pill = document.createElement("button");
@@ -1110,11 +1110,19 @@
 
       var filtered = elevesList.filter(function (s) {
         if (q && (s.pseudo || "").toLowerCase().indexOf(q) === -1 && (s.email || "").toLowerCase().indexOf(q) === -1) return false;
-        if (elevesFilter === "active") return s.last_seen_at && new Date(s.last_seen_at).getTime() >= weekAgo;
-        if (elevesFilter === "blocked") return !s.last_seen_at || new Date(s.last_seen_at).getTime() < weekAgo;
         if (elevesFilter === "new") return s.created_at && new Date(s.created_at).getTime() >= weekAgo;
         return true;
       });
+
+      if (elevesFilter === "most_issues") {
+        filtered.sort(function (a, b) {
+          return (elevesIssuesByUser[b.id] || 0) - (elevesIssuesByUser[a.id] || 0);
+        });
+      } else if (elevesFilter === "least_tasks") {
+        filtered.sort(function (a, b) {
+          return (elevesTasksByUser[a.id] ? elevesTasksByUser[a.id].done : 0) - (elevesTasksByUser[b.id] ? elevesTasksByUser[b.id].done : 0);
+        });
+      }
 
       container.innerHTML = "";
       if (!filtered.length) {
