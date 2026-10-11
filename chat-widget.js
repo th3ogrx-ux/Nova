@@ -84,7 +84,7 @@
     // Ce n'est qu'une protection côté interface : la vraie sécurité est
     // dans les policies RLS (admin-panel.sql), qui bloquent aussi les
     // lectures/écritures même si l'affichage était contourné.
-    var ADMIN_ONLY_VIEWS = ["tableau-de-bord", "eleves", "eleve-detail", "eleve-payments", "contenu", "module-detail", "acces-codes"];
+    var ADMIN_ONLY_VIEWS = ["tableau-de-bord", "eleves", "eleve-detail", "eleve-payments", "eleve-tasks", "contenu", "module-detail", "acces-codes"];
     function switchToView(viewName) {
       if (ADMIN_ONLY_VIEWS.indexOf(viewName) !== -1 && !(me && me.role === "chef")) return;
       document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
@@ -1034,13 +1034,15 @@
     var elevesList = [];
     var elevesDoneByUser = {};
     var elevesRevenueByUser = {};
+    var elevesTasksByUser = {};
     var elevesFilter = "all";
 
     function loadElevesData() {
       Promise.all([
         supabase.from("profiles").select("id,pseudo,email,created_at,last_seen_at,is_active,access_expires_at,admin_notes").eq("role", "membre"),
         supabase.from("user_lesson_progress").select("user_id").eq("completed", true),
-        supabase.from("student_payments").select("user_id,amount")
+        supabase.from("student_payments").select("user_id,amount"),
+        supabase.from("student_tasks").select("user_id,done")
       ]).then(function (results) {
         elevesList = (results[0] && results[0].data) || [];
         elevesDoneByUser = {};
@@ -1050,6 +1052,13 @@
         elevesRevenueByUser = {};
         ((results[2] && results[2].data) || []).forEach(function (row) {
           elevesRevenueByUser[row.user_id] = (elevesRevenueByUser[row.user_id] || 0) + Number(row.amount || 0);
+        });
+        elevesTasksByUser = {};
+        ((results[3] && results[3].data) || []).forEach(function (row) {
+          var t = elevesTasksByUser[row.user_id] || { total: 0, done: 0 };
+          t.total++;
+          if (row.done) t.done++;
+          elevesTasksByUser[row.user_id] = t;
         });
         renderElevesFilterPills();
         renderElevesList();
@@ -1119,6 +1128,7 @@
             '<div class="eleve-row-meta"></div>' +
           '</div>' +
           '<div class="eleve-row-progress"><div class="progress-track"><div class="progress-fill prog-green"></div></div><span></span></div>' +
+          '<button type="button" class="eleve-row-tasks-btn"></button>' +
           '<button type="button" class="eleve-row-revenue-btn"></button>';
         row.querySelector(".eleve-row-name-text").textContent = s.pseudo || "(sans nom)";
         var pill = row.querySelector(".status-pill");
@@ -1127,6 +1137,12 @@
         row.querySelector(".eleve-row-meta").textContent = (s.email || "") + " · Inscrit le " + formatShortDate(s.created_at);
         row.querySelector(".progress-fill").style.width = pct + "%";
         row.querySelector(".eleve-row-progress span").textContent = pct + "%";
+        var taskCounts = elevesTasksByUser[s.id] || { total: 0, done: 0 };
+        row.querySelector(".eleve-row-tasks-btn").textContent = taskCounts.done + "/" + taskCounts.total + " tâches";
+        row.querySelector(".eleve-row-tasks-btn").addEventListener("click", function (e) {
+          e.stopPropagation();
+          openEleveTasks(s);
+        });
         row.querySelector(".eleve-row-revenue-btn").textContent = formatEuros(elevesRevenueByUser[s.id] || 0);
         row.querySelector(".eleve-row-revenue-btn").addEventListener("click", function (e) {
           e.stopPropagation();
@@ -1294,6 +1310,63 @@
 
     var btnBackElevePayments = document.getElementById("btn-back-eleve-payments");
     if (btnBackElevePayments) btnBackElevePayments.addEventListener("click", function () { switchToView("eleves"); });
+
+    // ----- Tâches (vue en lecture seule depuis la liste Élèves) -----
+    // L'ajout/suppression de tâches reste dans la fiche élève complète
+    // (Élèves > un élève) ; ici on veut juste voir d'un coup d'œil ce
+    // qui a été fait ou non.
+    function openEleveTasks(student) {
+      switchToView("eleve-tasks");
+      var title = document.getElementById("eleve-tasks-title");
+      if (title) title.textContent = "Tâches — " + (student.pseudo || student.email || "");
+      var content = document.getElementById("eleve-tasks-content");
+      if (content) content.innerHTML = '<div class="cours-empty">Chargement…</div>';
+      supabase.from("student_tasks").select("id,label,done,position").eq("user_id", student.id).order("position").then(function (res) {
+        var tasks = (res && res.data) || [];
+        renderEleveTasksView(tasks);
+      });
+    }
+
+    function renderEleveTasksView(tasks) {
+      var content = document.getElementById("eleve-tasks-content");
+      if (!content) return;
+      content.innerHTML = "";
+
+      var section = document.createElement("div");
+      section.className = "glass-card panel-section";
+      var title = document.createElement("div");
+      title.className = "panel-title";
+      var doneCount = tasks.filter(function (t) { return t.done; }).length;
+      title.textContent = doneCount + "/" + tasks.length + " tâches faites";
+      section.appendChild(title);
+
+      if (!tasks.length) {
+        var empty = document.createElement("div");
+        empty.className = "cours-empty";
+        empty.textContent = "Aucune tâche assignée pour le moment.";
+        section.appendChild(empty);
+      } else {
+        tasks.slice().sort(function (a, b) { return a.position - b.position; }).forEach(function (task) {
+          var row = document.createElement("div");
+          row.className = "admin-task-row";
+          var cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = task.done;
+          cb.disabled = true;
+          cb.title = "Coché par l'élève lui-même";
+          var span = document.createElement("span");
+          span.className = "admin-task-label" + (task.done ? " done" : "");
+          span.textContent = task.label;
+          row.appendChild(cb);
+          row.appendChild(span);
+          section.appendChild(row);
+        });
+      }
+      content.appendChild(section);
+    }
+
+    var btnBackEleveTasks = document.getElementById("btn-back-eleve-tasks");
+    if (btnBackEleveTasks) btnBackEleveTasks.addEventListener("click", function () { switchToView("eleves"); });
 
     // ----- Fiche élève -----
     var btnBackEleveDetail = document.getElementById("btn-back-eleve-detail");
