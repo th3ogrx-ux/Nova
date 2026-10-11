@@ -863,6 +863,19 @@
       return new Date(value).toLocaleString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
     }
 
+    // Affiche juste le pseudo (ex: "@alice.creates") au lieu du lien
+    // entier dans la fiche élève, en gardant l'URL complète pour le href.
+    function extractSocialHandle(url) {
+      try {
+        var path = new URL(url).pathname.replace(/^\/+|\/+$/g, "");
+        var handle = path.split("/")[0];
+        if (!handle) return url;
+        return "@" + handle.replace(/^@/, "");
+      } catch (e) {
+        return url;
+      }
+    }
+
     // ----- Modal générique (admin-modal-*), réutilisé par toutes les
     // actions d'ajout/édition de contenu, pour éviter un modal par type. -----
     var adminModalOverlay = document.getElementById("admin-modal-overlay");
@@ -1180,7 +1193,7 @@
           linkEl.href = socials[f.key];
           linkEl.target = "_blank";
           linkEl.rel = "noopener";
-          linkEl.textContent = socials[f.key];
+          linkEl.textContent = extractSocialHandle(socials[f.key]);
           row.appendChild(labelEl);
           row.appendChild(linkEl);
           socialsList.appendChild(row);
