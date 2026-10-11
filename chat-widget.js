@@ -1102,7 +1102,8 @@
       Promise.all([
         supabase.from("profiles").select("id,pseudo,email,created_at,last_seen_at,is_active,access_expires_at,admin_notes").eq("id", studentId).single(),
         supabase.from("user_lesson_progress").select("completed").eq("user_id", studentId).eq("completed", true),
-        supabase.from("student_tasks").select("id,label,done,position").eq("user_id", studentId).order("position")
+        supabase.from("student_tasks").select("id,label,done,position").eq("user_id", studentId).order("position"),
+        supabase.from("user_project").select("instagram_url,tiktok_url,youtube_url").eq("user_id", studentId).single()
       ]).then(function (results) {
         var student = results[0] && results[0].data;
         if (!student) {
@@ -1111,11 +1112,12 @@
         }
         var doneCount = ((results[1] && results[1].data) || []).length;
         var tasks = (results[2] && results[2].data) || [];
-        renderEleveDetail(student, doneCount, tasks);
+        var socials = (results[3] && results[3].data) || {};
+        renderEleveDetail(student, doneCount, tasks, socials);
       });
     }
 
-    function renderEleveDetail(student, doneCount, tasks) {
+    function renderEleveDetail(student, doneCount, tasks, socials) {
       var content = document.getElementById("eleve-detail-content");
       if (!content) return;
       var totalLessons = courseLessons.filter(function (l) { return l.status !== "draft"; }).length;
@@ -1144,6 +1146,48 @@
       head.querySelector('[data-f="lastseen"]').textContent = student.last_seen_at ? formatShortDateTime(student.last_seen_at) : "jamais connecté";
       head.querySelector('[data-f="pct"]').textContent = pct + "% (" + doneCount + "/" + totalLessons + " leçons)";
       content.appendChild(head);
+
+      // ----- Réseaux sociaux (renseignés par l'élève dans Mon projet) -----
+      var socialsSection = document.createElement("div");
+      socialsSection.className = "glass-card panel-section";
+      var socialsTitle = document.createElement("div");
+      socialsTitle.className = "panel-title";
+      socialsTitle.textContent = "Réseaux";
+      socialsSection.appendChild(socialsTitle);
+
+      var SOCIAL_FIELDS = [
+        { key: "instagram_url", label: "Instagram" },
+        { key: "tiktok_url", label: "TikTok" },
+        { key: "youtube_url", label: "YouTube" }
+      ];
+      var hasAnySocial = SOCIAL_FIELDS.some(function (f) { return socials[f.key]; });
+      if (!hasAnySocial) {
+        var noSocials = document.createElement("div");
+        noSocials.className = "cours-empty";
+        noSocials.textContent = "Aucun réseau renseigné pour le moment.";
+        socialsSection.appendChild(noSocials);
+      } else {
+        var socialsList = document.createElement("div");
+        socialsList.className = "admin-socials-list";
+        SOCIAL_FIELDS.forEach(function (f) {
+          if (!socials[f.key]) return;
+          var row = document.createElement("div");
+          row.className = "admin-social-row";
+          var labelEl = document.createElement("span");
+          labelEl.className = "admin-social-label";
+          labelEl.textContent = f.label;
+          var linkEl = document.createElement("a");
+          linkEl.href = socials[f.key];
+          linkEl.target = "_blank";
+          linkEl.rel = "noopener";
+          linkEl.textContent = socials[f.key];
+          row.appendChild(labelEl);
+          row.appendChild(linkEl);
+          socialsList.appendChild(row);
+        });
+        socialsSection.appendChild(socialsList);
+      }
+      content.appendChild(socialsSection);
 
       // ----- Actions -----
       var actions = document.createElement("div");
