@@ -84,7 +84,7 @@
     // Ce n'est qu'une protection côté interface : la vraie sécurité est
     // dans les policies RLS (admin-panel.sql), qui bloquent aussi les
     // lectures/écritures même si l'affichage était contourné.
-    var ADMIN_ONLY_VIEWS = ["tableau-de-bord", "eleves", "eleve-detail", "contenu", "module-detail", "acces-codes"];
+    var ADMIN_ONLY_VIEWS = ["tableau-de-bord", "eleves", "eleve-detail", "eleve-payments", "contenu", "module-detail", "acces-codes"];
     function switchToView(viewName) {
       if (ADMIN_ONLY_VIEWS.indexOf(viewName) !== -1 && !(me && me.role === "chef")) return;
       document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
@@ -889,6 +889,9 @@
       if (!value) return "—";
       return new Date(value).toLocaleString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
     }
+    function formatEuros(amount) {
+      return Math.round(amount || 0).toLocaleString("fr-FR") + " €";
+    }
 
     // Affiche juste le pseudo (ex: "@alice.creates") au lieu du lien
     // entier dans la fiche élève, en gardant l'URL complète pour le href.
@@ -1030,17 +1033,23 @@
     // ---------- Page Élèves ----------
     var elevesList = [];
     var elevesDoneByUser = {};
+    var elevesRevenueByUser = {};
     var elevesFilter = "all";
 
     function loadElevesData() {
       Promise.all([
         supabase.from("profiles").select("id,pseudo,email,created_at,last_seen_at,is_active,access_expires_at,admin_notes").eq("role", "membre"),
-        supabase.from("user_lesson_progress").select("user_id").eq("completed", true)
+        supabase.from("user_lesson_progress").select("user_id").eq("completed", true),
+        supabase.from("student_payments").select("user_id,amount")
       ]).then(function (results) {
         elevesList = (results[0] && results[0].data) || [];
         elevesDoneByUser = {};
         ((results[1] && results[1].data) || []).forEach(function (row) {
           elevesDoneByUser[row.user_id] = (elevesDoneByUser[row.user_id] || 0) + 1;
+        });
+        elevesRevenueByUser = {};
+        ((results[2] && results[2].data) || []).forEach(function (row) {
+          elevesRevenueByUser[row.user_id] = (elevesRevenueByUser[row.user_id] || 0) + Number(row.amount || 0);
         });
         renderElevesFilterPills();
         renderElevesList();
@@ -1109,7 +1118,8 @@
             '<div class="eleve-row-name"><span class="eleve-row-name-text"></span><span class="status-pill"></span></div>' +
             '<div class="eleve-row-meta"></div>' +
           '</div>' +
-          '<div class="eleve-row-progress"><div class="progress-track"><div class="progress-fill prog-green"></div></div><span></span></div>';
+          '<div class="eleve-row-progress"><div class="progress-track"><div class="progress-fill prog-green"></div></div><span></span></div>' +
+          '<button type="button" class="eleve-row-revenue-btn"></button>';
         row.querySelector(".eleve-row-name-text").textContent = s.pseudo || "(sans nom)";
         var pill = row.querySelector(".status-pill");
         pill.classList.add("status-" + status);
@@ -1117,6 +1127,11 @@
         row.querySelector(".eleve-row-meta").textContent = (s.email || "") + " · Inscrit le " + formatShortDate(s.created_at);
         row.querySelector(".progress-fill").style.width = pct + "%";
         row.querySelector(".eleve-row-progress span").textContent = pct + "%";
+        row.querySelector(".eleve-row-revenue-btn").textContent = formatEuros(elevesRevenueByUser[s.id] || 0);
+        row.querySelector(".eleve-row-revenue-btn").addEventListener("click", function (e) {
+          e.stopPropagation();
+          openElevePayments(s);
+        });
         row.addEventListener("click", function () { openEleveDetail(s.id); });
         container.appendChild(row);
       });
@@ -1124,6 +1139,161 @@
 
     var elevesSearchInput = document.getElementById("eleves-search-input");
     if (elevesSearchInput) elevesSearchInput.addEventListener("input", renderElevesList);
+
+    // ----- Résultats (€ réalisés) -----
+    // Table student_payments : entièrement réservée au chef (lecture ET
+    // écriture), aucun accès élève. Voir student-payments.sql.
+    var paymentsStudent = null;
+    var paymentsList = [];
+    var paymentsPeriodDays = 30;
+
+    function openElevePayments(student) {
+      paymentsStudent = student;
+      paymentsPeriodDays = 30;
+      switchToView("eleve-payments");
+      var title = document.getElementById("eleve-payments-title");
+      if (title) title.textContent = "Résultats — " + (student.pseudo || student.email || "");
+      var content = document.getElementById("eleve-payments-content");
+      if (content) content.innerHTML = '<div class="cours-empty">Chargement…</div>';
+      supabase.from("student_payments").select("id,amount,paid_at").eq("user_id", student.id).order("paid_at", { ascending: false }).then(function (res) {
+        paymentsList = (res && res.data) || [];
+        renderElevePayments();
+      });
+    }
+
+    function renderElevePayments() {
+      var content = document.getElementById("eleve-payments-content");
+      if (!content) return;
+      content.innerHTML = "";
+
+      var total = paymentsList.reduce(function (sum, p) { return sum + Number(p.amount || 0); }, 0);
+      var totalSection = document.createElement("div");
+      totalSection.className = "glass-card panel-section";
+      totalSection.innerHTML = '<div class="panel-title">Total réalisé</div><div class="payments-total"></div>';
+      totalSection.querySelector(".payments-total").textContent = formatEuros(total);
+      content.appendChild(totalSection);
+
+      // ----- Graphique + onglets de période -----
+      var chartSection = document.createElement("div");
+      chartSection.className = "glass-card panel-section";
+      var chartTitle = document.createElement("div");
+      chartTitle.className = "panel-title";
+      chartTitle.textContent = "Évolution";
+      chartSection.appendChild(chartTitle);
+
+      var periodTabs = document.createElement("div");
+      periodTabs.className = "ressources-categories";
+      [{ days: 7, label: "7 jours" }, { days: 14, label: "14 jours" }, { days: 30, label: "30 jours" }].forEach(function (p) {
+        var pill = document.createElement("button");
+        pill.type = "button";
+        pill.className = "ressources-cat-pill" + (paymentsPeriodDays === p.days ? " active" : "");
+        pill.textContent = p.label;
+        pill.addEventListener("click", function () { paymentsPeriodDays = p.days; renderElevePayments(); });
+        periodTabs.appendChild(pill);
+      });
+      chartSection.appendChild(periodTabs);
+
+      var chart = document.createElement("div");
+      chart.className = "payments-chart";
+      var now = new Date();
+      var days = [];
+      for (var i = paymentsPeriodDays - 1; i >= 0; i--) {
+        days.push(new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10));
+      }
+      var sumsByDay = {};
+      paymentsList.forEach(function (p) {
+        sumsByDay[p.paid_at] = (sumsByDay[p.paid_at] || 0) + Number(p.amount || 0);
+      });
+      var maxVal = Math.max.apply(null, days.map(function (d) { return sumsByDay[d] || 0; }).concat([1]));
+      days.forEach(function (d) {
+        var val = sumsByDay[d] || 0;
+        var col = document.createElement("div");
+        col.className = "payments-chart-col";
+        var bar = document.createElement("div");
+        bar.className = "payments-chart-bar";
+        bar.style.height = Math.max(2, Math.round((val / maxVal) * 100)) + "%";
+        bar.title = formatShortDate(d) + " : " + formatEuros(val);
+        col.appendChild(bar);
+        chart.appendChild(col);
+      });
+      chartSection.appendChild(chart);
+
+      var periodTotal = days.reduce(function (sum, d) { return sum + (sumsByDay[d] || 0); }, 0);
+      var periodTotalEl = document.createElement("div");
+      periodTotalEl.className = "payments-period-total";
+      periodTotalEl.textContent = "Total sur la période : " + formatEuros(periodTotal);
+      chartSection.appendChild(periodTotalEl);
+      content.appendChild(chartSection);
+
+      // ----- Ajouter un paiement -----
+      var addSection = document.createElement("div");
+      addSection.className = "glass-card panel-section";
+      addSection.innerHTML =
+        '<div class="panel-title">Ajouter un paiement</div>' +
+        '<div class="payments-add-row">' +
+          '<input type="number" id="payment-amount-input" placeholder="Montant en €" min="0" step="1">' +
+          '<input type="date" id="payment-date-input">' +
+          '<button type="button" class="btn btn-sm" id="payment-add-btn">+ Ajouter</button>' +
+        '</div>';
+      var dateInput = addSection.querySelector("#payment-date-input");
+      dateInput.value = new Date().toISOString().slice(0, 10);
+      addSection.querySelector("#payment-add-btn").addEventListener("click", function () {
+        var amountInput = addSection.querySelector("#payment-amount-input");
+        var amount = parseFloat(amountInput.value);
+        if (!amount || amount <= 0) { alert("Montant invalide."); return; }
+        var date = dateInput.value || new Date().toISOString().slice(0, 10);
+        supabase.from("student_payments").insert({ user_id: paymentsStudent.id, amount: amount, paid_at: date }).then(function (res) {
+          if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+          openElevePayments(paymentsStudent);
+          loadElevesData();
+        });
+      });
+      content.appendChild(addSection);
+
+      // ----- Historique des paiements -----
+      var historySection = document.createElement("div");
+      historySection.className = "glass-card panel-section";
+      var historyTitle = document.createElement("div");
+      historyTitle.className = "panel-title";
+      historyTitle.textContent = "Historique des paiements";
+      historySection.appendChild(historyTitle);
+      if (!paymentsList.length) {
+        var empty = document.createElement("div");
+        empty.className = "cours-empty";
+        empty.textContent = "Aucun paiement enregistré.";
+        historySection.appendChild(empty);
+      } else {
+        paymentsList.forEach(function (p) {
+          var row = document.createElement("div");
+          row.className = "admin-task-row";
+          var info = document.createElement("span");
+          info.className = "admin-task-label";
+          info.textContent = formatShortDate(p.paid_at) + " — " + formatEuros(p.amount);
+          var deleteBtn = document.createElement("button");
+          deleteBtn.type = "button";
+          deleteBtn.className = "btn danger btn-sm admin-icon-x-btn";
+          deleteBtn.textContent = "✕";
+          deleteBtn.title = "Supprimer ce paiement";
+          deleteBtn.addEventListener("click", function () {
+            zenoaConfirm("Supprimer ce paiement de " + formatEuros(p.amount) + " ?", { danger: true, confirmLabel: "Supprimer" }).then(function (ok) {
+              if (!ok) return;
+              supabase.from("student_payments").delete().eq("id", p.id).then(function (res) {
+                if (res && res.error) { alert("Erreur : " + res.error.message); return; }
+                openElevePayments(paymentsStudent);
+                loadElevesData();
+              });
+            });
+          });
+          row.appendChild(info);
+          row.appendChild(deleteBtn);
+          historySection.appendChild(row);
+        });
+      }
+      content.appendChild(historySection);
+    }
+
+    var btnBackElevePayments = document.getElementById("btn-back-eleve-payments");
+    if (btnBackElevePayments) btnBackElevePayments.addEventListener("click", function () { switchToView("eleves"); });
 
     // ----- Fiche élève -----
     var btnBackEleveDetail = document.getElementById("btn-back-eleve-detail");
