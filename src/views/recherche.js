@@ -116,6 +116,8 @@ async function addToProspects(btn, result, category, city) {
     website: result.website,
     email: result.email,
     site_quality: result.site_quality,
+    lat: result.lat,
+    lon: result.lon,
     category,
     city
   });

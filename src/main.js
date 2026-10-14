@@ -6,6 +6,7 @@ import { renderDashboard } from "./views/dashboard.js";
 import { renderRecherche } from "./views/recherche.js";
 import { renderProspects } from "./views/prospects.js";
 import { renderMaquettes } from "./views/maquettes.js";
+import { renderDemoPage } from "./views/demo.js";
 
 // Rend confirmDialog disponible globalement, pratique à réutiliser
 // depuis n'importe quelle vue sans import répété.
@@ -73,6 +74,18 @@ function showAuth() {
 }
 
 async function boot() {
+  // Page publique de maquette : aucune authentification, ignore tout
+  // le reste de l'appli (sidebar/topbar/auth).
+  const demoMatch = window.location.pathname.match(/^\/demo\/([^/]+)/);
+  if (demoMatch) {
+    document.getElementById("screen-auth").style.display = "none";
+    document.getElementById("app").style.display = "none";
+    const demoScreen = document.getElementById("screen-demo");
+    demoScreen.style.display = "";
+    await renderDemoPage(demoScreen, decodeURIComponent(demoMatch[1]));
+    return;
+  }
+
   wireNav();
   const session = await getSession();
   if (session) {

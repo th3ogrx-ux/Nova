@@ -39,6 +39,9 @@ réexécuter) :
 - `message-templates.sql` — table `message_templates` (modèles de
   message avec variables `{nom}`/`{ville}`/`{categorie}`), un modèle
   par défaut créé automatiquement à l'inscription.
+- `demo-sites.sql` — colonnes `lat`/`lon` sur `radar_prospects`, table
+  `demo_sites` (maquettes, lecture publique pour la page `/demo/:slug`,
+  écriture réservée au propriétaire).
 
 ## Edge Functions (Supabase)
 
@@ -86,5 +89,5 @@ modale) dans `components.css`, mise en page sidebar/topbar dans
 - [x] Étape 2 — Recherche d'entreprises (OpenStreetMap)
 - [x] Étape 3 — Mini CRM prospects (aucune nouvelle table : utilise radar_prospects posée à l'étape 2)
 - [x] Étape 4 — Premier contact (mailto + copier message)
-- [ ] Étape 5 — Maquettes de sites vitrine
+- [x] Étape 5 — Maquettes de sites vitrine
 - [ ] Étape 6 — Tableau de bord

@@ -1,0 +1,60 @@
+/* ============================================================
+   ZENOA RADAR — page publique de maquette (/demo/:slug)
+   Page autonome (pas de sidebar/topbar), thémée par la couleur
+   choisie (--demo-color, posée en inline style sur .demo-page).
+   ============================================================ */
+
+.demo-page {
+  font-family: var(--font-body);
+  background: #fff;
+  color: var(--light-text);
+  min-height: 100dvh;
+}
+
+.demo-hero {
+  background: linear-gradient(135deg, var(--demo-color), var(--demo-color-dark));
+  color: #fff;
+  padding: 72px 24px;
+  text-align: center;
+}
+.demo-hero-name { font-family: var(--font-heading); font-size: 32px; font-weight: 700; margin-bottom: 10px; }
+.demo-hero-tagline { font-size: 17px; opacity: .92; max-width: 560px; margin: 0 auto; }
+
+.demo-section { max-width: 760px; margin: 0 auto; padding: 48px 24px; }
+.demo-section-title { font-family: var(--font-heading); font-size: 22px; font-weight: 700; margin-bottom: 20px; text-align: center; }
+.demo-description { font-size: 15px; line-height: 1.7; color: var(--light-text-dim); text-align: center; max-width: 560px; margin: 0 auto; }
+
+.demo-services { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; }
+.demo-service-card {
+  border: 1px solid var(--light-border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+  background: var(--light-card-bg);
+}
+
+.demo-testimonials { display: grid; gap: 16px; }
+.demo-testimonial { border-left: 3px solid var(--demo-color); padding: 10px 18px; background: var(--light-card-bg); border-radius: 0 var(--radius-md) var(--radius-md) 0; }
+.demo-testimonial-text { font-size: 14px; font-style: italic; margin-bottom: 6px; }
+.demo-testimonial-name { font-size: 12.5px; font-weight: 700; color: var(--light-text-dim); }
+
+.demo-contact { background: var(--light-card-bg); text-align: center; }
+.demo-contact-text { font-size: 15px; margin-bottom: 16px; }
+.demo-contact-details { font-size: 14px; color: var(--light-text-dim); line-height: 1.8; }
+
+.demo-map-frame { width: 100%; height: 280px; border: 0; border-radius: var(--radius-md); }
+.demo-map-fallback {
+  text-align: center;
+  padding: 30px;
+  border: 1px dashed var(--light-border);
+  border-radius: var(--radius-md);
+  color: var(--light-text-dim);
+  font-size: 13.5px;
+}
+.demo-map-fallback a { color: var(--demo-color); font-weight: 600; }
+
+.demo-footer { text-align: center; padding: 24px; font-size: 11.5px; color: var(--light-text-dim); }
+
+.demo-error { min-height: 100dvh; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; }

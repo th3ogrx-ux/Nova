@@ -291,6 +291,11 @@ Deno.serve(async (req) => {
           siteQuality = inspection.quality;
         }
 
+        // Un node porte lat/lon directement ; une way/relation porte un
+        // centre calculé (demandé via "out center" dans la requête Overpass).
+        const lat = el.lat ?? (el.center && el.center.lat) ?? null;
+        const lon = el.lon ?? (el.center && el.center.lon) ?? null;
+
         results.push({
           osm_id: el.type + "/" + el.id,
           name,
@@ -298,7 +303,9 @@ Deno.serve(async (req) => {
           phone: tags.phone || tags["contact:phone"] || null,
           website,
           email,
-          site_quality: siteQuality
+          site_quality: siteQuality,
+          lat,
+          lon
         });
       }
 
