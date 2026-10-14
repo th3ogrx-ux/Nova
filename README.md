@@ -83,6 +83,13 @@ réutilisables (`.btn`, `.card`, `.badge-pill`, `.status-pill`, `.switch`,
 modale) dans `components.css`, mise en page sidebar/topbar dans
 `layout.css`.
 
+## PWA
+
+`public/sw.js` + `public/manifest.webmanifest` rendent le site
+installable comme une application sur mobile et desktop (stratégie
+"réseau d'abord", ne met en cache que la coquille de l'appli —
+jamais les données).
+
 ## Avancement
 
 - [x] Étape 1 — Comptes utilisateurs (email + mot de passe, RLS, plans/quotas)
@@ -90,4 +97,4 @@ modale) dans `components.css`, mise en page sidebar/topbar dans
 - [x] Étape 3 — Mini CRM prospects (aucune nouvelle table : utilise radar_prospects posée à l'étape 2)
 - [x] Étape 4 — Premier contact (mailto + copier message)
 - [x] Étape 5 — Maquettes de sites vitrine
-- [ ] Étape 6 — Tableau de bord
+- [x] Étape 6 — Tableau de bord

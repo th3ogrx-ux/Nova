@@ -271,3 +271,9 @@ input:focus, textarea:focus, select:focus {
 .auth-switch { text-align: center; font-size: 13px; color: var(--text-dim); margin-top: 18px; }
 .auth-switch a { color: var(--warm-1); text-decoration: none; font-weight: 600; }
 .auth-switch a:hover { text-decoration: underline; }
+
+/* ---------- Tuiles de statistiques (tableau de bord) ---------- */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+.stat-tile { padding: 18px 20px; }
+.stat-tile-value { font-size: 28px; font-weight: 700; color: var(--light-text); }
+.stat-tile-label { font-size: 12px; color: var(--light-text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: .06em; }

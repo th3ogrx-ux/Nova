@@ -1,12 +1,12 @@
 {
-  "name": "ZENOA",
-  "short_name": "ZENOA",
-  "description": "ZENOA — gestion d'équipe, prospection et suivi commercial.",
+  "name": "Zenoa Radar",
+  "short_name": "Zenoa Radar",
+  "description": "Zenoa Radar — prospection locale, maquettes de sites vitrine.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#04010a",
-  "theme_color": "#04010a",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "lang": "fr",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

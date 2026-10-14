@@ -12,6 +12,14 @@ import { renderDemoPage } from "./views/demo.js";
 // depuis n'importe quelle vue sans import répété.
 window.confirmDialog = confirmDialog;
 
+// Enregistre le service worker (nécessaire pour que l'app soit
+// installable comme une PWA sur la plupart des navigateurs).
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch((err) => console.error("[Zenoa Radar] service worker :", err));
+  });
+}
+
 const VIEWS = {
   dashboard: { render: renderDashboard, title: "Tableau de bord" },
   recherche: { render: renderRecherche, title: "Recherche" },
