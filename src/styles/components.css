@@ -1,0 +1,255 @@
+/* ============================================================
+   ZENOA — composants réutilisables
+   ============================================================ */
+
+/* ---------- Boutons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 26px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  letter-spacing: .06em;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(199, 194, 219, .25);
+  background: transparent;
+  color: var(--metal-2);
+  transition: all .25s ease;
+  font-family: inherit;
+}
+.btn:hover { opacity: .9; }
+.btn-sm { padding: 8px 16px; font-size: 12px; border-radius: var(--radius-sm); }
+a.btn { text-decoration: none; }
+
+.btn.primary {
+  background: linear-gradient(120deg, var(--warm-1), var(--warm-2));
+  border: none;
+  color: #04010a;
+  font-weight: 700;
+  box-shadow: 0 6px 22px rgba(191, 90, 242, .35);
+}
+
+.btn.blue {
+  background: linear-gradient(120deg, var(--accent-blue-1), var(--accent-blue-2));
+  border: none;
+  color: #fff;
+  font-weight: 700;
+}
+.btn.blue:hover { background: linear-gradient(120deg, var(--accent-blue-2), var(--accent-blue-1)); }
+
+.btn.orange {
+  background: linear-gradient(120deg, var(--accent-orange-1), var(--accent-orange-2));
+  border: none;
+  color: #2b1604;
+  font-weight: 700;
+}
+.btn.orange:hover { background: linear-gradient(120deg, var(--accent-orange-2), var(--accent-orange-1)); }
+
+.btn.danger { border-color: #d9534f66; color: #e39490; }
+.btn.danger:hover { background: #d9534f14; }
+
+.btn.ghost { opacity: .7; }
+
+/* Bouton icône rond (ex: retour, fermer, options) */
+.icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1px solid rgba(199, 194, 219, .16);
+  color: var(--text-dim);
+  font-size: 13px;
+  transition: all .2s ease;
+  background: transparent;
+}
+.icon-btn:hover { background: rgba(255, 255, 255, .07); }
+
+/* Petit bouton rond "✕" (suppression) */
+.icon-x-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 14px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ---------- Cartes ---------- */
+.card {
+  background: #000;
+  border: 1px solid rgba(191, 90, 242, .28);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .55);
+  padding: 20px;
+}
+/* Variante claire, utilisée dans la zone de contenu principale (.main) */
+.main .card {
+  background: var(--light-card-bg);
+  border: 1px solid var(--light-border);
+  box-shadow: 0 10px 30px rgba(28, 20, 48, .07);
+  color: var(--light-text);
+}
+
+/* ---------- Champs de formulaire ---------- */
+.field { margin-bottom: 16px; }
+.field-label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 7px;
+  font-weight: 600;
+}
+input, textarea, select {
+  width: 100%;
+  background: #ffffff08;
+  border: 1px solid rgba(199, 194, 219, .18);
+  color: var(--metal-2);
+  border-radius: var(--radius-md);
+  padding: 13px 15px;
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .25s ease, box-shadow .25s ease;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--warm-1);
+  box-shadow: 0 0 0 3px rgba(191, 90, 242, .15);
+}
+/* Variante claire (zone de contenu principale) */
+.main input, .main textarea, .main select {
+  background: #fff;
+  border-color: var(--light-border);
+  color: var(--light-text);
+}
+.main input::placeholder, .main textarea::placeholder { color: #a79fb5; }
+.error-msg { color: #e88783; font-size: 13px; margin-top: 10px; min-height: 16px; }
+
+/* ---------- Avatar ---------- */
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--metal-1), #5b5470);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1c1626;
+  font-weight: 700;
+  font-size: 15px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, .15);
+}
+
+/* ---------- Interrupteur (toggle) ---------- */
+.switch { position: relative; display: inline-block; width: 44px; height: 26px; flex-shrink: 0; cursor: pointer; }
+.switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.switch-track {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, .14);
+  border: 1px solid rgba(199, 194, 219, .22);
+  border-radius: var(--radius-pill);
+  transition: background .2s ease, border-color .2s ease;
+}
+.switch-track:before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--metal-2);
+  transition: transform .2s ease;
+  box-shadow: 0 2px 6px #0006;
+}
+.switch input:checked + .switch-track { background: var(--cool-2); border-color: transparent; }
+.switch input:checked + .switch-track:before { transform: translateX(18px); background: #04010a; }
+
+/* ---------- Badge pill coloré (ex: compteurs cliquables) ---------- */
+.badge-pill {
+  flex-shrink: 0;
+  border: 1px solid;
+  font-weight: 700;
+  font-size: 12.5px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  background: none;
+  font-family: inherit;
+  transition: background .2s ease;
+}
+.badge-pill.purple { border-color: rgba(124, 58, 237, .3); background: rgba(124, 58, 237, .08); color: var(--accent-purple-badge); }
+.badge-pill.purple:hover { background: rgba(124, 58, 237, .16); }
+.badge-pill.red { border-color: rgba(217, 83, 79, .35); background: rgba(217, 83, 79, .1); color: var(--danger); }
+.badge-pill.red:hover { background: rgba(217, 83, 79, .18); }
+.badge-pill.blue { border-color: rgba(47, 128, 255, .3); background: rgba(47, 128, 255, .08); color: var(--accent-blue-1); }
+.badge-pill.blue:hover { background: rgba(47, 128, 255, .16); }
+
+/* ---------- Pastille de statut ---------- */
+.status-pill {
+  font-size: 10.5px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  border: 1px solid;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.status-pill.ok { color: var(--ok); border-color: #4fbf7a66; background: #4fbf7a14; }
+.status-pill.warning { color: var(--warning); border-color: #f6923d66; background: #f6923d14; }
+.status-pill.danger { color: var(--danger); border-color: #d9534f66; background: #d9534f14; }
+
+/* ---------- Barre de progression ---------- */
+.progress-track { width: 100%; height: 6px; border-radius: 6px; background: #ffffff0f; overflow: hidden; margin-top: 8px; }
+.progress-fill { height: 100%; border-radius: 6px; transition: width .4s ease; background: linear-gradient(90deg, var(--accent-blue-1), var(--accent-blue-2)); }
+.main .progress-track { background: rgba(28, 20, 48, .08); }
+
+/* ---------- Modale ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: #0009;
+  z-index: 60;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  width: 100%;
+  max-width: 380px;
+  padding: 28px 26px;
+  background: #000;
+  border: 1px solid rgba(191, 90, 242, .28);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .55);
+}
+.modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+
+/* ---------- Titre de page (grand, serif) ---------- */
+.page-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--light-text);
+  font-size: 26px;
+  margin-bottom: 8px;
+}

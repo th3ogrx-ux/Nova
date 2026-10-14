@@ -1,0 +1,63 @@
+/* ============================================================
+   ZENOA — base
+   ============================================================ */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--metal-2);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+  letter-spacing: .01em;
+}
+
+h1, h2, h3 {
+  font-weight: 700;
+}
+
+a {
+  color: inherit;
+}
+
+/* Barre de défilement stylée (violet/noir) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--cool-1) transparent;
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--cool-1), var(--cool-2));
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--cool-2); }
+
+/* Logo texte en dégradé ("ZENOA" façon metal-title) */
+.metal-title {
+  font-family: var(--font-brand);
+  background: linear-gradient(180deg, var(--metal-2) 0%, var(--warm-1) 55%, var(--cool-1) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 300;
+  letter-spacing: .14em;
+}
+
+/* Séparateur lumineux discret */
+.glow-divider {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, var(--warm-2), var(--cool-2), transparent);
+  opacity: .35;
+}

@@ -1,0 +1,60 @@
+/* ============================================================
+   ZENOA — design tokens
+   Extraits du site existant (index.html + index-C8RpDqbc.css),
+   en gardant l'état visuel actuel (certaines variables avaient été
+   surchargées en ligne par rapport au design compilé d'origine).
+   ============================================================ */
+
+:root {
+  /* --- Surfaces sombres (sidebar, écrans d'auth) --- */
+  --bg-deep: #000;        /* fond principal sombre (était #04010a à l'origine) */
+  --bg-panel: #0c0518;    /* fond secondaire (ex: menu déroulant natif) */
+
+  /* --- Accent "warm" (magenta/violet clair) — CTA principal, logo --- */
+  --warm-1: #bf5af2;
+  --warm-2: #e0b3ff;
+
+  /* --- Accent "cool" (violet profond) — chrome discret (switches, scrollbar, séparateurs) --- */
+  --cool-1: #300a66;
+  --cool-2: #5b21b6;
+
+  /* --- Neutres sur fond sombre --- */
+  --metal-1: #c7c2db;
+  --metal-2: #f1eefb;
+  --text-dim: #8a84a0;
+  --text-mid: #bdb6d4;
+
+  /* --- États --- */
+  --danger: #D9534F;
+  --ok: #4FBF7A;
+  --warning: #f6923d;
+
+  /* --- Surface claire (zone de contenu principale, look "dashboard SaaS") --- */
+  --light-bg: #fff;
+  --light-text: #1c1430;
+  --light-text-dim: #6b6478;
+  --light-card-bg: #f7f5fb;
+  --light-border: rgba(28, 20, 48, .12);
+
+  /* --- Accents vifs (boutons secondaires, badges, liens) --- */
+  --accent-blue-1: #2f80ff;
+  --accent-blue-2: #5ba6ff;
+  --accent-orange-1: #f6923d;
+  --accent-orange-2: #f6b93d;
+  --accent-purple-badge: #7c3aed;
+
+  /* --- Typographie --- */
+  --font-body: "Segoe UI", -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+  --font-brand: "Orbitron", sans-serif;       /* logo / wordmark */
+  --font-heading: "Playfair Display", Georgia, serif; /* grands titres de page */
+  --font-mono: Consolas, Monaco, monospace;    /* codes */
+
+  /* --- Mise en page --- */
+  --app-gap: 8px;
+  --sb-w: 290px;
+  --sb-w-collapsed: 76px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+}

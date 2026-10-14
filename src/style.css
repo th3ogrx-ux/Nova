@@ -1,0 +1,6 @@
+/* ZENOA — design system de base.
+   Importe les tokens puis les styles de base, composants et mise en page. */
+@import "./styles/tokens.css";
+@import "./styles/base.css";
+@import "./styles/components.css";
+@import "./styles/layout.css";
