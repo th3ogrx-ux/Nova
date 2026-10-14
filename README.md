@@ -81,7 +81,7 @@ modale) dans `components.css`, mise en page sidebar/topbar dans
 
 - [x] Étape 1 — Comptes utilisateurs (email + mot de passe, RLS, plans/quotas)
 - [x] Étape 2 — Recherche d'entreprises (OpenStreetMap)
-- [ ] Étape 3 — Mini CRM prospects
+- [x] Étape 3 — Mini CRM prospects (aucune nouvelle table : utilise radar_prospects posée à l'étape 2)
 - [ ] Étape 4 — Premier contact (mailto + copier message)
 - [ ] Étape 5 — Maquettes de sites vitrine
 - [ ] Étape 6 — Tableau de bord

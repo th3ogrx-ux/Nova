@@ -215,6 +215,9 @@ input:focus, textarea:focus, select:focus {
 .status-pill.ok { color: var(--ok); border-color: #4fbf7a66; background: #4fbf7a14; }
 .status-pill.warning { color: var(--warning); border-color: #f6923d66; background: #f6923d14; }
 .status-pill.danger { color: var(--danger); border-color: #d9534f66; background: #d9534f14; }
+.status-pill.blue { color: var(--accent-blue-1); border-color: rgba(47, 128, 255, .4); background: rgba(47, 128, 255, .1); }
+.status-pill.purple { color: var(--accent-purple-badge); border-color: rgba(124, 58, 237, .4); background: rgba(124, 58, 237, .1); }
+.status-pill.neutral { color: var(--light-text-dim); border-color: var(--light-border); background: var(--light-card-bg); }
 
 /* ---------- Barre de progression ---------- */
 .progress-track { width: 100%; height: 6px; border-radius: 6px; background: #ffffff0f; overflow: hidden; margin-top: 8px; }
