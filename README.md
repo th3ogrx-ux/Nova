@@ -36,6 +36,9 @@ réexécuter) :
   schéma complet CRM prêt pour l'étape 3), `search_history` (suivi des
   quotas), `business_search_cache` et `city_geocode_cache` (cache
   interne, aucun accès client).
+- `message-templates.sql` — table `message_templates` (modèles de
+  message avec variables `{nom}`/`{ville}`/`{categorie}`), un modèle
+  par défaut créé automatiquement à l'inscription.
 
 ## Edge Functions (Supabase)
 
@@ -82,6 +85,6 @@ modale) dans `components.css`, mise en page sidebar/topbar dans
 - [x] Étape 1 — Comptes utilisateurs (email + mot de passe, RLS, plans/quotas)
 - [x] Étape 2 — Recherche d'entreprises (OpenStreetMap)
 - [x] Étape 3 — Mini CRM prospects (aucune nouvelle table : utilise radar_prospects posée à l'étape 2)
-- [ ] Étape 4 — Premier contact (mailto + copier message)
+- [x] Étape 4 — Premier contact (mailto + copier message)
 - [ ] Étape 5 — Maquettes de sites vitrine
 - [ ] Étape 6 — Tableau de bord

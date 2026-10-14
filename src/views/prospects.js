@@ -1,5 +1,7 @@
-// Mini CRM prospects — étape 3.
+// Mini CRM prospects — étape 3 (liste/statuts/filtres) + étape 4
+// (premier contact : modèles de message, mailto, copier).
 import { supabase } from "../supabase.js";
+import { openContactModal, openTemplatesModal } from "../templates.js";
 
 const STATUS_META = {
   a_contacter: { label: "À contacter", cls: "neutral" },
@@ -15,7 +17,11 @@ let expandedId = null;
 
 export async function renderProspects(root) {
   root.innerHTML = `
-    <h1 class="page-title">Prospects</h1>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <h1 class="page-title" style="margin-bottom:0;">Prospects</h1>
+      <button type="button" class="btn ghost btn-sm" id="manage-templates">Modèles de messages</button>
+    </div>
+    <div style="height:16px;"></div>
 
     <div class="card" style="margin-bottom:16px;">
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
@@ -82,6 +88,7 @@ function wireFilters(root) {
     applyFiltersAndRender(root);
   });
   root.querySelector("#export-csv").addEventListener("click", () => exportCsv(getFiltered(root)));
+  root.querySelector("#manage-templates").addEventListener("click", () => openTemplatesModal());
 }
 
 function getFiltered(root) {
@@ -137,6 +144,7 @@ function rowHtml(p, today) {
           </div>
         </div>
         ${p.next_followup_date ? `<span class="status-pill ${isLate ? "danger" : "neutral"}">Relance ${formatDate(p.next_followup_date)}</span>` : ""}
+        <button type="button" class="btn blue btn-sm prospect-contact-btn" data-id="${p.id}" style="margin:0;">✉️ Contacter</button>
         <select class="prospect-status-select" data-id="${p.id}" style="width:auto;padding:6px 10px;font-size:12.5px;">
           ${Object.entries(STATUS_META).map(([v, m]) => `<option value="${v}" ${v === p.status ? "selected" : ""}>${m.label}</option>`).join("")}
         </select>
@@ -169,6 +177,15 @@ function wireRow(root, p) {
   card.querySelector(".prospect-row-head").addEventListener("click", () => {
     expandedId = expandedId === p.id ? null : p.id;
     applyFiltersAndRender(root);
+  });
+
+  card.querySelector(".prospect-contact-btn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    openContactModal(p, async (newStatus) => {
+      await supabase.from("radar_prospects").update({ status: newStatus, updated_at: new Date().toISOString() }).eq("id", p.id);
+      p.status = newStatus;
+      applyFiltersAndRender(root);
+    });
   });
 
   card.querySelector(".prospect-status-select").addEventListener("click", (e) => e.stopPropagation());
