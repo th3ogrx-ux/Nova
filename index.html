@@ -15,7 +15,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div id="app">
+  <!-- Écran de connexion / inscription (src/auth.js s'y monte) -->
+  <div id="screen-auth"></div>
+
+  <!-- Application (visible une fois connecté) -->
+  <div id="app" style="display:none;">
     <div class="sidebar" id="sidebar">
       <img class="sidebar-logo" src="/sidebar-logo.png" alt="">
       <span class="sidebar-brand-text">ZENOA</span>
@@ -23,29 +27,46 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="10" y1="4" x2="10" y2="20"/></svg>
       </button>
       <div class="nav-list">
-        <div class="nav-item active" data-view="accueil">
-          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span>
-          <span class="nav-label">Accueil</span>
+        <div class="nav-item" data-view="dashboard">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span>
+          <span class="nav-label">Tableau de bord</span>
+        </div>
+        <div class="nav-item" data-view="recherche">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg></span>
+          <span class="nav-label">Recherche</span>
+        </div>
+        <div class="nav-item" data-view="prospects">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14c2.6.3 4.5 2.5 4.5 6"/></svg></span>
+          <span class="nav-label">Prospects</span>
+        </div>
+        <div class="nav-item" data-view="maquettes">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18"/></svg></span>
+          <span class="nav-label">Maquettes</span>
         </div>
       </div>
       <div class="sidebar-profile">
-        <div class="avatar"><span>Z</span></div>
+        <div class="avatar"><span id="my-avatar-initial"></span></div>
         <div class="sidebar-profile-info">
-          <div class="sidebar-profile-name">Zenoa Radar</div>
-          <div class="sidebar-profile-role">Base design</div>
+          <div class="sidebar-profile-name" id="my-email-display"></div>
+          <div class="sidebar-profile-role" id="my-plan-display"></div>
         </div>
+        <button type="button" class="icon-btn" id="logout-btn" title="Se déconnecter">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
       </div>
     </div>
 
     <div class="topbar">
-      <span class="topbar-title">Accueil</span>
+      <span class="topbar-title" id="topbar-title">Tableau de bord</span>
     </div>
 
     <div class="main">
-      <h1 class="page-title">Zenoa Radar</h1>
-      <p style="color:var(--light-text-dim);font-size:14px;">Base de design vide — prête pour un nouveau projet.</p>
+      <div id="view-root"></div>
     </div>
   </div>
+
+  <!-- Page publique de maquette (ex: /demo/mon-entreprise), aucune authentification -->
+  <div id="screen-demo" style="display:none;"></div>
 
   <script type="module" src="/src/main.js"></script>
 </body>
