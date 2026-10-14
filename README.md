@@ -32,6 +32,25 @@ réexécuter) :
 - `plans-and-users.sql` — table `plans` (gratuit/pro + quotas), table
   `user_plans` (plan de chaque utilisateur, créé automatiquement à
   l'inscription), RLS sur les deux.
+- `search-and-prospects.sql` — table `radar_prospects` (mes prospects,
+  schéma complet CRM prêt pour l'étape 3), `search_history` (suivi des
+  quotas), `business_search_cache` et `city_geocode_cache` (cache
+  interne, aucun accès client).
+
+## Edge Functions (Supabase)
+
+À déployer via la [CLI Supabase](https://supabase.com/docs/guides/functions/deploy) :
+
+```bash
+npm install -g supabase
+supabase login
+supabase link --project-ref mfdqxzccmzumxiichdqw
+supabase functions deploy osm-search
+```
+
+- `osm-search` — recherche d'entreprises (Nominatim + Overpass),
+  complète les emails manquants en lisant le site web, calcule la
+  qualité du site. Gratuite, aucune clé API requise.
 
 ## Structure
 
@@ -61,7 +80,7 @@ modale) dans `components.css`, mise en page sidebar/topbar dans
 ## Avancement
 
 - [x] Étape 1 — Comptes utilisateurs (email + mot de passe, RLS, plans/quotas)
-- [ ] Étape 2 — Recherche d'entreprises (OpenStreetMap)
+- [x] Étape 2 — Recherche d'entreprises (OpenStreetMap)
 - [ ] Étape 3 — Mini CRM prospects
 - [ ] Étape 4 — Premier contact (mailto + copier message)
 - [ ] Étape 5 — Maquettes de sites vitrine
