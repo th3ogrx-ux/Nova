@@ -84,13 +84,6 @@ async function showApp(session) {
   setOnProfileUpdated(() => refreshSidebarProfile(session));
   await refreshSidebarProfile(session);
 
-  const { data: userPlan } = await supabase
-    .from("user_plans")
-    .select("plan_id, plans(label)")
-    .eq("user_id", session.user.id)
-    .single();
-  document.getElementById("my-plan-display").textContent = (userPlan && userPlan.plans && userPlan.plans.label) || "Gratuit";
-
   switchView("dashboard");
 }
 
