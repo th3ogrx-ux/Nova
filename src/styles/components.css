@@ -190,6 +190,10 @@ input:focus, textarea:focus, select:focus {
 }
 .switch input:checked + .switch-track { background: var(--cool-2); border-color: transparent; }
 .switch input:checked + .switch-track:before { transform: translateX(18px); background: #04010a; }
+/* Sur fond clair (zone .main), la piste blanchâtre par défaut est
+   invisible — il lui faut un contraste adapté au thème clair. */
+.main .switch-track { background: rgba(28, 20, 48, .12); border-color: var(--light-border); }
+.main .switch-track:before { background: #fff; }
 
 /* ---------- Badge pill coloré (ex: compteurs cliquables) ---------- */
 .badge-pill {
@@ -297,3 +301,27 @@ input:focus, textarea:focus, select:focus {
 .stat-tile { padding: 18px 20px; }
 .stat-tile-value { font-size: 28px; font-weight: 700; color: var(--light-text); }
 .stat-tile-label { font-size: 12px; color: var(--light-text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: .06em; }
+
+/* ---------- Mode sombre (zone de contenu principale) ---------- */
+/* Comme tous les composants de .main utilisent déjà les variables
+   --light-*, les redéfinir ici suffit à adapter la quasi-totalité de
+   la page. Seules les quelques valeurs codées en dur (fond des
+   champs, teintes au survol) ont besoin d'une règle dédiée. */
+#app[data-theme="dark"] {
+  --light-bg: #15101f;
+  --light-text: #f1eefb;
+  --light-text-dim: #a79fc2;
+  --light-card-bg: #211a33;
+  --light-border: rgba(241, 238, 251, .12);
+}
+#app[data-theme="dark"] .main input,
+#app[data-theme="dark"] .main textarea,
+#app[data-theme="dark"] .main select {
+  background: #1a1428;
+}
+#app[data-theme="dark"] .main input::placeholder,
+#app[data-theme="dark"] .main textarea::placeholder { color: #756b8a; }
+#app[data-theme="dark"] .main .btn.ghost:hover,
+#app[data-theme="dark"] .main .icon-btn:hover { background: rgba(241, 238, 251, .08); }
+#app[data-theme="dark"] .main .progress-track { background: rgba(241, 238, 251, .1); }
+#app[data-theme="dark"] .main .switch-track { background: rgba(241, 238, 251, .14); }

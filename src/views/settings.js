@@ -1,6 +1,7 @@
-// Paramètres — pseudo, photo de profil, déconnexion, suppression de compte.
+// Paramètres — pseudo, photo de profil, apparence, déconnexion, suppression de compte.
 import { supabase } from "../supabase.js";
 import { signOut } from "../auth.js";
+import { getTheme, setTheme } from "../theme.js";
 
 const AVATAR_BUCKET = "avatars";
 const MAX_AVATAR_BYTES = 3 * 1024 * 1024; // 3 Mo
@@ -38,6 +39,15 @@ export async function renderSettings(root) {
       <div class="error-msg" id="settings-error"></div>
       <button type="button" class="btn primary btn-sm" id="settings-save">Enregistrer</button>
       <span id="settings-feedback" style="font-size:12px;color:var(--ok);margin-left:10px;"></span>
+    </div>
+
+    <div class="card settings-section">
+      <div class="panel-title">Apparence</div>
+      <label class="switch" style="display:inline-flex;align-items:center;gap:12px;width:auto;">
+        <input type="checkbox" id="settings-dark-mode" ${getTheme() === "dark" ? "checked" : ""}>
+        <span class="switch-track"></span>
+      </label>
+      <span style="font-size:13.5px;margin-left:12px;vertical-align:middle;">Mode sombre</span>
     </div>
 
     <div class="card settings-section">
@@ -124,6 +134,10 @@ export async function renderSettings(root) {
     }
     feedback.textContent = "Enregistré ✓";
     if (onProfileUpdated) onProfileUpdated();
+  });
+
+  root.querySelector("#settings-dark-mode").addEventListener("change", (e) => {
+    setTheme(e.target.checked ? "dark" : "light");
   });
 
   root.querySelector("#settings-logout").addEventListener("click", async () => {

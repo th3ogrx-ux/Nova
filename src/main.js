@@ -8,6 +8,11 @@ import { renderProspects } from "./views/prospects.js";
 import { renderMaquettes } from "./views/maquettes.js";
 import { renderDemoPage } from "./views/demo.js";
 import { renderSettings, setOnProfileUpdated, applyAvatarPreview } from "./views/settings.js";
+import { applyTheme } from "./theme.js";
+
+// Applique le mode sombre/clair enregistré avant le premier rendu de
+// l'appli (#app reste de toute façon caché jusqu'à la connexion).
+applyTheme();
 
 // Rend confirmDialog disponible globalement, pratique à réutiliser
 // depuis n'importe quelle vue sans import répété.
