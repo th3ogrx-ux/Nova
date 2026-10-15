@@ -246,3 +246,92 @@ export async function getCachedOrFreshResults(
 
   return results;
 }
+
+// ============================================================
+// Recherche nationale (toute la France), utilisée par radar-daily
+// pour la génération automatique — pas de ville à choisir. On
+// réutilise la table business_search_cache avec une valeur de
+// "city" spéciale pour la mettre en cache comme les recherches
+// manuelles (1 appel Overpass par catégorie et par jour, quel que
+// soit le nombre d'utilisateurs).
+//
+// IMPORTANT (budget CPU, leçon tirée de l'ancienne appli qui avait
+// planté en production sur ce type de job — "WORKER_RESOURCE_LIMIT")
+// : contrairement à la recherche manuelle, on NE visite PAS chaque
+// site web pour en extraire l'email (ce serait des centaines de
+// requêtes par catégorie) — la qualité du site est donc estimée
+// seulement à partir de la présence d'un site déclaré sur OSM.
+export const FRANCE_CACHE_CITY = "__france__";
+const COUNTRY_RESULTS_LIMIT = 150; // résultats max par catégorie (limite Overpass "out ... N;")
+
+async function searchOverpassCountry(tag: { key: string; value: string }, limit: number) {
+  const query =
+    "[out:json][timeout:50];" +
+    'area["ISO3166-1"="FR"][admin_level=2]->.a;' +
+    "(" +
+    `node["${tag.key}"="${tag.value}"](area.a);` +
+    `way["${tag.key}"="${tag.value}"](area.a);` +
+    ");" +
+    `out center tags ${limit};`;
+
+  const res = await fetch("https://overpass-api.de/api/interpreter", {
+    method: "POST",
+    headers: { "User-Agent": OSM_USER_AGENT, "Content-Type": "text/plain" },
+    body: query
+  });
+  if (!res.ok) throw new Error("Overpass a répondu " + res.status);
+  const data = await res.json();
+  return (data.elements || []) as any[];
+}
+
+export async function getCountryResultsForCategory(category: string, supabase: any) {
+  const tag = CATEGORY_TAGS[category];
+  if (!tag) return [];
+
+  const cacheRes = await supabase
+    .from("business_search_cache")
+    .select("results, created_at")
+    .eq("category", category)
+    .eq("city", FRANCE_CACHE_CITY)
+    .maybeSingle();
+
+  if (cacheRes.data && Date.now() - new Date(cacheRes.data.created_at as string).getTime() < SEARCH_CACHE_TTL_MS) {
+    return cacheRes.data.results as any[];
+  }
+
+  const elements = await searchOverpassCountry(tag, COUNTRY_RESULTS_LIMIT);
+  const results: any[] = [];
+
+  for (const el of elements) {
+    const tags = el.tags || {};
+    const name = tags.name;
+    if (!name) continue;
+
+    const website = tags.website || tags["contact:website"] || null;
+    const email = tags.email || tags["contact:email"] || null;
+    const siteQuality: "no_site" | "needs_update" = website ? "needs_update" : "no_site";
+
+    const lat = el.lat ?? (el.center && el.center.lat) ?? null;
+    const lon = el.lon ?? (el.center && el.center.lon) ?? null;
+
+    results.push({
+      osm_id: el.type + "/" + el.id,
+      name,
+      address: buildAddress(tags),
+      phone: tags.phone || tags["contact:phone"] || null,
+      website,
+      email,
+      site_quality: siteQuality,
+      city: tags["addr:city"] || null,
+      lat,
+      lon
+    });
+  }
+
+  await supabase.from("business_search_cache").upsert(
+    { category, city: FRANCE_CACHE_CITY, results, created_at: new Date().toISOString() },
+    { onConflict: "category,city" }
+  );
+
+  return results;
+}

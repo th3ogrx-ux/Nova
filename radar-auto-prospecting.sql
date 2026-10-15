@@ -4,23 +4,10 @@
 -- Ré-exécutable sans risque.
 -- ============================================================
 
--- ---------- Réglages de la recherche automatique (1 par utilisateur) ----------
-create table if not exists public.radar_search_settings (
-  user_id    uuid primary key references auth.users(id) on delete cascade,
-  category   text not null,
-  city       text not null,
-  updated_at timestamptz not null default now()
-);
-
-alter table public.radar_search_settings enable row level security;
-
-drop policy if exists "user can manage own radar settings" on public.radar_search_settings;
-create policy "user can manage own radar settings" on public.radar_search_settings
-  for all to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
-
-grant select, insert, update, delete on public.radar_search_settings to authenticated;
+-- La prospection automatique ne demande plus de choisir une
+-- catégorie/ville (elle cherche désormais partout en France) : la
+-- table de réglages par utilisateur n'est plus nécessaire.
+drop table if exists public.radar_search_settings;
 
 -- ---------- Prospects générés automatiquement chaque jour ----------
 create table if not exists public.radar_leads (
@@ -72,11 +59,14 @@ notify pgrst, 'reload schema';
 --
 -- ÉTAPES MANUELLES avant d'exécuter le bloc ci-dessous :
 --   1) Dashboard > Project Settings > API : copie l'URL du projet et
---      la clé "service_role".
+--      la clé "service_role" (ou "secret" sur la nouvelle interface).
 --   2) Remplace <PROJECT_REF> et <SERVICE_ROLE_KEY> ci-dessous par
 --      tes vraies valeurs.
 --   3) Colle et exécute tout le bloc.
--- Le job tourne chaque jour à 6h du matin (heure serveur, UTC).
+-- Le job tourne chaque jour à minuit (heure serveur, UTC — pas
+-- forcément minuit heure française selon la saison).
+-- Ce bloc est ré-exécutable sans risque pour changer l'heure plus
+-- tard : il remplace le job existant plutôt que d'en recréer un.
 -- ============================================================
 
 create extension if not exists pg_cron with schema extensions;
@@ -88,7 +78,7 @@ select cron.unschedule('radar-daily-job') where exists (
 
 select cron.schedule(
   'radar-daily-job',
-  '0 6 * * *',
+  '0 0 * * *',
   $$
   select net.http_post(
     url := 'https://<PROJECT_REF>.supabase.co/functions/v1/radar-daily',
