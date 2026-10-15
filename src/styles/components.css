@@ -53,6 +53,15 @@ a.btn { text-decoration: none; }
 
 .btn.ghost { opacity: .7; }
 
+/* Sur fond clair (zone de contenu principale .main), le texte des
+   boutons par défaut/ghost/danger doit être sombre, pas blanc cassé. */
+.main .btn { color: var(--light-text); border-color: var(--light-border); }
+.main .btn.ghost:hover { background: rgba(28, 20, 48, .05); }
+.main .btn.danger { color: var(--danger); border-color: #d9534f66; }
+.main .btn.danger:hover { background: #d9534f14; }
+.main .icon-btn { color: var(--light-text-dim); border-color: var(--light-border); }
+.main .icon-btn:hover { background: rgba(28, 20, 48, .06); }
+
 /* Bouton icône rond (ex: retour, fermer, options) */
 .icon-btn {
   width: 30px;
@@ -153,6 +162,8 @@ input:focus, textarea:focus, select:focus {
   position: relative;
   border: 1px solid rgba(255, 255, 255, .15);
 }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.avatar.clickable { cursor: pointer; }
 
 /* ---------- Interrupteur (toggle) ---------- */
 .switch { position: relative; display: inline-block; width: 44px; height: 26px; flex-shrink: 0; cursor: pointer; }

@@ -42,6 +42,9 @@ réexécuter) :
 - `demo-sites.sql` — colonnes `lat`/`lon` sur `radar_prospects`, table
   `demo_sites` (maquettes, lecture publique pour la page `/demo/:slug`,
   écriture réservée au propriétaire).
+- `user-profiles.sql` — table `user_profiles` (pseudo + photo de
+  profil), bucket de stockage `avatars` (lecture publique, écriture
+  limitée à ses propres fichiers).
 
 ## Edge Functions (Supabase)
 
@@ -72,6 +75,7 @@ src/
     recherche.js                Recherche OpenStreetMap (étape 2)
     prospects.js                 Mini CRM (étape 3 + 4)
     maquettes.js                  Générateur de maquettes (étape 5)
+    settings.js                    Paramètres : pseudo + photo de profil
   styles/                 design system (tokens, base, composants, mise en page)
 public/                  logo, favicons, icônes PWA, manifest
 ```

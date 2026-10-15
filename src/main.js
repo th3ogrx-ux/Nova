@@ -7,6 +7,7 @@ import { renderRecherche } from "./views/recherche.js";
 import { renderProspects } from "./views/prospects.js";
 import { renderMaquettes } from "./views/maquettes.js";
 import { renderDemoPage } from "./views/demo.js";
+import { renderSettings, setOnProfileUpdated, applyAvatarPreview } from "./views/settings.js";
 
 // Rend confirmDialog disponible globalement, pratique à réutiliser
 // depuis n'importe quelle vue sans import répété.
@@ -25,6 +26,7 @@ const VIEWS = {
   recherche: { render: renderRecherche, title: "Recherche" },
   prospects: { render: renderProspects, title: "Prospects" },
   maquettes: { render: renderMaquettes, title: "Maquettes" },
+  settings: { render: renderSettings, title: "Paramètres" },
 };
 
 const screenAuth = document.getElementById("screen-auth");
@@ -60,19 +62,27 @@ function wireNav() {
   document.getElementById("sidebar-toggle").addEventListener("click", () => {
     app.classList.toggle("sidebar-collapsed");
   });
+  document.getElementById("settings-btn").addEventListener("click", () => switchView("settings"));
   document.getElementById("logout-btn").addEventListener("click", async () => {
     const ok = await confirmDialog("Te déconnecter ?", { confirmLabel: "Se déconnecter" });
     if (ok) await signOut();
   });
 }
 
+async function refreshSidebarProfile(session) {
+  const email = session.user.email || "";
+  const { data: profile } = await supabase.from("user_profiles").select("pseudo, avatar_url").eq("user_id", session.user.id).maybeSingle();
+  const pseudo = profile && profile.pseudo;
+  document.getElementById("my-name-display").textContent = pseudo || email;
+  applyAvatarPreview(document, "#my-avatar", (profile && profile.avatar_url) || null, email);
+}
+
 async function showApp(session) {
   screenAuth.style.display = "none";
   app.style.display = "";
 
-  const email = session.user.email || "";
-  document.getElementById("my-email-display").textContent = email;
-  document.getElementById("my-avatar-initial").textContent = email.charAt(0).toUpperCase();
+  setOnProfileUpdated(() => refreshSidebarProfile(session));
+  await refreshSidebarProfile(session);
 
   const { data: userPlan } = await supabase
     .from("user_plans")
