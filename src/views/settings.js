@@ -1,5 +1,6 @@
-// Paramètres — pseudo et photo de profil.
+// Paramètres — pseudo, photo de profil, déconnexion, suppression de compte.
 import { supabase } from "../supabase.js";
+import { signOut } from "../auth.js";
 
 const AVATAR_BUCKET = "avatars";
 const MAX_AVATAR_BYTES = 3 * 1024 * 1024; // 3 Mo
@@ -37,6 +38,24 @@ export async function renderSettings(root) {
       <div class="error-msg" id="settings-error"></div>
       <button type="button" class="btn primary btn-sm" id="settings-save">Enregistrer</button>
       <span id="settings-feedback" style="font-size:12px;color:var(--ok);margin-left:10px;"></span>
+    </div>
+
+    <div class="card" style="max-width:480px;margin-top:16px;">
+      <div class="panel-title" style="margin-bottom:12px;">Session</div>
+      <button type="button" class="btn ghost btn-sm" id="settings-logout">Se déconnecter</button>
+    </div>
+
+    <div class="card" style="max-width:480px;margin-top:16px;border-color:#d9534f4d;">
+      <div class="panel-title" style="margin-bottom:12px;color:var(--danger);">Zone dangereuse</div>
+      <p style="font-size:13px;color:var(--light-text-dim);margin-bottom:14px;">
+        Supprime définitivement ton compte et toutes tes données (prospects, maquettes, modèles de message). Cette action est irréversible.
+      </p>
+      <div class="field">
+        <label class="field-label">Tape SUPPRIMER pour confirmer</label>
+        <input type="text" id="settings-delete-confirm" placeholder="SUPPRIMER">
+      </div>
+      <div class="error-msg" id="settings-delete-error"></div>
+      <button type="button" class="btn danger btn-sm" id="settings-delete" disabled>Supprimer mon compte</button>
     </div>
   `;
 
@@ -105,6 +124,34 @@ export async function renderSettings(root) {
     }
     feedback.textContent = "Enregistré ✓";
     if (onProfileUpdated) onProfileUpdated();
+  });
+
+  root.querySelector("#settings-logout").addEventListener("click", async () => {
+    const ok = await window.confirmDialog("Te déconnecter ?", { confirmLabel: "Se déconnecter" });
+    if (ok) await signOut();
+  });
+
+  const deleteConfirmInput = root.querySelector("#settings-delete-confirm");
+  const deleteBtn = root.querySelector("#settings-delete");
+  deleteConfirmInput.addEventListener("input", () => {
+    deleteBtn.disabled = deleteConfirmInput.value.trim() !== "SUPPRIMER";
+  });
+
+  deleteBtn.addEventListener("click", async () => {
+    const ok = await window.confirmDialog("Supprimer définitivement ton compte et toutes tes données ?", { danger: true, confirmLabel: "Supprimer mon compte" });
+    if (!ok) return;
+
+    const errorEl = root.querySelector("#settings-delete-error");
+    errorEl.textContent = "";
+    deleteBtn.disabled = true;
+
+    const { error } = await supabase.rpc("delete_my_account");
+    if (error) {
+      errorEl.textContent = "Erreur : " + error.message;
+      deleteBtn.disabled = false;
+      return;
+    }
+    await signOut();
   });
 }
 

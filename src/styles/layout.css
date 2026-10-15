@@ -126,31 +126,10 @@
 .sidebar-profile-name { font-size: 13.5px; font-weight: 700; color: #fff; }
 .sidebar-profile-role { font-size: 11.5px; color: var(--text-dim); margin-top: 1px; }
 
-/* ---------- Barre du haut ---------- */
-.topbar {
-  position: fixed;
-  top: var(--app-gap);
-  left: calc(var(--sb-w) + var(--app-gap) * 2);
-  right: var(--app-gap);
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  z-index: 30;
-  background: var(--light-bg);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 10px 30px rgba(28, 20, 48, .07);
-  color: var(--light-text);
-  transition: left .22s ease;
-}
-#app.sidebar-collapsed .topbar { left: calc(var(--sb-w-collapsed) + var(--app-gap) * 2); }
-.topbar-title { font-family: var(--font-heading); font-weight: 700; font-size: 17px; }
-
 /* ---------- Zone de contenu principale ---------- */
 .main {
   position: fixed;
-  top: calc(56px + var(--app-gap) * 2);
+  top: var(--app-gap);
   right: var(--app-gap);
   bottom: var(--app-gap);
   left: calc(var(--sb-w) + var(--app-gap) * 2);

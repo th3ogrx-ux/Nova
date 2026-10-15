@@ -45,6 +45,9 @@ réexécuter) :
 - `user-profiles.sql` — table `user_profiles` (pseudo + photo de
   profil), bucket de stockage `avatars` (lecture publique, écriture
   limitée à ses propres fichiers).
+- `delete-account.sql` — fonction `delete_my_account()` (supprime le
+  compte et toutes ses données, utilisée par Paramètres → Zone
+  dangereuse).
 
 ## Edge Functions (Supabase)
 

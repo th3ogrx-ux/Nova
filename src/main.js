@@ -1,6 +1,6 @@
 import "./style.css";
 import { confirmDialog } from "./confirm-dialog.js";
-import { getSession, onAuthChange, renderAuthScreen, signOut } from "./auth.js";
+import { getSession, onAuthChange, renderAuthScreen } from "./auth.js";
 import { supabase, supabaseConfigured } from "./supabase.js";
 import { renderDashboard } from "./views/dashboard.js";
 import { renderRecherche } from "./views/recherche.js";
@@ -32,7 +32,6 @@ const VIEWS = {
 const screenAuth = document.getElementById("screen-auth");
 const app = document.getElementById("app");
 const viewRoot = document.getElementById("view-root");
-const topbarTitle = document.getElementById("topbar-title");
 
 // Filet de sécurité : si une erreur empêche boot() de s'exécuter
 // jusqu'au bout (donc rien n'a encore été affiché — écran "vierge" =
@@ -51,7 +50,7 @@ function switchView(name) {
   document.querySelectorAll(".nav-item").forEach((el) => {
     el.classList.toggle("active", el.dataset.view === name);
   });
-  topbarTitle.textContent = view.title;
+  document.title = view.title + " — Zenoa Radar";
   view.render(viewRoot);
 }
 
@@ -63,10 +62,6 @@ function wireNav() {
     app.classList.toggle("sidebar-collapsed");
   });
   document.getElementById("settings-btn").addEventListener("click", () => switchView("settings"));
-  document.getElementById("logout-btn").addEventListener("click", async () => {
-    const ok = await confirmDialog("Te déconnecter ?", { confirmLabel: "Se déconnecter" });
-    if (ok) await signOut();
-  });
 }
 
 async function refreshSidebarProfile(session) {
