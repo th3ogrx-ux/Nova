@@ -7,29 +7,41 @@
 // surtout pas un User-Agent de navigateur générique.
 export const OSM_USER_AGENT = "ZenoaRadar/1.0 (app de prospection locale; contact via le site)";
 
-// Catégorie métier -> tag OpenStreetMap. À garder synchronisé avec la
-// liste affichée côté client (src/categories.js).
+// Catégorie métier -> tag OpenStreetMap. Liste choisie par
+// l'utilisateur (profils à cibler pour la prospection). OSM ne
+// recense que des établissements géolocalisés avec un tag reconnu :
+// certains métiers demandés n'ont pas d'équivalent fiable (déménageurs,
+// wedding planners, agences de nettoyage/services à domicile,
+// e-commerçants purement en ligne) et sont donc volontairement absents
+// — impossible à chercher par zone géographique sur OpenStreetMap.
 export const CATEGORY_TAGS: Record<string, { key: string; value: string }> = {
-  coiffeur: { key: "shop", value: "hairdresser" },
-  restaurant: { key: "amenity", value: "restaurant" },
+  artisan_batiment: { key: "office", value: "construction_company" },   // artisans du bâtiment / rénovation
   plombier: { key: "craft", value: "plumber" },
   electricien: { key: "craft", value: "electrician" },
-  boulangerie: { key: "shop", value: "bakery" },
-  garage: { key: "shop", value: "car_repair" },
-  dentiste: { key: "amenity", value: "dentist" },
-  medecin: { key: "amenity", value: "doctors" },
-  avocat: { key: "office", value: "lawyer" },
-  salle_sport: { key: "leisure", value: "fitness_centre" },
-  institut_beaute: { key: "shop", value: "beauty" },
-  fleuriste: { key: "shop", value: "florist" },
-  boucherie: { key: "shop", value: "butcher" },
-  cafe: { key: "amenity", value: "cafe" },
-  hotel: { key: "tourism", value: "hotel" },
-  agence_immo: { key: "office", value: "estate_agent" },
-  veterinaire: { key: "amenity", value: "veterinary" },
-  photographe: { key: "craft", value: "photographer" },
+  couvreur: { key: "craft", value: "roofer" },
   menuisier: { key: "craft", value: "carpenter" },
-  architecte: { key: "office", value: "architect" }
+  chauffage_pac: { key: "craft", value: "hvac" },                       // pompes à chaleur / chauffage (pas de tag dédié pour le solaire)
+  cuisiniste: { key: "shop", value: "kitchen" },                        // cuisinistes et salles de bain
+  paysagiste: { key: "craft", value: "gardener" },                      // paysagistes (pas de tag dédié pour les pisciniers)
+  agence_immo: { key: "office", value: "estate_agent" },
+  courtier_assurance: { key: "office", value: "insurance" },
+  courtier_credit: { key: "office", value: "financial_advisor" },       // courtiers crédit / gestion de patrimoine
+  expert_comptable: { key: "office", value: "accountant" },
+  consultant_formateur: { key: "office", value: "consulting" },         // consultants, formateurs, coachs
+  organisme_formation: { key: "office", value: "educational_institution" },
+  therapeute: { key: "healthcare", value: "psychotherapist" },          // psys, sophrologues, naturopathes, hypnothérapeutes
+  osteopathe: { key: "healthcare", value: "osteopath" },
+  kine: { key: "healthcare", value: "physiotherapist" },
+  institut_beaute: { key: "shop", value: "beauty" },                    // cliniques esthétiques et instituts de beauté
+  coiffeur: { key: "shop", value: "hairdresser" },                      // coiffeurs et barbiers
+  photographe: { key: "craft", value: "photographer" },                 // photographes et vidéastes
+  lieu_reception: { key: "amenity", value: "events_venue" },
+  traiteur: { key: "craft", value: "caterer" },
+  auto_ecole: { key: "amenity", value: "driving_school" },
+  salle_sport: { key: "leisure", value: "fitness_centre" },             // salles de sport et studios yoga/pilates
+  garage: { key: "shop", value: "car_repair" },                         // garages et carrossiers
+  gite: { key: "tourism", value: "guest_house" },                       // gîtes et chambres d'hôtes
+  pme_industrielle: { key: "man_made", value: "works" }                 // petites PME industrielles locales
 };
 
 export const SEARCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000;       // 24h : une recherche category+city n'est jamais refaite dans la journée
