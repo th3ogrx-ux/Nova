@@ -32,7 +32,7 @@
   /* Rayon horizontal resserré pour que le halo s'éteigne en douceur
      avant le bord droit de la sidebar, comme il le fait déjà en haut
      et en bas, plutôt que de s'arrêter net sur la zone claire. */
-  background: radial-gradient(ellipse 28% 70% at 62% 100%, rgba(191, 90, 242, .28), transparent 78%);
+  background: radial-gradient(ellipse 38% 70% at 66% 100%, rgba(191, 90, 242, .28), transparent 78%);
   pointer-events: none;
   z-index: 0;
 }
