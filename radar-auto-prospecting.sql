@@ -58,19 +58,25 @@ notify pgrst, 'reload schema';
 -- déjà disponibles sur le plan gratuit Supabase).
 --
 -- ÉTAPES MANUELLES avant d'exécuter le bloc ci-dessous :
---   1) Dashboard > Project Settings > API : copie l'URL du projet et
---      la clé "service_role" (ou "secret" sur la nouvelle interface).
---   2) Remplace <PROJECT_REF> et <SERVICE_ROLE_KEY> ci-dessous par
---      tes vraies valeurs.
+--   1) Remplace <PROJECT_REF> par l'identifiant du projet (Settings >
+--      General > Project ID).
+--   2) Remplace <RADAR_CRON_SECRET> par la valeur du secret du même
+--      nom (Edge Functions > Secrets) — c'est ce que vérifie la
+--      fonction radar-daily dans le header "x-cron-secret".
 --   3) Colle et exécute tout le bloc.
 -- Le job tourne chaque jour à 6h du matin (heure serveur, UTC — pas
 -- forcément 6h heure française selon la saison).
--- Ce bloc est ré-exécutable sans risque pour changer l'heure plus
--- tard : il remplace le job existant plutôt que d'en recréer un.
+-- Ce bloc est ré-exécutable sans risque : il remplace le job existant
+-- plutôt que d'en recréer un.
 -- ============================================================
 
 create extension if not exists pg_cron with schema extensions;
 create extension if not exists pg_net with schema extensions;
+
+-- Ancien job de l'appli d'avant la remise à zéro, s'il tourne encore.
+select cron.unschedule('zenoa-radar-daily') where exists (
+  select 1 from cron.job where jobname = 'zenoa-radar-daily'
+);
 
 select cron.unschedule('radar-daily-job') where exists (
   select 1 from cron.job where jobname = 'radar-daily-job'
@@ -84,9 +90,10 @@ select cron.schedule(
     url := 'https://<PROJECT_REF>.supabase.co/functions/v1/radar-daily',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
+      'x-cron-secret', '<RADAR_CRON_SECRET>'
     ),
-    body := '{}'::jsonb
+    body := '{}'::jsonb,
+    timeout_milliseconds := 150000
   );
   $$
 );
