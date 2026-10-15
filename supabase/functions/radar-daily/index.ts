@@ -12,8 +12,8 @@
 // a déjà planté en production (WORKER_RESOURCE_LIMIT) en essayant de
 // faire trop de travail dans une seule invocation. Ici on limite le
 // nombre de catégories interrogées par jour (un sous-ensemble tournant
-// de toutes les catégories), et on NE visite PAS les sites web des
-// résultats (pas de recherche d'email) pour rester léger.
+// de toutes les catégories) ET le nombre de sites web visités pour en
+// extraire l'email (budget partagé entre toutes les catégories).
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { CATEGORY_TAGS, getCountryResultsForCategory } from "../_shared/osm-search-lib.ts";
@@ -29,6 +29,7 @@ const CORS_HEADERS = {
 
 const LEADS_PER_USER_PER_DAY = 50;
 const CATEGORIES_PER_DAY = 5; // limite le nombre d'appels Overpass par exécution
+const MAX_SCRAPES_PER_RUN = 60; // budget partagé de sites web visités (pour l'email), toutes catégories confondues
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -71,10 +72,11 @@ Deno.serve(async (req) => {
     // ---------- Pool du jour : quelques catégories, recherchées dans toute la France ----------
     const categories = pickDailyCategories(Object.keys(CATEGORY_TAGS), CATEGORIES_PER_DAY);
     let pool: any[] = [];
+    const scrapeBudget = { count: 0 };
 
     for (const category of categories) {
       try {
-        const results = await getCountryResultsForCategory(category, supabase);
+        const results = await getCountryResultsForCategory(category, supabase, scrapeBudget, MAX_SCRAPES_PER_RUN);
         pool = pool.concat(results.map((r: any) => ({ ...r, category })));
       } catch (err) {
         console.error("[radar-daily] catégorie " + category + " : " + err);

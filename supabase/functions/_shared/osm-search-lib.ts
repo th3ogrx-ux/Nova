@@ -269,10 +269,11 @@ export async function getCachedOrFreshResults(
 //
 // IMPORTANT (budget CPU, leçon tirée de l'ancienne appli qui avait
 // planté en production sur ce type de job — "WORKER_RESOURCE_LIMIT")
-// : contrairement à la recherche manuelle, on NE visite PAS chaque
-// site web pour en extraire l'email (ce serait des centaines de
-// requêtes par catégorie) — la qualité du site est donc estimée
-// seulement à partir de la présence d'un site déclaré sur OSM.
+// : la lecture des sites web (pour l'email) est plafonnée par un
+// budget PARTAGÉ entre toutes les catégories de la même exécution
+// (voir `scrapeBudget`/`maxScrapes` passés par l'appelant) — au-delà,
+// les fiches restantes gardent l'email trouvé sur la fiche OSM elle-
+// même si elle en a un, sinon aucun.
 export const FRANCE_CACHE_CITY = "__france__";
 const COUNTRY_RESULTS_LIMIT = 150; // résultats max par catégorie (limite Overpass "out ... N;")
 
@@ -296,7 +297,12 @@ async function searchOverpassCountry(tag: { key: string; value: string }, limit:
   return (data.elements || []) as any[];
 }
 
-export async function getCountryResultsForCategory(category: string, supabase: any) {
+export async function getCountryResultsForCategory(
+  category: string,
+  supabase: any,
+  scrapeBudget: { count: number },
+  maxScrapes: number
+) {
   const tag = CATEGORY_TAGS[category];
   if (!tag) return [];
 
@@ -320,8 +326,14 @@ export async function getCountryResultsForCategory(category: string, supabase: a
     if (!name) continue;
 
     const website = tags.website || tags["contact:website"] || null;
-    const email = tags.email || tags["contact:email"] || null;
-    const siteQuality: "no_site" | "needs_update" = website ? "needs_update" : "no_site";
+    let email = tags.email || tags["contact:email"] || null;
+    let siteQuality: "no_site" | "needs_update" | "good" = website ? "needs_update" : "no_site";
+
+    if (website) {
+      const inspection = await inspectWebsite(website, scrapeBudget, maxScrapes);
+      if (!email) email = inspection.email;
+      siteQuality = inspection.quality;
+    }
 
     const lat = el.lat ?? (el.center && el.center.lat) ?? null;
     const lon = el.lon ?? (el.center && el.center.lon) ?? null;
