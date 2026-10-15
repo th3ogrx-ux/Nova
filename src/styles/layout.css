@@ -22,20 +22,6 @@
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
 }
-.sidebar:after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -20px;
-  height: 220px;
-  /* Rayon horizontal resserré pour que le halo s'éteigne en douceur
-     avant le bord droit de la sidebar, comme il le fait déjà en haut
-     et en bas, plutôt que de s'arrêter net sur la zone claire. */
-  background: radial-gradient(ellipse 42% 70% at 65% 100%, rgba(191, 90, 242, .28), transparent 78%);
-  pointer-events: none;
-  z-index: 0;
-}
 #app.sidebar-collapsed .sidebar { width: var(--sb-w-collapsed); }
 
 .sidebar-logo {
