@@ -16,10 +16,10 @@ export async function renderSettings(root) {
   root.innerHTML = `
     <h1 class="page-title">Paramètres</h1>
 
-    <div class="card" style="max-width:480px;">
-      <div class="panel-title" style="margin-bottom:16px;">Profil</div>
+    <div class="card settings-section">
+      <div class="panel-title">Profil</div>
 
-      <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
         <div class="avatar clickable" id="settings-avatar" style="width:64px;height:64px;font-size:22px;">
           <span id="settings-avatar-initial"></span>
           <img id="settings-avatar-img" style="display:none;" alt="">
@@ -31,7 +31,7 @@ export async function renderSettings(root) {
         </div>
       </div>
 
-      <div class="field">
+      <div class="field settings-field">
         <label class="field-label">Pseudo</label>
         <input type="text" id="settings-pseudo" placeholder="Ton pseudo" maxlength="40">
       </div>
@@ -40,17 +40,17 @@ export async function renderSettings(root) {
       <span id="settings-feedback" style="font-size:12px;color:var(--ok);margin-left:10px;"></span>
     </div>
 
-    <div class="card" style="max-width:480px;margin-top:16px;">
-      <div class="panel-title" style="margin-bottom:12px;">Session</div>
+    <div class="card settings-section">
+      <div class="panel-title">Session</div>
       <button type="button" class="btn ghost btn-sm" id="settings-logout">Se déconnecter</button>
     </div>
 
-    <div class="card" style="max-width:480px;margin-top:16px;border-color:#d9534f4d;">
-      <div class="panel-title" style="margin-bottom:12px;color:var(--danger);">Zone dangereuse</div>
-      <p style="font-size:13px;color:var(--light-text-dim);margin-bottom:14px;">
+    <div class="card settings-section" style="border-color:#d9534f4d;">
+      <div class="panel-title" style="color:var(--danger);">Zone dangereuse</div>
+      <p style="font-size:13px;color:var(--light-text-dim);margin-bottom:14px;max-width:460px;">
         Supprime définitivement ton compte et toutes tes données (prospects, maquettes, modèles de message). Cette action est irréversible.
       </p>
-      <div class="field">
+      <div class="field settings-field">
         <label class="field-label">Tape SUPPRIMER pour confirmer</label>
         <input type="text" id="settings-delete-confirm" placeholder="SUPPRIMER">
       </div>

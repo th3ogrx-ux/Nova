@@ -283,6 +283,15 @@ input:focus, textarea:focus, select:focus {
 .auth-switch a { color: var(--warm-1); text-decoration: none; font-weight: 600; }
 .auth-switch a:hover { text-decoration: underline; }
 
+/* ---------- Page Paramètres ---------- */
+/* Les cartes prennent toute la largeur de .main (comme le reste de
+   l'appli), mais les champs de saisie restent à une largeur lisible
+   à l'intérieur — sinon un simple champ "pseudo" s'étire sur tout
+   l'écran, ce qui a l'air aussi bizarre qu'une carte à moitié vide. */
+.settings-section { margin-bottom: 16px; }
+.settings-section .panel-title { margin-bottom: 16px; }
+.settings-field { max-width: 360px; }
+
 /* ---------- Tuiles de statistiques (tableau de bord) ---------- */
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
 .stat-tile { padding: 18px 20px; }
