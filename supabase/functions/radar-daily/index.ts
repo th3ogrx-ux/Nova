@@ -66,7 +66,9 @@ function shuffleInPlace<T>(arr: T[]) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
 
   try {
     // ---------- Pool du jour : quelques catégories, recherchées dans toute la France ----------
@@ -88,10 +90,19 @@ Deno.serve(async (req) => {
     const userIds: string[] = [];
     let page = 1;
     while (true) {
-      const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
-      if (error || !data) break;
-      userIds.push(...data.users.map((u) => u.id));
-      if (data.users.length < 200) break;
+      let res;
+      try {
+        res = await supabase.auth.admin.listUsers({ page, perPage: 200 });
+      } catch (err) {
+        console.error("[radar-daily] listUsers a échoué : " + err);
+        break;
+      }
+      if (!res || res.error || !res.data || !res.data.users) {
+        console.error("[radar-daily] listUsers a renvoyé une erreur : " + JSON.stringify(res && res.error));
+        break;
+      }
+      userIds.push(...res.data.users.map((u) => u.id));
+      if (res.data.users.length < 200) break;
       page++;
     }
 
