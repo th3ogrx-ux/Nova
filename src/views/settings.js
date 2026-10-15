@@ -43,11 +43,13 @@ export async function renderSettings(root) {
 
     <div class="card settings-section">
       <div class="panel-title">Apparence</div>
-      <label class="switch" style="display:inline-flex;align-items:center;gap:12px;width:auto;">
-        <input type="checkbox" id="settings-dark-mode" ${getTheme() === "dark" ? "checked" : ""}>
-        <span class="switch-track"></span>
-      </label>
-      <span style="font-size:13.5px;margin-left:12px;vertical-align:middle;">Mode sombre</span>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <label class="switch">
+          <input type="checkbox" id="settings-dark-mode" ${getTheme() === "dark" ? "checked" : ""}>
+          <span class="switch-track"></span>
+        </label>
+        <span style="font-size:13.5px;">Mode sombre</span>
+      </div>
     </div>
 
     <div class="card settings-section">
