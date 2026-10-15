@@ -133,6 +133,11 @@
   right: var(--app-gap);
   bottom: var(--app-gap);
   left: calc(var(--sb-w) + var(--app-gap) * 2);
+  /* Au-dessus de la sidebar (z-index 40) : son halo lumineux déborde
+     volontairement sur la droite (.sidebar:after, right: -60px), on
+     veut qu'il reste visible dans la sidebar mais ne déborde jamais
+     sur la zone claire. */
+  z-index: 41;
   overflow-y: auto;
   background: var(--light-bg);
   color: var(--light-text);
