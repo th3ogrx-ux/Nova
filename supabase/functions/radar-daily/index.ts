@@ -240,6 +240,73 @@ async function enrichWithWebsites(leads: any[], budget: { count: number }) {
   }
 }
 
+// Fourni par le runtime des Edge Functions Supabase : laisse une tâche
+// continuer après l'envoi de la réponse (dans la limite de durée de
+// la fonction).
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
+
+async function generateDailyLeads(supabase: any) {
+  // ---------- Pool du jour (catégories interrogées en parallèle) ----------
+  const categories = pickDailyCategories(Object.keys(CATEGORY_TAGS), CATEGORIES_PER_DAY);
+  const errors: string[] = [];
+  const settled = await Promise.allSettled(categories.map((c) => getCountryResults(c, supabase)));
+
+  let pool: any[] = [];
+  settled.forEach((s, i) => {
+    if (s.status === "fulfilled") pool = pool.concat(s.value.map((r: any) => ({ ...r, category: categories[i] })));
+    else errors.push(categories[i] + " : " + String(s.reason));
+  });
+  shuffleInPlace(pool);
+  console.log("[radar-daily] catégories", categories.join(", "), "— pool", pool.length, errors.length ? "— erreurs " + errors.join(" | ") : "");
+
+  // ---------- Utilisateurs inscrits ----------
+  const userIds: string[] = [];
+  for (let page = 1; ; page++) {
+    const res = await supabase.auth.admin.listUsers({ page, perPage: 200 });
+    const users = (res && res.data && res.data.users) || [];
+    if (res && res.error) errors.push("listUsers : " + res.error.message);
+    userIds.push(...users.map((u: any) => u.id));
+    if (users.length < 200) break;
+  }
+
+  const budget = { count: 0 };
+  for (const userId of userIds) {
+    const { data: existing } = await supabase
+      .from("radar_leads")
+      .select("osm_id")
+      .eq("user_id", userId);
+    const seen = new Set((existing || []).map((r: any) => r.osm_id));
+
+    const fresh = pool
+      .filter((r) => !seen.has(r.osm_id))
+      .slice(0, LEADS_PER_USER_PER_DAY)
+      .map((r) => ({ ...r }));
+    if (!fresh.length) {
+      console.log("[radar-daily]", userId, ": aucun nouveau prospect");
+      continue;
+    }
+
+    await enrichWithWebsites(fresh, budget);
+
+    const rows = fresh.map((r) => ({
+      user_id: userId,
+      osm_id: r.osm_id,
+      name: r.name,
+      address: r.address,
+      phone: r.phone,
+      website: r.website,
+      email: r.email,
+      category: r.category,
+      city: r.city,
+      site_quality: r.site_quality,
+      status: "en_attente"
+    }));
+
+    const { error: insertError } = await supabase.from("radar_leads").insert(rows);
+    console.log("[radar-daily]", userId, ":", insertError ? "erreur " + insertError.message : rows.length + " prospects ajoutés");
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
 
@@ -251,76 +318,12 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false }
   });
 
-  try {
-    // ---------- Pool du jour ----------
-    const categories = pickDailyCategories(Object.keys(CATEGORY_TAGS), CATEGORIES_PER_DAY);
-    let pool: any[] = [];
-    const errors: string[] = [];
+  // La recherche dans toute la France peut prendre plus d'une minute :
+  // on répond tout de suite et on termine en arrière-plan, sinon
+  // l'appelant (panneau de test du dashboard, pg_net) abandonne avant.
+  EdgeRuntime.waitUntil(
+    generateDailyLeads(supabase).catch((err) => console.error("[radar-daily] échec :", String(err)))
+  );
 
-    for (const category of categories) {
-      try {
-        const results = await getCountryResults(category, supabase);
-        pool = pool.concat(results.map((r: any) => ({ ...r, category })));
-      } catch (err) {
-        errors.push(category + " : " + String(err));
-      }
-    }
-    shuffleInPlace(pool);
-
-    // ---------- Utilisateurs inscrits ----------
-    const userIds: string[] = [];
-    for (let page = 1; ; page++) {
-      const res = await supabase.auth.admin.listUsers({ page, perPage: 200 });
-      const users = (res && res.data && res.data.users) || [];
-      if (res && res.error) errors.push("listUsers : " + res.error.message);
-      userIds.push(...users.map((u: any) => u.id));
-      if (users.length < 200) break;
-    }
-
-    const budget = { count: 0 };
-    const summary: Array<{ user_id: string; inserted: number; error?: string }> = [];
-
-    for (const userId of userIds) {
-      const { data: existing } = await supabase
-        .from("radar_leads")
-        .select("osm_id")
-        .eq("user_id", userId);
-      const seen = new Set((existing || []).map((r: any) => r.osm_id));
-
-      const fresh = pool
-        .filter((r) => !seen.has(r.osm_id))
-        .slice(0, LEADS_PER_USER_PER_DAY)
-        .map((r) => ({ ...r }));
-
-      if (!fresh.length) {
-        summary.push({ user_id: userId, inserted: 0 });
-        continue;
-      }
-
-      await enrichWithWebsites(fresh, budget);
-
-      const rows = fresh.map((r) => ({
-        user_id: userId,
-        osm_id: r.osm_id,
-        name: r.name,
-        address: r.address,
-        phone: r.phone,
-        website: r.website,
-        email: r.email,
-        category: r.category,
-        city: r.city,
-        site_quality: r.site_quality,
-        status: "en_attente"
-      }));
-
-      const { error: insertError } = await supabase.from("radar_leads").insert(rows);
-      summary.push(insertError
-        ? { user_id: userId, inserted: 0, error: insertError.message }
-        : { user_id: userId, inserted: rows.length });
-    }
-
-    return jsonResponse({ ok: true, categories, pool_size: pool.length, scraped: budget.count, errors, summary });
-  } catch (err) {
-    return jsonResponse({ error: "Erreur serveur", detail: String(err) }, 500);
-  }
+  return jsonResponse({ ok: true, message: "Génération lancée — les prospects arrivent d'ici une à deux minutes." }, 202);
 });
