@@ -18,7 +18,7 @@ export function renderRecherche(root) {
   root.innerHTML = `
     <h1 class="page-title">Zenoa Radar</h1>
     <p style="color:var(--light-text-dim);font-size:14px;margin-bottom:20px;">
-      Chaque jour à minuit, Zenoa Radar te propose automatiquement 50 nouvelles entreprises à démarcher, partout en France.
+      Chaque jour à 6h du matin, Zenoa Radar te propose automatiquement 50 nouvelles entreprises à démarcher, partout en France.
     </p>
 
     <div style="margin-top:4px;">

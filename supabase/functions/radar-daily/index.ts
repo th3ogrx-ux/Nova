@@ -4,7 +4,7 @@
 // configurer), sans jamais resurfacer un prospect déjà vu (contrainte
 // unique user_id+osm_id sur radar_leads).
 //
-// Appelée une fois par jour (minuit) par un job pg_cron (voir
+// Appelée une fois par jour (6h du matin) par un job pg_cron (voir
 // radar-auto-prospecting.sql), PAS par le client : pas de JWT
 // utilisateur, on utilise directement la clé service_role.
 //

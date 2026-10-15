@@ -63,8 +63,8 @@ notify pgrst, 'reload schema';
 --   2) Remplace <PROJECT_REF> et <SERVICE_ROLE_KEY> ci-dessous par
 --      tes vraies valeurs.
 --   3) Colle et exécute tout le bloc.
--- Le job tourne chaque jour à minuit (heure serveur, UTC — pas
--- forcément minuit heure française selon la saison).
+-- Le job tourne chaque jour à 6h du matin (heure serveur, UTC — pas
+-- forcément 6h heure française selon la saison).
 -- Ce bloc est ré-exécutable sans risque pour changer l'heure plus
 -- tard : il remplace le job existant plutôt que d'en recréer un.
 -- ============================================================
@@ -78,7 +78,7 @@ select cron.unschedule('radar-daily-job') where exists (
 
 select cron.schedule(
   'radar-daily-job',
-  '0 0 * * *',
+  '0 6 * * *',
   $$
   select net.http_post(
     url := 'https://<PROJECT_REF>.supabase.co/functions/v1/radar-daily',
