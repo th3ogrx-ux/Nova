@@ -28,7 +28,7 @@ if ("serviceWorker" in navigator) {
 
 const VIEWS = {
   dashboard: { render: renderDashboard, title: "Tableau de bord" },
-  recherche: { render: renderRecherche, title: "Recherche" },
+  recherche: { render: renderRecherche, title: "Zenoa Radar" },
   prospects: { render: renderProspects, title: "Prospects" },
   maquettes: { render: renderMaquettes, title: "Maquettes" },
   settings: { render: renderSettings, title: "Paramètres" },
