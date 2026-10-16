@@ -117,8 +117,8 @@ function leadCardHtml(lead, tab) {
         <div style="font-weight:700;font-size:14.5px;">${escapeHtml(lead.name)}</div>
         <div style="font-size:12.5px;color:var(--light-text-dim);margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;">
           ${lead.phone ? `<span style="color:var(--ok);font-weight:600;">📞 ${escapeHtml(lead.phone)}</span>` : ""}
-          ${lead.website ? `<a href="${escapeHtml(lead.website)}" target="_blank" rel="noopener" style="color:var(--accent-blue-1);">🔗 Site web</a>` : ""}
           ${lead.email ? `<span style="color:var(--accent-blue-2);font-weight:600;">✉️ ${escapeHtml(lead.email)}</span>` : ""}
+          ${lead.website ? `<a href="${escapeHtml(lead.website)}" target="_blank" rel="noopener" style="color:var(--accent-blue-1);">🔗 Site web</a>` : ""}
         </div>
       </div>
       <span class="status-pill neutral">${quality.label}</span>
