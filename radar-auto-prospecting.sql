@@ -54,46 +54,13 @@ grant select, update on public.radar_leads to authenticated;
 notify pgrst, 'reload schema';
 
 -- ============================================================
--- Planification quotidienne (pg_cron + pg_net, extensions gratuites
--- déjà disponibles sur le plan gratuit Supabase).
---
--- ÉTAPES MANUELLES avant d'exécuter le bloc ci-dessous :
---   1) Remplace <PROJECT_REF> par l'identifiant du projet (Settings >
---      General > Project ID).
---   2) Remplace <RADAR_CRON_SECRET> par la valeur du secret du même
---      nom (Edge Functions > Secrets) — c'est ce que vérifie la
---      fonction radar-daily dans le header "x-cron-secret".
---   3) Colle et exécute tout le bloc.
--- Le job tourne chaque jour à 6h du matin (heure serveur, UTC — pas
--- forcément 6h heure française selon la saison).
--- Ce bloc est ré-exécutable sans risque : il remplace le job existant
--- plutôt que d'en recréer un.
+-- Plus de job planifié : les serveurs Overpass gratuits refusent les
+-- appels venant de Supabase. Les prospects du jour sont désormais
+-- générés à la première ouverture de Zenoa Radar dans la journée
+-- (recherche faite par le navigateur, enregistrement par la fonction
+-- radar-daily). Ce bloc supprime les anciens jobs s'ils existent.
 -- ============================================================
 
-create extension if not exists pg_cron with schema extensions;
-create extension if not exists pg_net with schema extensions;
-
--- Ancien job de l'appli d'avant la remise à zéro, s'il tourne encore.
-select cron.unschedule('zenoa-radar-daily') where exists (
-  select 1 from cron.job where jobname = 'zenoa-radar-daily'
-);
-
-select cron.unschedule('radar-daily-job') where exists (
-  select 1 from cron.job where jobname = 'radar-daily-job'
-);
-
-select cron.schedule(
-  'radar-daily-job',
-  '0 6 * * *',
-  $$
-  select net.http_post(
-    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/radar-daily',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'x-cron-secret', '<RADAR_CRON_SECRET>'
-    ),
-    body := '{}'::jsonb,
-    timeout_milliseconds := 150000
-  );
-  $$
-);
+select cron.unschedule(jobname)
+from cron.job
+where jobname in ('radar-daily-job', 'zenoa-radar-daily');

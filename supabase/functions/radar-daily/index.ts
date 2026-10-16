@@ -1,151 +1,56 @@
 // ZENOA RADAR — Supabase Edge Function "radar-daily"
-// Génère automatiquement jusqu'à 50 nouveaux prospects par jour pour
-// chaque utilisateur inscrit, partout en France, sans jamais reproposer
-// une fiche déjà vue (contrainte unique user_id+osm_id sur radar_leads).
+// Enregistre les prospects du jour d'un utilisateur et cherche leurs
+// emails sur leurs sites web.
+//
+// La recherche OpenStreetMap (Overpass) se fait dans le navigateur
+// (src/radar-generate.js) : les serveurs Overpass gratuits refusent les
+// appels venant des serveurs de Supabase (406 / 50x). Le navigateur
+// envoie ici la liste trouvée ; cette fonction :
+//   1. vérifie l'utilisateur (JWT de sa session) ;
+//   2. valide chaque fiche et applique le quota de 50 prospects/jour ;
+//   3. enregistre les nouveaux prospects (jamais un déjà vu) ;
+//   4. en arrière-plan, visite leurs sites pour trouver un email.
 //
 // Fichier volontairement autonome (aucun import local) pour pouvoir
 // être collé tel quel dans Supabase > Edge Functions > radar-daily >
 // Code, puis déployé depuis le dashboard, sans CLI.
-//
-// Appelée chaque jour à 6h par un job pg_cron (radar-auto-prospecting.sql).
-// Protégée par le header "x-cron-secret", comparé au secret
-// RADAR_CRON_SECRET (Edge Functions > Secrets).
-//
-// Recherche : plutôt qu'une requête Overpass sur toute la France (trop
-// lourde, elle expire et renvoie une liste vide), on tire chaque jour
-// quelques grandes villes réparties sur le territoire et on cherche
-// tous les métiers ciblés autour de chacune, en une requête par ville.
-//
-// Budget : l'ancienne version de ce type de job avait planté en
-// production (WORKER_RESOURCE_LIMIT). On ne visite donc les sites web
-// (pour trouver l'email) que pour les prospects réellement retenus, en
-// parallèle et avec un plafond global.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const RADAR_CRON_SECRET = Deno.env.get("RADAR_CRON_SECRET") || "";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 
-const LEADS_PER_USER_PER_DAY = 50;
-const CITIES_PER_DAY = 3;              // une requête Overpass par ville
-const SEARCH_RADIUS_METERS = 10000;
-const RESULTS_PER_CITY = 400;          // limite "out ... N;" d'Overpass
-const OVERPASS_REQUEST_TIMEOUT_MS = 30000;
-const MAX_SCRAPES_PER_RUN = 60;        // sites web visités max (pour l'email)
+const LEADS_PER_DAY = 50;
+const MAX_CANDIDATES = 1500;
+const MAX_SCRAPES = 50;                // sites visités max par génération
 const SCRAPE_CONCURRENCY = 10;
-// La fonction est coupée au bout de 150 s (plan gratuit) : passé ce
-// délai depuis le démarrage, on ne lance plus de nouvelles visites de
-// sites, pour avoir fini avant la coupure.
+// La fonction est coupée au bout de 150 s (plan gratuit) : au-delà de ce
+// délai, on ne lance plus de nouvelles visites de sites.
 const SCRAPE_DEADLINE_MS = 110000;
-const SEARCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const CACHE_CATEGORY = "__radar_metiers__";
 const MAX_SCRAPE_BYTES = 50000;
 const CONTACT_PAGE_GUESSES = ["/contact"];
 const OSM_USER_AGENT = "ZenoaRadar/1.0 (prospection locale; +https://github.com/th3ogrx-ux/Nova)";
-// Le fetch de Deno envoie par défaut "Accept-Language: *", que certains
-// serveurs (dont overpass-api.de) rejettent avec un 406 : on fixe donc
-// des en-têtes explicites sur chaque requête sortante.
-const OVERPASS_HEADERS = {
-  "User-Agent": OSM_USER_AGENT,
-  "Accept": "application/json",
-  "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
-  "Content-Type": "application/x-www-form-urlencoded"
-};
 const WEBSITE_HEADERS = {
   "User-Agent": OSM_USER_AGENT,
   "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
   "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8"
 };
-const OVERPASS_ENDPOINTS = [
-  "https://overpass-api.de/api/interpreter",
-  "https://overpass.kumi.systems/api/interpreter",
-  "https://overpass.private.coffee/api/interpreter"
-];
 
-// Métiers ciblés -> tag OpenStreetMap. Déménageurs, wedding planners,
-// nettoyage/services à domicile et e-commerçants n'ont pas de tag OSM
-// fiable et ne peuvent donc pas être cherchés par zone géographique.
-const CATEGORY_TAGS: Record<string, { key: string; value: string }> = {
-  artisan_batiment: { key: "office", value: "construction_company" },
-  plombier: { key: "craft", value: "plumber" },
-  electricien: { key: "craft", value: "electrician" },
-  couvreur: { key: "craft", value: "roofer" },
-  menuisier: { key: "craft", value: "carpenter" },
-  chauffage_pac: { key: "craft", value: "hvac" },
-  cuisiniste: { key: "shop", value: "kitchen" },
-  paysagiste: { key: "craft", value: "gardener" },
-  agence_immo: { key: "office", value: "estate_agent" },
-  courtier_assurance: { key: "office", value: "insurance" },
-  courtier_credit: { key: "office", value: "financial_advisor" },
-  expert_comptable: { key: "office", value: "accountant" },
-  consultant_formateur: { key: "office", value: "consulting" },
-  organisme_formation: { key: "office", value: "educational_institution" },
-  therapeute: { key: "healthcare", value: "psychotherapist" },
-  osteopathe: { key: "healthcare", value: "osteopath" },
-  kine: { key: "healthcare", value: "physiotherapist" },
-  institut_beaute: { key: "shop", value: "beauty" },
-  coiffeur: { key: "shop", value: "hairdresser" },
-  photographe: { key: "craft", value: "photographer" },
-  lieu_reception: { key: "amenity", value: "events_venue" },
-  traiteur: { key: "craft", value: "caterer" },
-  auto_ecole: { key: "amenity", value: "driving_school" },
-  salle_sport: { key: "leisure", value: "fitness_centre" },
-  garage: { key: "shop", value: "car_repair" },
-  gite: { key: "tourism", value: "guest_house" },
-  pme_industrielle: { key: "man_made", value: "works" }
-};
-
-// Grandes villes réparties sur tout le territoire (coordonnées en dur :
-// pas besoin de géocoder via Nominatim).
-const CITIES: Array<{ name: string; lat: number; lon: number }> = [
-  { name: "Paris", lat: 48.8566, lon: 2.3522 },
-  { name: "Marseille", lat: 43.2965, lon: 5.3698 },
-  { name: "Lyon", lat: 45.7640, lon: 4.8357 },
-  { name: "Toulouse", lat: 43.6047, lon: 1.4442 },
-  { name: "Nice", lat: 43.7102, lon: 7.2620 },
-  { name: "Nantes", lat: 47.2184, lon: -1.5536 },
-  { name: "Montpellier", lat: 43.6108, lon: 3.8767 },
-  { name: "Strasbourg", lat: 48.5734, lon: 7.7521 },
-  { name: "Bordeaux", lat: 44.8378, lon: -0.5792 },
-  { name: "Lille", lat: 50.6292, lon: 3.0573 },
-  { name: "Rennes", lat: 48.1173, lon: -1.6778 },
-  { name: "Reims", lat: 49.2583, lon: 4.0317 },
-  { name: "Toulon", lat: 43.1242, lon: 5.9280 },
-  { name: "Saint-Étienne", lat: 45.4397, lon: 4.3872 },
-  { name: "Le Havre", lat: 49.4944, lon: 0.1079 },
-  { name: "Grenoble", lat: 45.1885, lon: 5.7245 },
-  { name: "Dijon", lat: 47.3220, lon: 5.0415 },
-  { name: "Angers", lat: 47.4784, lon: -0.5632 },
-  { name: "Nîmes", lat: 43.8367, lon: 4.3601 },
-  { name: "Clermont-Ferrand", lat: 45.7772, lon: 3.0870 },
-  { name: "Le Mans", lat: 48.0061, lon: 0.1996 },
-  { name: "Aix-en-Provence", lat: 43.5297, lon: 5.4474 },
-  { name: "Brest", lat: 48.3904, lon: -4.4861 },
-  { name: "Tours", lat: 47.3941, lon: 0.6848 },
-  { name: "Amiens", lat: 49.8941, lon: 2.2958 },
-  { name: "Limoges", lat: 45.8336, lon: 1.2611 },
-  { name: "Annecy", lat: 45.8992, lon: 6.1294 },
-  { name: "Perpignan", lat: 42.6887, lon: 2.8948 },
-  { name: "Metz", lat: 49.1193, lon: 6.1757 },
-  { name: "Besançon", lat: 47.2378, lon: 6.0241 },
-  { name: "Orléans", lat: 47.9030, lon: 1.9093 },
-  { name: "Rouen", lat: 49.4432, lon: 1.0999 },
-  { name: "Mulhouse", lat: 47.7508, lon: 7.3359 },
-  { name: "Caen", lat: 49.1829, lon: -0.3707 },
-  { name: "Nancy", lat: 48.6921, lon: 6.1844 },
-  { name: "Avignon", lat: 43.9493, lon: 4.8055 },
-  { name: "Poitiers", lat: 46.5802, lon: 0.3404 },
-  { name: "La Rochelle", lat: 46.1603, lon: -1.1511 },
-  { name: "Pau", lat: 43.2951, lon: -0.3708 },
-  { name: "Bayonne", lat: 43.4929, lon: -1.4748 }
-];
+// Doit rester identique aux clés de CATEGORY_TAGS dans src/radar-generate.js.
+const CATEGORIES = new Set([
+  "artisan_batiment", "plombier", "electricien", "couvreur", "menuisier", "chauffage_pac",
+  "cuisiniste", "paysagiste", "agence_immo", "courtier_assurance", "courtier_credit",
+  "expert_comptable", "consultant_formateur", "organisme_formation", "therapeute", "osteopathe",
+  "kine", "institut_beaute", "coiffeur", "photographe", "lieu_reception", "traiteur",
+  "auto_ecole", "salle_sport", "garage", "gite", "pme_industrielle"
+]);
+const OSM_ID_RE = /^(node|way|relation)\/\d{1,15}$/;
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -154,138 +59,59 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-// Tirage déterministe pour la journée (relancer la fonction le même
-// jour redonne le même tirage), qui change chaque jour.
-function pickDaily<T>(items: T[], count: number) {
-  const seed = new Date().toISOString().slice(0, 10);
-  let hash = 0;
-  for (const ch of seed) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-
-  const shuffled = [...items];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    hash = (hash * 1103515245 + 12345) >>> 0;
-    const j = hash % (i + 1);
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled.slice(0, count);
+function text(value: unknown, max: number): string | null {
+  return typeof value === "string" && value.trim() ? value.trim().slice(0, max) : null;
 }
 
-function shuffleInPlace<T>(arr: T[]) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+// N'accepte qu'une adresse web publique en http(s) : cette fonction va
+// la visiter, et les fiches viennent du navigateur de l'utilisateur.
+function safeWebsite(value: unknown): string | null {
+  const raw = text(value, 300);
+  if (!raw) return null;
+  let url: URL;
+  try {
+    url = new URL(/^https?:\/\//i.test(raw) ? raw : "https://" + raw);
+  } catch {
+    return null;
   }
-  return arr;
+  const host = url.hostname.toLowerCase();
+  if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+  if (!host.includes(".") || host === "localhost" || host.endsWith(".local") || host.endsWith(".internal")) return null;
+  if (/^[\d.]+$/.test(host) || host.includes(":") || host.startsWith("[")) return null;
+  return url.toString();
 }
 
-function buildAddress(tags: Record<string, string>) {
-  const parts = [
-    [tags["addr:housenumber"], tags["addr:street"]].filter(Boolean).join(" "),
-    tags["addr:postcode"],
-    tags["addr:city"]
-  ].filter(Boolean);
-  return parts.length ? parts.join(", ") : null;
+function cleanCandidate(c: any) {
+  if (!c || typeof c !== "object") return null;
+  const osmId = text(c.osm_id, 40);
+  const name = text(c.name, 200);
+  const category = text(c.category, 40);
+  if (!osmId || !OSM_ID_RE.test(osmId) || !name || !category || !CATEGORIES.has(category)) return null;
+  const website = safeWebsite(c.website);
+  const phone = text(c.phone, 60);
+  const email = text(c.email, 200);
+  if (!website && !phone && !email) return null;
+  return {
+    osm_id: osmId,
+    name,
+    address: text(c.address, 300),
+    phone,
+    website,
+    email,
+    category,
+    city: text(c.city, 100),
+    site_quality: website ? "needs_update" : "no_site"
+  };
 }
 
-function categoryOf(tags: Record<string, string>) {
-  for (const [category, tag] of Object.entries(CATEGORY_TAGS)) {
-    if (tags[tag.key] === tag.value) return category;
-  }
-  return null;
-}
-
-// Essaie chaque serveur Overpass à tour de rôle, en commençant par
-// `firstEndpoint` (pour répartir les villes entre les serveurs), avec
-// une limite de temps par serveur : un serveur saturé peut sinon faire
-// attendre la requête jusqu'à la coupure de la fonction.
-async function runOverpass(query: string, firstEndpoint: number) {
-  let lastError = "";
-  for (let k = 0; k < OVERPASS_ENDPOINTS.length; k++) {
-    const endpoint = OVERPASS_ENDPOINTS[(firstEndpoint + k) % OVERPASS_ENDPOINTS.length];
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: OVERPASS_HEADERS,
-        body: "data=" + encodeURIComponent(query),
-        signal: AbortSignal.timeout(OVERPASS_REQUEST_TIMEOUT_MS)
-      });
-      if (!res.ok) {
-        const detail = (await res.text().catch(() => "")).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 150);
-        lastError = endpoint + " a répondu " + res.status + (detail ? " (" + detail + ")" : "");
-        continue;
-      }
-      const data = await res.json();
-      // Overpass répond 200 avec une "remark" quand la requête expire :
-      // on la traite comme un échec pour essayer le serveur suivant.
-      if (data.remark && !(data.elements || []).length) {
-        lastError = endpoint + " : " + data.remark;
-        continue;
-      }
-      return data.elements || [];
-    } catch (err) {
-      lastError = endpoint + " : " + String(err);
-    }
-  }
-  throw new Error(lastError);
-}
-
-// ---------- Overpass : tous les métiers ciblés autour d'une ville (cache 24h) ----------
-async function getCityResults(city: { name: string; lat: number; lon: number }, supabase: any, firstEndpoint: number) {
-  const cacheRes = await supabase
-    .from("business_search_cache")
-    .select("results, created_at")
-    .eq("category", CACHE_CATEGORY)
-    .eq("city", city.name)
-    .maybeSingle();
-
-  if (cacheRes.data && Date.now() - new Date(cacheRes.data.created_at).getTime() < SEARCH_CACHE_TTL_MS) {
-    return cacheRes.data.results as any[];
-  }
-
-  // Rectangle (bbox) autour de la ville plutôt qu'un rayon "around" : avec
-  // "around", Overpass parcourt toutes les fiches du métier dans le monde
-  // avant de filtrer par distance, et la requête (27 métiers) expirait sur
-  // tous les serveurs. Avec une bbox globale, il n'explore que la zone.
-  const dLat = SEARCH_RADIUS_METERS / 111320;
-  const dLon = SEARCH_RADIUS_METERS / (111320 * Math.cos((city.lat * Math.PI) / 180));
-  const bbox = [city.lat - dLat, city.lon - dLon, city.lat + dLat, city.lon + dLon].map((n) => n.toFixed(4)).join(",");
-  const statements = Object.values(CATEGORY_TAGS)
-    .map((t) => `node["${t.key}"="${t.value}"];way["${t.key}"="${t.value}"];`)
-    .join("");
-  const elements = await runOverpass(`[out:json][timeout:25][bbox:${bbox}];(${statements});out center tags ${RESULTS_PER_CITY};`, firstEndpoint);
-
-  const results: any[] = [];
-  for (const el of elements) {
-    const tags = el.tags || {};
-    const category = categoryOf(tags);
-    if (!tags.name || !category) continue;
-    const website = tags.website || tags["contact:website"] || null;
-    const phone = tags.phone || tags["contact:phone"] || null;
-    const email = tags.email || tags["contact:email"] || null;
-    // Sans aucun moyen de contact, la fiche est inutile pour prospecter.
-    if (!website && !phone && !email) continue;
-    results.push({
-      osm_id: el.type + "/" + el.id,
-      name: tags.name,
-      address: buildAddress(tags),
-      phone,
-      website,
-      email,
-      site_quality: website ? "needs_update" : "no_site",
-      category,
-      city: tags["addr:city"] || city.name
-    });
-  }
-
-  // Un résultat vide n'est jamais mis en cache, pour pouvoir retenter.
-  if (results.length) {
-    await supabase.from("business_search_cache").upsert(
-      { category: CACHE_CATEGORY, city: city.name, results, created_at: new Date().toISOString() },
-      { onConflict: "category,city" }
-    );
-  }
-
-  return results;
+// Minuit (heure de Paris) du jour en cours, pour le quota quotidien.
+function startOfTodayParis() {
+  const now = new Date();
+  const parisWallClock = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Paris" }));
+  const utcWallClock = new Date(now.toLocaleString("en-US", { timeZone: "UTC" }));
+  const offsetMs = parisWallClock.getTime() - utcWallClock.getTime();
+  const parisDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(now);
+  return new Date(new Date(parisDay + "T00:00:00Z").getTime() - offsetMs);
 }
 
 // ---------- Lecture d'un site web (email + qualité) ----------
@@ -341,23 +167,24 @@ async function inspectWebsite(website: string) {
   return { email, quality };
 }
 
-// Complète email/qualité des prospects qui ont un site, par lots
-// parallèles, dans la limite du budget de l'exécution et du délai
-// avant la coupure de la fonction.
-async function enrichWithWebsites(leads: any[], budget: { count: number }, startedAt: number) {
-  const toScrape = leads.filter((l) => l.website && !l.email);
+// Visite les sites des prospects qui en ont un, par lots parallèles,
+// et enregistre l'email trouvé et la qualité du site.
+async function enrichWithWebsites(supabase: any, userId: string, leads: any[], startedAt: number) {
+  const toScrape = leads.filter((l) => l.website && !l.email).slice(0, MAX_SCRAPES);
+  let found = 0;
   for (let i = 0; i < toScrape.length; i += SCRAPE_CONCURRENCY) {
-    const remaining = MAX_SCRAPES_PER_RUN - budget.count;
-    if (remaining <= 0 || Date.now() - startedAt > SCRAPE_DEADLINE_MS) return;
-    const batch = toScrape.slice(i, i + Math.min(SCRAPE_CONCURRENCY, remaining));
-    budget.count += batch.length;
-    await Promise.all(batch.map(async (lead) => {
+    if (Date.now() - startedAt > SCRAPE_DEADLINE_MS) break;
+    await Promise.all(toScrape.slice(i, i + SCRAPE_CONCURRENCY).map(async (lead) => {
       const info = await inspectWebsite(lead.website);
-      lead.email = info.email;
-      lead.site_quality = info.quality;
-      lead.enriched = true;
+      if (info.email) found++;
+      await supabase
+        .from("radar_leads")
+        .update({ email: info.email, site_quality: info.quality, updated_at: new Date().toISOString() })
+        .eq("user_id", userId)
+        .eq("osm_id", lead.osm_id);
     }));
   }
+  console.log("[radar-daily]", userId, ":", found, "emails trouvés sur", toScrape.length, "sites");
 }
 
 // Fourni par le runtime des Edge Functions Supabase : laisse une tâche
@@ -365,112 +192,68 @@ async function enrichWithWebsites(leads: any[], budget: { count: number }, start
 // la fonction).
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 
-async function generateDailyLeads(supabase: any) {
-  const startedAt = Date.now();
-  const cities = pickDaily(CITIES, CITIES_PER_DAY);
-  console.log("[radar-daily] démarrage — villes du jour :", cities.map((c) => c.name).join(", "));
-
-  // ---------- Pool du jour (villes en parallèle, chacune sur un serveur différent) ----------
-  const settled = await Promise.allSettled(cities.map((city, i) => getCityResults(city, supabase, i)));
-  let pool: any[] = [];
-  settled.forEach((s, i) => {
-    if (s.status === "fulfilled") {
-      console.log("[radar-daily]", cities[i].name, ":", s.value.length, "entreprises joignables");
-      pool = pool.concat(s.value);
-    } else {
-      console.error("[radar-daily]", cities[i].name, ": échec Overpass —", String(s.reason));
-    }
-  });
-  shuffleInPlace(pool);
-
-  // ---------- Utilisateurs inscrits ----------
-  const userIds: string[] = [];
-  for (let page = 1; ; page++) {
-    const res = await supabase.auth.admin.listUsers({ page, perPage: 200 });
-    if (res && res.error) console.error("[radar-daily] listUsers :", res.error.message);
-    const users = (res && res.data && res.data.users) || [];
-    userIds.push(...users.map((u: any) => u.id));
-    if (users.length < 200) break;
-  }
-  console.log("[radar-daily] pool", pool.length, "— utilisateurs", userIds.length);
-
-  // ---------- Insertion immédiate (sans attendre les emails) ----------
-  const inserted: Array<{ userId: string; leads: any[] }> = [];
-  for (const userId of userIds) {
-    const { data: existing } = await supabase
-      .from("radar_leads")
-      .select("osm_id")
-      .eq("user_id", userId);
-    const seen = new Set((existing || []).map((r: any) => r.osm_id));
-
-    const fresh = pool
-      .filter((r) => !seen.has(r.osm_id))
-      .slice(0, LEADS_PER_USER_PER_DAY)
-      .map((r) => ({ ...r }));
-    if (!fresh.length) {
-      console.log("[radar-daily]", userId, ": aucun nouveau prospect");
-      continue;
-    }
-
-    const rows = fresh.map((r) => ({
-      user_id: userId,
-      osm_id: r.osm_id,
-      name: r.name,
-      address: r.address,
-      phone: r.phone,
-      website: r.website,
-      email: r.email,
-      category: r.category,
-      city: r.city,
-      site_quality: r.site_quality,
-      status: "en_attente"
-    }));
-
-    const { error: insertError } = await supabase.from("radar_leads").insert(rows);
-    if (insertError) {
-      console.error("[radar-daily]", userId, ": erreur d'insertion —", insertError.message);
-      continue;
-    }
-    console.log("[radar-daily]", userId, ":", rows.length, "prospects ajoutés");
-    inserted.push({ userId, leads: fresh });
-  }
-
-  // ---------- Emails trouvés sur les sites, ajoutés après coup ----------
-  // Si la fonction est coupée pendant cette étape, les prospects sont
-  // déjà enregistrés : seuls quelques emails manqueront.
-  const budget = { count: 0 };
-  for (const { userId, leads } of inserted) {
-    await enrichWithWebsites(leads, budget, startedAt);
-    const updates = leads.filter((l) => l.enriched);
-    await Promise.all(updates.map((l) =>
-      supabase
-        .from("radar_leads")
-        .update({ email: l.email, site_quality: l.site_quality, updated_at: new Date().toISOString() })
-        .eq("user_id", userId)
-        .eq("osm_id", l.osm_id)
-    ));
-    console.log("[radar-daily]", userId, ":", updates.filter((l) => l.email).length, "emails trouvés sur", updates.length, "sites visités");
-  }
-  console.log("[radar-daily] terminé en", Math.round((Date.now() - startedAt) / 1000), "s");
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
-
-  if (!RADAR_CRON_SECRET || req.headers.get("x-cron-secret") !== RADAR_CRON_SECRET) {
-    return jsonResponse({ error: "non autorisé" }, 401);
-  }
+  const startedAt = Date.now();
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false }
   });
 
-  // La génération peut prendre plus d'une minute : on répond tout de
-  // suite et on termine en arrière-plan, sinon l'appelant (panneau de
-  // test du dashboard, pg_net) abandonne avant.
-  EdgeRuntime.waitUntil(
-    generateDailyLeads(supabase).catch((err) => console.error("[radar-daily] échec :", String(err)))
-  );
+  try {
+    // ---------- Utilisateur connecté ----------
+    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !userData || !userData.user) return jsonResponse({ error: "Non authentifié." }, 401);
+    const userId = userData.user.id;
 
-  return jsonResponse({ ok: true, message: "Génération lancée — les prospects arrivent d'ici une à deux minutes." }, 202);
+    // ---------- Fiches envoyées par le navigateur ----------
+    const body = await req.json().catch(() => ({}));
+    const rawCandidates = Array.isArray(body.candidates) ? body.candidates.slice(0, MAX_CANDIDATES) : [];
+    const candidates = rawCandidates.map(cleanCandidate).filter(Boolean) as any[];
+
+    // ---------- Quota du jour ----------
+    const { count: todayCount, error: countError } = await supabase
+      .from("radar_leads")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("created_at", startOfTodayParis().toISOString());
+    if (countError) return jsonResponse({ error: countError.message }, 500);
+    const allowed = LEADS_PER_DAY - (todayCount || 0);
+    if (allowed <= 0) return jsonResponse({ inserted: 0, message: "Les prospects du jour ont déjà été générés." });
+
+    // ---------- Jamais un prospect déjà vu ----------
+    const { data: existing, error: existingError } = await supabase
+      .from("radar_leads")
+      .select("osm_id")
+      .eq("user_id", userId);
+    if (existingError) return jsonResponse({ error: existingError.message }, 500);
+    const seen = new Set((existing || []).map((r: any) => r.osm_id));
+
+    const fresh: any[] = [];
+    for (const c of candidates) {
+      if (fresh.length >= allowed) break;
+      if (seen.has(c.osm_id)) continue;
+      seen.add(c.osm_id);
+      fresh.push(c);
+    }
+    if (!fresh.length) return jsonResponse({ inserted: 0, message: "Aucune nouvelle entreprise trouvée aujourd'hui." });
+
+    const { error: insertError } = await supabase
+      .from("radar_leads")
+      .insert(fresh.map((c) => ({ ...c, user_id: userId, status: "en_attente" })));
+    if (insertError) return jsonResponse({ error: insertError.message }, 500);
+    console.log("[radar-daily]", userId, ":", fresh.length, "prospects ajoutés");
+
+    // ---------- Emails, en arrière-plan ----------
+    EdgeRuntime.waitUntil(
+      enrichWithWebsites(supabase, userId, fresh, startedAt)
+        .catch((err) => console.error("[radar-daily] emails :", String(err)))
+    );
+
+    return jsonResponse({ inserted: fresh.length });
+  } catch (err) {
+    console.error("[radar-daily] échec :", String(err));
+    return jsonResponse({ error: "Erreur serveur : " + String(err) }, 500);
+  }
 });

@@ -1,7 +1,8 @@
-// Zenoa Radar — prospection automatique quotidienne (voir
-// supabase/functions/radar-daily). Entièrement automatique : aucune
-// recherche à lancer soi-même, aucune catégorie/ville à choisir.
+// Zenoa Radar — prospection automatique quotidienne. À la première
+// ouverture de la journée, les prospects du jour sont générés (voir
+// src/radar-generate.js) : aucune recherche à lancer soi-même.
 import { supabase } from "../supabase.js";
+import { generateTodayLeadsIfNeeded } from "../radar-generate.js";
 
 const QUALITY_LABELS = {
   no_site: { label: "Pas de site", cls: "danger" },
@@ -43,11 +44,24 @@ function initLeadsTabs(root) {
     tabHistorique.classList.toggle("ghost", tab !== "historique");
   }
 
-  async function loadTab(tab) {
+  let generationNotice = "";
+
+  async function loadTab(tab, { generate = false } = {}) {
     setActiveTab(tab);
     listEl.innerHTML = `<p style="color:var(--light-text-dim);font-size:13.5px;">Chargement...</p>`;
 
     const { data: { user } } = await supabase.auth.getUser();
+
+    if (generate) {
+      try {
+        await generateTodayLeadsIfNeeded(user.id, (message) => {
+          listEl.innerHTML = `<p style="color:var(--light-text-dim);font-size:13.5px;">${escapeHtml(message)}</p>`;
+        });
+      } catch (err) {
+        generationNotice = `<p class="error-msg" style="margin-bottom:12px;">${escapeHtml(err.message)}</p>`;
+      }
+    }
+
     let query = supabase.from("radar_leads").select("*").eq("user_id", user.id);
     query = tab === "historique"
       ? query.in("status", ["interesse", "pas_interesse"]).order("updated_at", { ascending: false })
@@ -60,19 +74,20 @@ function initLeadsTabs(root) {
     }
 
     renderLeads(listEl, leads || [], tab, () => loadTab(tab));
+    if (tab === "en_attente" && generationNotice) listEl.insertAdjacentHTML("afterbegin", generationNotice);
   }
 
   tabEnAttente.addEventListener("click", () => loadTab("en_attente"));
   tabHistorique.addEventListener("click", () => loadTab("historique"));
 
-  loadTab("en_attente");
+  loadTab("en_attente", { generate: true });
 }
 
 function renderLeads(container, leads, tab, onChanged) {
   if (!leads.length) {
     container.innerHTML = tab === "historique"
       ? `<p style="color:var(--light-text-dim);font-size:13.5px;">Aucun prospect traité pour l'instant.</p>`
-      : `<p style="color:var(--light-text-dim);font-size:13.5px;">Aucun prospect en attente pour l'instant — reviens demain, Zenoa Radar en génère chaque nuit.</p>`;
+      : `<p style="color:var(--light-text-dim);font-size:13.5px;">Aucun prospect en attente — de nouvelles entreprises arrivent chaque jour à ta première visite.</p>`;
     return;
   }
 
