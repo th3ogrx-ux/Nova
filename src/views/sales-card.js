@@ -35,6 +35,12 @@ function svgEl(tag, attrs) {
   return el;
 }
 
+// Même hauteur pour les 3 champs et le bouton : un champ date n'a pas la
+// même hauteur native qu'un champ texte, et un bouton btn-sm est plus bas,
+// ce qui décalait la ligne du formulaire.
+const FIELD_HEIGHT = "46px";
+const FIELD_STYLE = `height:${FIELD_HEIGHT};box-sizing:border-box;padding-top:0;padding-bottom:0;`;
+
 const HEADER_HTML = `
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;">
     <div class="panel-title" style="margin:0;">Ventes</div>
@@ -206,17 +212,17 @@ export async function renderSalesCard(container, userId) {
     <form id="sale-form" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:18px;">
       <div class="field" style="flex:2;min-width:160px;margin-bottom:0;">
         <label class="field-label">Client</label>
-        <input type="text" id="sale-client" maxlength="200" placeholder="Ex : Garage Dailler">
+        <input type="text" id="sale-client" maxlength="200" placeholder="Ex : Garage Dailler" style="${FIELD_STYLE}">
       </div>
       <div class="field" style="flex:1;min-width:110px;margin-bottom:0;">
         <label class="field-label">Montant (€)</label>
-        <input type="number" id="sale-amount" min="0.01" step="0.01" required placeholder="500">
+        <input type="number" id="sale-amount" min="0.01" step="0.01" required placeholder="500" style="${FIELD_STYLE}">
       </div>
       <div class="field" style="flex:1;min-width:140px;margin-bottom:0;">
         <label class="field-label">Date</label>
-        <input type="date" id="sale-date" required value="${dateKey(new Date())}">
+        <input type="date" id="sale-date" required value="${dateKey(new Date())}" style="${FIELD_STYLE}">
       </div>
-      <button type="submit" class="btn primary btn-sm" style="margin:0;">+ Ajouter la vente</button>
+      <button type="submit" class="btn primary btn-sm" style="margin:0;height:${FIELD_HEIGHT};padding:0 18px;">+ Ajouter la vente</button>
     </form>
     <div class="error-msg" id="sale-error"></div>
 
