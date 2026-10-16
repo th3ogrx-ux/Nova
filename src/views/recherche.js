@@ -115,11 +115,10 @@ function leadCardHtml(lead, tab) {
     <div class="card" data-lead-id="${lead.id}" style="margin-bottom:10px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">
       <div style="flex:1;min-width:220px;">
         <div style="font-weight:700;font-size:14.5px;">${escapeHtml(lead.name)}</div>
-        ${lead.address ? `<div style="font-size:12.5px;color:var(--light-text-dim);margin-top:3px;">${escapeHtml(lead.address)}</div>` : ""}
         <div style="font-size:12.5px;color:var(--light-text-dim);margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;">
-          ${lead.phone ? `<span>📞 ${escapeHtml(lead.phone)}</span>` : ""}
+          ${lead.phone ? `<span style="color:var(--ok);font-weight:600;">📞 ${escapeHtml(lead.phone)}</span>` : ""}
           ${lead.website ? `<a href="${escapeHtml(lead.website)}" target="_blank" rel="noopener" style="color:var(--accent-blue-1);">🔗 Site web</a>` : ""}
-          ${lead.email ? `<span>✉️ ${escapeHtml(lead.email)}</span>` : ""}
+          ${lead.email ? `<span style="color:var(--accent-blue-2);font-weight:600;">✉️ ${escapeHtml(lead.email)}</span>` : ""}
         </div>
       </div>
       <span class="status-pill neutral">${quality.label}</span>
