@@ -96,12 +96,57 @@ function renderLeads(container, leads, tab, onChanged) {
   leads.forEach((lead) => {
     const card = container.querySelector(`[data-lead-id="${lead.id}"]`);
     if (!card) return;
+    const note = tab === "historique" ? wireNote(card, lead) : null;
     card.querySelectorAll("[data-status]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        if (btn.dataset.status !== lead.status) setLeadStatus(btn, lead.id, btn.dataset.status, onChanged);
+      btn.addEventListener("click", async () => {
+        if (btn.dataset.status === lead.status) return;
+        // La liste est rechargée après le changement de statut : on
+        // enregistre d'abord une note en cours de frappe pour ne pas la perdre.
+        if (note) await note.flush();
+        setLeadStatus(btn, lead.id, btn.dataset.status, onChanged);
       });
     });
   });
+}
+
+// Note libre sous une fiche de l'Historique, enregistrée automatiquement
+// pendant la frappe. N'actualise pas updated_at : écrire une note n'est
+// pas un traitement (ni remontée dans la liste, ni point sur le graphique
+// du Tableau de bord).
+function wireNote(card, lead) {
+  const textarea = card.querySelector("[data-note]");
+  const statusEl = card.querySelector("[data-note-status]");
+  let saved = lead.note || "";
+  let timer = null;
+  let pending = Promise.resolve();
+
+  async function save() {
+    clearTimeout(timer);
+    timer = null;
+    const value = textarea.value.trim();
+    if (value === saved) return;
+    statusEl.textContent = "Enregistrement…";
+    const { error } = await supabase.from("radar_leads").update({ note: value || null }).eq("id", lead.id);
+    if (error) {
+      statusEl.textContent = /note/.test(error.message || "")
+        ? "Note non enregistrée : la colonne « note » manque dans Supabase (voir radar-auto-prospecting.sql)."
+        : "Note non enregistrée : " + error.message;
+      return;
+    }
+    saved = value;
+    lead.note = value;
+    statusEl.textContent = "Note enregistrée ✓";
+  }
+
+  const queueSave = () => { pending = pending.then(save); return pending; };
+  textarea.addEventListener("input", () => {
+    statusEl.textContent = "";
+    clearTimeout(timer);
+    timer = setTimeout(queueSave, 800);
+  });
+  textarea.addEventListener("blur", queueSave);
+
+  return { flush: queueSave };
 }
 
 function leadCardHtml(lead, tab) {
@@ -124,6 +169,12 @@ function leadCardHtml(lead, tab) {
       </div>
       <span class="status-pill neutral">${quality.label}</span>
       <div style="display:flex;gap:8px;">${actions}</div>
+      ${tab === "historique" ? `
+        <div style="flex-basis:100%;">
+          <textarea data-note rows="2" maxlength="2000" placeholder="Ajouter une note…" style="font-size:13px;padding:9px 12px;resize:vertical;min-height:40px;">${escapeHtml(lead.note || "")}</textarea>
+          <div data-note-status style="font-size:11px;color:var(--light-text-dim);margin-top:3px;min-height:14px;"></div>
+        </div>
+      ` : ""}
     </div>
   `;
 }

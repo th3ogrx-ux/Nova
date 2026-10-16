@@ -34,6 +34,10 @@ alter table public.radar_leads drop constraint if exists radar_leads_status_chec
 alter table public.radar_leads add constraint radar_leads_status_check
   check (status in ('en_attente', 'contacte', 'interesse', 'pas_interesse'));
 
+-- Note libre saisie sous une fiche de l'Historique.
+alter table public.radar_leads add column if not exists note text
+  check (char_length(note) <= 2000);
+
 create unique index if not exists radar_leads_user_osm_unique
   on public.radar_leads (user_id, osm_id)
   where osm_id is not null;
