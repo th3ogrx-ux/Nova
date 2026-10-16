@@ -1,7 +1,8 @@
-// Tableau de bord — suivi de Zenoa Radar : totaux par statut et
-// graphique "Suivi" des 14 derniers jours (même principe que le graphique
-// de l'ancienne appli).
+// Tableau de bord — ventes (voir sales-card.js), puis suivi de Zenoa
+// Radar : totaux par statut et graphique "Suivi" des 14 derniers jours
+// (même principe que le graphique de l'ancienne appli).
 import { supabase } from "../supabase.js";
+import { renderSalesCard } from "./sales-card.js";
 
 const DAYS = 14;
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -168,6 +169,11 @@ export async function renderDashboard(root) {
   root.innerHTML = `
     <h1 class="page-title">Tableau de bord</h1>
 
+    <div class="card" style="padding:20px;margin-bottom:24px;">
+      <div class="panel-title">Ventes</div>
+      <div id="dashboard-sales"></div>
+    </div>
+
     <div class="stat-grid" style="margin-bottom:24px;">
       ${TILES.map((t, i) => `<div class="card stat-tile"><div class="stat-tile-value">${countRes[i].count || 0}</div><div class="stat-tile-label">${t.label}</div></div>`).join("")}
     </div>
@@ -179,4 +185,5 @@ export async function renderDashboard(root) {
   `;
 
   renderChart(root.querySelector("#dashboard-chart"), buildSeries(recentRes.data || []));
+  renderSalesCard(root.querySelector("#dashboard-sales"), user.id);
 }
