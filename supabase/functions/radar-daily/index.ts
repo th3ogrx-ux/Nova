@@ -196,7 +196,8 @@ async function runOverpass(query: string, firstEndpoint: number) {
         signal: AbortSignal.timeout(OVERPASS_REQUEST_TIMEOUT_MS)
       });
       if (!res.ok) {
-        lastError = endpoint + " a répondu " + res.status;
+        const detail = (await res.text().catch(() => "")).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 150);
+        lastError = endpoint + " a répondu " + res.status + (detail ? " (" + detail + ")" : "");
         continue;
       }
       const data = await res.json();
@@ -227,11 +228,17 @@ async function getCityResults(city: { name: string; lat: number; lon: number }, 
     return cacheRes.data.results as any[];
   }
 
-  const around = `(around:${SEARCH_RADIUS_METERS},${city.lat},${city.lon})`;
+  // Rectangle (bbox) autour de la ville plutôt qu'un rayon "around" : avec
+  // "around", Overpass parcourt toutes les fiches du métier dans le monde
+  // avant de filtrer par distance, et la requête (27 métiers) expirait sur
+  // tous les serveurs. Avec une bbox globale, il n'explore que la zone.
+  const dLat = SEARCH_RADIUS_METERS / 111320;
+  const dLon = SEARCH_RADIUS_METERS / (111320 * Math.cos((city.lat * Math.PI) / 180));
+  const bbox = [city.lat - dLat, city.lon - dLon, city.lat + dLat, city.lon + dLon].map((n) => n.toFixed(4)).join(",");
   const statements = Object.values(CATEGORY_TAGS)
-    .map((t) => `node["${t.key}"="${t.value}"]${around};way["${t.key}"="${t.value}"]${around};`)
+    .map((t) => `node["${t.key}"="${t.value}"];way["${t.key}"="${t.value}"];`)
     .join("");
-  const elements = await runOverpass(`[out:json][timeout:25];(${statements});out center tags ${RESULTS_PER_CITY};`, firstEndpoint);
+  const elements = await runOverpass(`[out:json][timeout:25][bbox:${bbox}];(${statements});out center tags ${RESULTS_PER_CITY};`, firstEndpoint);
 
   const results: any[] = [];
   for (const el of elements) {
