@@ -5,8 +5,14 @@ import { supabase } from "../supabase.js";
 
 const CHART_DAYS = 30;
 const SVG_NS = "http://www.w3.org/2000/svg";
-const euros = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
+const eurosWithCents = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
 const eurosShort = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+
+// "1 700 €" pour un montant rond, "799,90 €" seulement s'il y a des centimes.
+function formatEuros(value) {
+  const rounded = Math.round(value * 100) / 100;
+  return Number.isInteger(rounded) ? eurosShort.format(rounded) : eurosWithCents.format(rounded);
+}
 
 function dateKey(d) {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -103,12 +109,12 @@ async function openSalesHistory(userId, onChanged) {
     }
     const total = sales.reduce((sum, s) => sum + Number(s.amount), 0);
     body.innerHTML = `
-      <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;">${sales.length} vente${sales.length > 1 ? "s" : ""} — ${euros.format(total)} au total</div>
+      <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;">${sales.length} vente${sales.length > 1 ? "s" : ""} — ${formatEuros(total)} au total</div>
       ${sales.map((s) => `
         <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(199,194,219,.12);font-size:13px;">
           <span style="color:var(--text-dim);width:78px;flex-shrink:0;">${longDate(s.sold_on)}</span>
           <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(s.client) || `<span style="color:var(--text-dim);">Sans nom</span>`}</span>
-          <span style="font-weight:700;white-space:nowrap;">${euros.format(Number(s.amount))}</span>
+          <span style="font-weight:700;white-space:nowrap;">${formatEuros(Number(s.amount))}</span>
           <button type="button" class="icon-btn" data-delete-sale="${s.id}" title="Supprimer cette vente" style="width:26px;height:26px;flex-shrink:0;">✕</button>
         </div>
       `).join("")}
@@ -162,7 +168,7 @@ function renderBarChart(container, sales) {
       const h = Math.max(2, (v / maxVal) * plotH);
       const bar = svgEl("rect", { x: x + slot * 0.18, y: baseline - h, width: slot * 0.64, height: h, rx: "2", fill: "var(--warm-1)" });
       const title = svgEl("title", {});
-      title.textContent = `${shortDate(d)} : ${euros.format(v)}`;
+      title.textContent = `${shortDate(d)} : ${formatEuros(v)}`;
       bar.appendChild(title);
       svg.appendChild(bar);
     }
@@ -205,7 +211,7 @@ export async function renderSalesCard(container, userId) {
 
   container.innerHTML = HEADER_HTML + `
     <div style="display:flex;gap:28px;flex-wrap:wrap;margin-bottom:16px;">
-      <div><div class="stat-tile-value">${euros.format(monthTotal)}</div><div class="stat-tile-label">CA ce mois-ci</div></div>
+      <div><div class="stat-tile-value">${formatEuros(monthTotal)}</div><div class="stat-tile-label">CA ce mois-ci</div></div>
       <div><div class="stat-tile-value">${monthSales.length}</div><div class="stat-tile-label">Ventes ce mois-ci</div></div>
     </div>
 
