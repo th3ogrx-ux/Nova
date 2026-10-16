@@ -1,6 +1,6 @@
 // Carte "Ventes" du Tableau de bord : saisie rapide d'une vente, chiffre
-// d'affaires du mois, graphique du CA par jour sur 30 jours et dernières
-// ventes (table public.sales, voir sales.sql).
+// d'affaires du mois, graphique du CA par jour sur 30 jours, et bouton
+// "Historique" ouvrant la liste complète (table public.sales, voir sales.sql).
 import { supabase } from "../supabase.js";
 
 const CHART_DAYS = 30;
@@ -33,6 +33,93 @@ function svgEl(tag, attrs) {
   const el = document.createElementNS(SVG_NS, tag);
   for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
   return el;
+}
+
+const HEADER_HTML = `
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;">
+    <div class="panel-title" style="margin:0;">Ventes</div>
+    <button type="button" class="btn ghost btn-sm" id="sales-history-btn">Historique</button>
+  </div>
+`;
+
+function longDate(key) {
+  const [year, month, day] = key.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+// Fenêtre "Historique des ventes" : toutes les ventes, de la plus récente
+// à la plus ancienne, avec suppression. `onChanged` rafraîchit la carte.
+// z-index sous celui de la confirmation (60), pour qu'elle passe devant.
+async function openSalesHistory(userId, onChanged) {
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay open";
+  overlay.style.zIndex = "59";
+  overlay.innerHTML = `
+    <div class="card modal-box" style="max-width:520px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;">
+        <h2 style="font-size:16px;font-weight:700;letter-spacing:normal;text-transform:none;margin:0;">Historique des ventes</h2>
+        <button type="button" class="icon-btn" data-close title="Fermer" style="width:30px;height:30px;">✕</button>
+      </div>
+      <div data-body style="max-height:60vh;overflow-y:auto;"><p style="color:var(--text-dim);font-size:13px;">Chargement...</p></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const body = overlay.querySelector("[data-body]");
+
+  const close = () => {
+    overlay.remove();
+    document.removeEventListener("keydown", onKey);
+  };
+  // Échap ferme la fenêtre, sauf si une confirmation est ouverte par-dessus.
+  const onKey = (e) => {
+    if (e.key === "Escape" && !document.querySelector("#confirm-overlay.open")) close();
+  };
+  document.addEventListener("keydown", onKey);
+  overlay.querySelector("[data-close]").addEventListener("click", close);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+
+  async function load() {
+    const { data, error } = await supabase
+      .from("sales")
+      .select("id, client, amount, sold_on")
+      .eq("user_id", userId)
+      .order("sold_on", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) {
+      body.innerHTML = `<p class="error-msg">Impossible de charger l'historique.</p>`;
+      return;
+    }
+    const sales = data || [];
+    if (!sales.length) {
+      body.innerHTML = `<p style="color:var(--text-dim);font-size:13px;">Aucune vente enregistrée pour l'instant.</p>`;
+      return;
+    }
+    const total = sales.reduce((sum, s) => sum + Number(s.amount), 0);
+    body.innerHTML = `
+      <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;">${sales.length} vente${sales.length > 1 ? "s" : ""} — ${euros.format(total)} au total</div>
+      ${sales.map((s) => `
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(199,194,219,.12);font-size:13px;">
+          <span style="color:var(--text-dim);width:78px;flex-shrink:0;">${longDate(s.sold_on)}</span>
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(s.client) || `<span style="color:var(--text-dim);">Sans nom</span>`}</span>
+          <span style="font-weight:700;white-space:nowrap;">${euros.format(Number(s.amount))}</span>
+          <button type="button" class="icon-btn" data-delete-sale="${s.id}" title="Supprimer cette vente" style="width:26px;height:26px;flex-shrink:0;">✕</button>
+        </div>
+      `).join("")}
+    `;
+    body.querySelectorAll("[data-delete-sale]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const ok = await window.confirmDialog("Supprimer cette vente ?", { danger: true, confirmLabel: "Supprimer" });
+        if (!ok) return;
+        const { error: deleteError } = await supabase.from("sales").delete().eq("id", btn.dataset.deleteSale);
+        if (deleteError) return;
+        load();
+        onChanged();
+      });
+    });
+  }
+
+  load();
 }
 
 function renderBarChart(container, sales) {
@@ -87,7 +174,7 @@ function renderBarChart(container, sales) {
 }
 
 export async function renderSalesCard(container, userId) {
-  container.innerHTML = `<p style="color:var(--light-text-dim);font-size:13.5px;">Chargement des ventes...</p>`;
+  container.innerHTML = HEADER_HTML + `<p style="color:var(--light-text-dim);font-size:13.5px;">Chargement des ventes...</p>`;
 
   const monthStart = new Date();
   monthStart.setDate(1);
@@ -95,26 +182,22 @@ export async function renderSalesCard(container, userId) {
   const chartStart = daysAgoKey(CHART_DAYS - 1);
   const since = monthKey < chartStart ? monthKey : chartStart;
 
-  const [rangeRes, recentRes] = await Promise.all([
-    supabase.from("sales").select("amount, sold_on").eq("user_id", userId).gte("sold_on", since),
-    supabase.from("sales").select("id, client, amount, sold_on").eq("user_id", userId)
-      .order("sold_on", { ascending: false }).order("created_at", { ascending: false }).limit(5)
-  ]);
+  const rangeRes = await supabase.from("sales").select("amount, sold_on").eq("user_id", userId).gte("sold_on", since);
 
-  if (rangeRes.error || recentRes.error) {
-    const missingTable = /sales/.test((rangeRes.error || recentRes.error).message || "");
-    container.innerHTML = `<p class="error-msg">${missingTable
+  if (rangeRes.error) {
+    const missingTable = /sales/.test(rangeRes.error.message || "");
+    container.innerHTML = HEADER_HTML + `<p class="error-msg">${missingTable
       ? "La table des ventes n'existe pas encore : colle le fichier sales.sql dans Supabase (SQL Editor), puis recharge la page."
       : "Impossible de charger les ventes."}</p>`;
+    wireHistoryButton(container, userId);
     return;
   }
 
   const sales = rangeRes.data || [];
   const monthSales = sales.filter((s) => s.sold_on >= monthKey);
   const monthTotal = monthSales.reduce((sum, s) => sum + Number(s.amount), 0);
-  const recent = recentRes.data || [];
 
-  container.innerHTML = `
+  container.innerHTML = HEADER_HTML + `
     <div style="display:flex;gap:28px;flex-wrap:wrap;margin-bottom:16px;">
       <div><div class="stat-tile-value">${euros.format(monthTotal)}</div><div class="stat-tile-label">CA ce mois-ci</div></div>
       <div><div class="stat-tile-value">${monthSales.length}</div><div class="stat-tile-label">Ventes ce mois-ci</div></div>
@@ -138,20 +221,6 @@ export async function renderSalesCard(container, userId) {
     <div class="error-msg" id="sale-error"></div>
 
     <div id="sales-chart"></div>
-
-    ${recent.length ? `
-      <div style="margin-top:16px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--light-text-dim);">Dernières ventes</div>
-      <div style="margin-top:6px;">
-        ${recent.map((s) => `
-          <div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--light-border);font-size:13px;">
-            <span style="color:var(--light-text-dim);width:44px;">${shortDate(s.sold_on)}</span>
-            <span style="flex:1;">${escapeHtml(s.client) || "<span style=\"color:var(--light-text-dim);\">Sans nom</span>"}</span>
-            <span style="font-weight:700;">${euros.format(Number(s.amount))}</span>
-            <button type="button" class="icon-btn" data-delete-sale="${s.id}" title="Supprimer cette vente" style="width:26px;height:26px;">✕</button>
-          </div>
-        `).join("")}
-      </div>
-    ` : ""}
   `;
 
   renderBarChart(container.querySelector("#sales-chart"), sales);
@@ -183,12 +252,11 @@ export async function renderSalesCard(container, userId) {
     renderSalesCard(container, userId);
   });
 
-  container.querySelectorAll("[data-delete-sale]").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const ok = await window.confirmDialog("Supprimer cette vente ?", { danger: true, confirmLabel: "Supprimer" });
-      if (!ok) return;
-      const { error } = await supabase.from("sales").delete().eq("id", btn.dataset.deleteSale);
-      if (!error) renderSalesCard(container, userId);
-    });
+  wireHistoryButton(container, userId);
+}
+
+function wireHistoryButton(container, userId) {
+  container.querySelector("#sales-history-btn").addEventListener("click", () => {
+    openSalesHistory(userId, () => renderSalesCard(container, userId));
   });
 }

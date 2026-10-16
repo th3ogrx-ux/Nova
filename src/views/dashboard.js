@@ -169,10 +169,7 @@ export async function renderDashboard(root) {
   root.innerHTML = `
     <h1 class="page-title">Tableau de bord</h1>
 
-    <div class="card" style="padding:20px;margin-bottom:24px;">
-      <div class="panel-title">Ventes</div>
-      <div id="dashboard-sales"></div>
-    </div>
+    <div class="card" id="dashboard-sales" style="padding:20px;margin-bottom:24px;"></div>
 
     <div class="stat-grid" style="margin-bottom:24px;">
       ${TILES.map((t, i) => `<div class="card stat-tile"><div class="stat-tile-value">${countRes[i].count || 0}</div><div class="stat-tile-label">${t.label}</div></div>`).join("")}
