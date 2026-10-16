@@ -48,7 +48,21 @@ const SEARCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const CACHE_CATEGORY = "__radar_metiers__";
 const MAX_SCRAPE_BYTES = 50000;
 const CONTACT_PAGE_GUESSES = ["/contact"];
-const OSM_USER_AGENT = "ZenoaRadar/1.0 (app de prospection locale; contact via le site)";
+const OSM_USER_AGENT = "ZenoaRadar/1.0 (prospection locale; +https://github.com/th3ogrx-ux/Nova)";
+// Le fetch de Deno envoie par défaut "Accept-Language: *", que certains
+// serveurs (dont overpass-api.de) rejettent avec un 406 : on fixe donc
+// des en-têtes explicites sur chaque requête sortante.
+const OVERPASS_HEADERS = {
+  "User-Agent": OSM_USER_AGENT,
+  "Accept": "application/json",
+  "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
+  "Content-Type": "application/x-www-form-urlencoded"
+};
+const WEBSITE_HEADERS = {
+  "User-Agent": OSM_USER_AGENT,
+  "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
+  "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8"
+};
 const OVERPASS_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
@@ -191,8 +205,8 @@ async function runOverpass(query: string, firstEndpoint: number) {
     try {
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: { "User-Agent": OSM_USER_AGENT, "Content-Type": "text/plain" },
-        body: query,
+        headers: OVERPASS_HEADERS,
+        body: "data=" + encodeURIComponent(query),
         signal: AbortSignal.timeout(OVERPASS_REQUEST_TIMEOUT_MS)
       });
       if (!res.ok) {
@@ -279,7 +293,7 @@ async function fetchPage(url: string): Promise<string | null> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4000);
-    const res = await fetch(url, { signal: controller.signal, headers: { "User-Agent": OSM_USER_AGENT } });
+    const res = await fetch(url, { signal: controller.signal, headers: WEBSITE_HEADERS });
     clearTimeout(timeout);
     if (!res.ok || !res.body) return null;
 
