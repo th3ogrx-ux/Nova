@@ -177,7 +177,7 @@ function buildTagStatements() {
     .join("");
 }
 
-// Toutes les entreprises joignables (téléphone, email ou site) des
+// Toutes les entreprises joignables (téléphone ou email) des
 // métiers ciblés, dans un rectangle autour de la ville.
 async function searchCity(city, firstEndpoint) {
   const dLat = SEARCH_RADIUS_METERS / 111320;
@@ -194,7 +194,9 @@ async function searchCity(city, firstEndpoint) {
     const website = tags.website || tags["contact:website"] || null;
     const phone = tags.phone || tags["contact:phone"] || null;
     const email = tags.email || tags["contact:email"] || null;
-    if (!website && !phone && !email) continue;
+    // Un site seul ne suffit pas : l'email n'y est pas toujours trouvable,
+    // et la fiche resterait alors sans aucun moyen de contact direct.
+    if (!phone && !email) continue;
     results.push({
       osm_id: el.type + "/" + el.id,
       name: tags.name,
