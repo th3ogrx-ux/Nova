@@ -150,10 +150,31 @@ async function runOverpass(query, firstEndpoint) {
       }
       return data.elements || [];
     } catch (err) {
-      lastError = endpoint + " : " + err.message;
+      // "Failed to fetch" : le serveur a répondu une erreur sans en-têtes
+      // CORS (le navigateur masque alors le code), ou n'est pas joignable.
+      const host = new URL(endpoint).host;
+      lastError = err.name === "TimeoutError" ? host + " : trop lent" : host + " : refusé ou injoignable";
     }
   }
   throw new Error(lastError);
+}
+
+// Une instruction par clé OSM (craft, shop, office…) avec la liste de ses
+// valeurs, écrites sans guillemets autour de "clé=valeur" : les serveurs
+// Overpass rejetaient (406 / erreurs sans en-têtes CORS) la requête à
+// 54 filtres ["clé"="valeur"], motif typique de ce que les pare-feux
+// applicatifs prennent pour une injection SQL.
+function buildTagStatements() {
+  const valuesByKey = {};
+  for (const { key, value } of Object.values(CATEGORY_TAGS)) {
+    (valuesByKey[key] = valuesByKey[key] || []).push(value);
+  }
+  return Object.entries(valuesByKey)
+    .map(([key, values]) => {
+      const filter = values.length === 1 ? `[${key}=${values[0]}]` : `[${key}~"^(${values.join("|")})$"]`;
+      return `node${filter};way${filter};`;
+    })
+    .join("");
 }
 
 // Toutes les entreprises joignables (téléphone, email ou site) des
@@ -162,9 +183,7 @@ async function searchCity(city, firstEndpoint) {
   const dLat = SEARCH_RADIUS_METERS / 111320;
   const dLon = SEARCH_RADIUS_METERS / (111320 * Math.cos((city.lat * Math.PI) / 180));
   const bbox = [city.lat - dLat, city.lon - dLon, city.lat + dLat, city.lon + dLon].map((n) => n.toFixed(4)).join(",");
-  const statements = Object.values(CATEGORY_TAGS)
-    .map((t) => `node["${t.key}"="${t.value}"];way["${t.key}"="${t.value}"];`)
-    .join("");
+  const statements = buildTagStatements();
   const elements = await runOverpass(`[out:json][timeout:25][bbox:${bbox}];(${statements});out center tags ${RESULTS_PER_CITY};`, firstEndpoint);
 
   const results = [];
