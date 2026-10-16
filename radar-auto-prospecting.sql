@@ -22,11 +22,17 @@ create table if not exists public.radar_leads (
   category     text,
   city         text,
   site_quality text check (site_quality in ('no_site', 'needs_update', 'good')),
-  status       text not null default 'en_attente'
-                 check (status in ('en_attente', 'interesse', 'pas_interesse')),
+  status       text not null default 'en_attente',
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );
+
+-- Statuts : en_attente (à contacter) -> contacte (dans l'Historique,
+-- pas encore tranché) -> interesse / pas_interesse. Contrainte
+-- recréée à chaque exécution pour mettre à jour les bases existantes.
+alter table public.radar_leads drop constraint if exists radar_leads_status_check;
+alter table public.radar_leads add constraint radar_leads_status_check
+  check (status in ('en_attente', 'contacte', 'interesse', 'pas_interesse'));
 
 create unique index if not exists radar_leads_user_osm_unique
   on public.radar_leads (user_id, osm_id)

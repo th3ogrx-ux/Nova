@@ -10,10 +10,10 @@ const QUALITY_LABELS = {
   good: { label: "Site correct", cls: "ok" }
 };
 
-const LEAD_STATUS_LABELS = {
-  interesse: { label: "Intéressé", cls: "ok" },
-  pas_interesse: { label: "Pas intéressé", cls: "danger" }
-};
+// Parcours d'un prospect : "en_attente" (à contacter) -> bouton
+// "Contacté" -> Historique, où l'on indique "interesse" ou
+// "pas_interesse" (modifiable ; "contacte" = pas encore tranché).
+const HISTORY_STATUSES = ["contacte", "interesse", "pas_interesse"];
 
 export function renderRecherche(root) {
   root.innerHTML = `
@@ -64,7 +64,7 @@ function initLeadsTabs(root) {
 
     let query = supabase.from("radar_leads").select("*").eq("user_id", user.id);
     query = tab === "historique"
-      ? query.in("status", ["interesse", "pas_interesse"]).order("updated_at", { ascending: false })
+      ? query.in("status", HISTORY_STATUSES).order("updated_at", { ascending: false })
       : query.eq("status", "en_attente").order("created_at", { ascending: false });
 
     const { data: leads, error } = await query;
@@ -86,28 +86,30 @@ function initLeadsTabs(root) {
 function renderLeads(container, leads, tab, onChanged) {
   if (!leads.length) {
     container.innerHTML = tab === "historique"
-      ? `<p style="color:var(--light-text-dim);font-size:13.5px;">Aucun prospect traité pour l'instant.</p>`
+      ? `<p style="color:var(--light-text-dim);font-size:13.5px;">Aucun prospect contacté pour l'instant.</p>`
       : `<p style="color:var(--light-text-dim);font-size:13.5px;">Aucun prospect en attente — de nouvelles entreprises arrivent chaque jour à ta première visite.</p>`;
     return;
   }
 
   container.innerHTML = leads.map((lead) => leadCardHtml(lead, tab)).join("");
 
-  if (tab === "en_attente") {
-    leads.forEach((lead) => {
-      const card = container.querySelector(`[data-lead-id="${lead.id}"]`);
-      if (!card) return;
-      card.querySelector('[data-action="interesse"]').addEventListener("click", (e) => setLeadStatus(e.target, lead.id, "interesse", onChanged));
-      card.querySelector('[data-action="pas_interesse"]').addEventListener("click", (e) => setLeadStatus(e.target, lead.id, "pas_interesse", onChanged));
+  leads.forEach((lead) => {
+    const card = container.querySelector(`[data-lead-id="${lead.id}"]`);
+    if (!card) return;
+    card.querySelectorAll("[data-status]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (btn.dataset.status !== lead.status) setLeadStatus(btn, lead.id, btn.dataset.status, onChanged);
+      });
     });
-  }
+  });
 }
 
 function leadCardHtml(lead, tab) {
   const quality = QUALITY_LABELS[lead.site_quality] || QUALITY_LABELS.no_site;
-  const statusBadge = tab === "historique" && LEAD_STATUS_LABELS[lead.status]
-    ? `<span class="status-pill ${LEAD_STATUS_LABELS[lead.status].cls}">${LEAD_STATUS_LABELS[lead.status].label}</span>`
-    : `<span class="status-pill neutral">${quality.label}</span>`;
+  const actions = tab === "en_attente"
+    ? `<button type="button" class="btn-sm btn primary" data-status="contacte">Contacté</button>`
+    : `<button type="button" class="btn-sm btn ${lead.status === "interesse" ? "primary" : "ghost"}" data-status="interesse">Intéressé</button>
+       <button type="button" class="btn-sm btn ${lead.status === "pas_interesse" ? "danger" : "ghost"}" data-status="pas_interesse">Pas intéressé</button>`;
 
   return `
     <div class="card" data-lead-id="${lead.id}" style="margin-bottom:10px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">
@@ -120,13 +122,8 @@ function leadCardHtml(lead, tab) {
           ${lead.email ? `<span>✉️ ${escapeHtml(lead.email)}</span>` : ""}
         </div>
       </div>
-      ${statusBadge}
-      ${tab === "en_attente" ? `
-        <div style="display:flex;gap:8px;">
-          <button type="button" class="btn-sm btn primary" data-action="interesse">Intéressé</button>
-          <button type="button" class="btn-sm btn ghost" data-action="pas_interesse">Pas intéressé</button>
-        </div>
-      ` : ""}
+      <span class="status-pill neutral">${quality.label}</span>
+      <div style="display:flex;gap:8px;">${actions}</div>
     </div>
   `;
 }
