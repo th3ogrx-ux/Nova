@@ -120,6 +120,7 @@ function leadCardHtml(lead, tab) {
           ${lead.email ? `<span style="color:var(--accent-blue-2);font-weight:600;">✉️ ${escapeHtml(lead.email)}</span>` : ""}
           ${lead.website ? `<a href="${escapeHtml(lead.website)}" target="_blank" rel="noopener" style="color:var(--accent-blue-1);">🔗 Site web</a>` : ""}
         </div>
+        ${lead.address ? `<div style="font-size:11px;color:var(--light-text-dim);margin-top:5px;opacity:.8;">📍 ${escapeHtml(lead.address)}</div>` : ""}
       </div>
       <span class="status-pill neutral">${quality.label}</span>
       <div style="display:flex;gap:8px;">${actions}</div>
