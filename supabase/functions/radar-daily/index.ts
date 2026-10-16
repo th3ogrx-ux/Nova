@@ -37,8 +37,13 @@ const LEADS_PER_USER_PER_DAY = 50;
 const CITIES_PER_DAY = 3;              // une requête Overpass par ville
 const SEARCH_RADIUS_METERS = 10000;
 const RESULTS_PER_CITY = 400;          // limite "out ... N;" d'Overpass
+const OVERPASS_REQUEST_TIMEOUT_MS = 30000;
 const MAX_SCRAPES_PER_RUN = 60;        // sites web visités max (pour l'email)
 const SCRAPE_CONCURRENCY = 10;
+// La fonction est coupée au bout de 150 s (plan gratuit) : passé ce
+// délai depuis le démarrage, on ne lance plus de nouvelles visites de
+// sites, pour avoir fini avant la coupure.
+const SCRAPE_DEADLINE_MS = 110000;
 const SEARCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const CACHE_CATEGORY = "__radar_metiers__";
 const MAX_SCRAPE_BYTES = 50000;
@@ -46,7 +51,8 @@ const CONTACT_PAGE_GUESSES = ["/contact"];
 const OSM_USER_AGENT = "ZenoaRadar/1.0 (app de prospection locale; contact via le site)";
 const OVERPASS_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
-  "https://overpass.kumi.systems/api/interpreter"
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter"
 ];
 
 // Métiers ciblés -> tag OpenStreetMap. Déménageurs, wedding planners,
@@ -174,14 +180,20 @@ function categoryOf(tags: Record<string, string>) {
   return null;
 }
 
-async function runOverpass(query: string) {
+// Essaie chaque serveur Overpass à tour de rôle, en commençant par
+// `firstEndpoint` (pour répartir les villes entre les serveurs), avec
+// une limite de temps par serveur : un serveur saturé peut sinon faire
+// attendre la requête jusqu'à la coupure de la fonction.
+async function runOverpass(query: string, firstEndpoint: number) {
   let lastError = "";
-  for (const endpoint of OVERPASS_ENDPOINTS) {
+  for (let k = 0; k < OVERPASS_ENDPOINTS.length; k++) {
+    const endpoint = OVERPASS_ENDPOINTS[(firstEndpoint + k) % OVERPASS_ENDPOINTS.length];
     try {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "User-Agent": OSM_USER_AGENT, "Content-Type": "text/plain" },
-        body: query
+        body: query,
+        signal: AbortSignal.timeout(OVERPASS_REQUEST_TIMEOUT_MS)
       });
       if (!res.ok) {
         lastError = endpoint + " a répondu " + res.status;
@@ -203,7 +215,7 @@ async function runOverpass(query: string) {
 }
 
 // ---------- Overpass : tous les métiers ciblés autour d'une ville (cache 24h) ----------
-async function getCityResults(city: { name: string; lat: number; lon: number }, supabase: any) {
+async function getCityResults(city: { name: string; lat: number; lon: number }, supabase: any, firstEndpoint: number) {
   const cacheRes = await supabase
     .from("business_search_cache")
     .select("results, created_at")
@@ -219,7 +231,7 @@ async function getCityResults(city: { name: string; lat: number; lon: number }, 
   const statements = Object.values(CATEGORY_TAGS)
     .map((t) => `node["${t.key}"="${t.value}"]${around};way["${t.key}"="${t.value}"]${around};`)
     .join("");
-  const elements = await runOverpass(`[out:json][timeout:60];(${statements});out center tags ${RESULTS_PER_CITY};`);
+  const elements = await runOverpass(`[out:json][timeout:25];(${statements});out center tags ${RESULTS_PER_CITY};`, firstEndpoint);
 
   const results: any[] = [];
   for (const el of elements) {
@@ -308,19 +320,21 @@ async function inspectWebsite(website: string) {
   return { email, quality };
 }
 
-// Complète email/qualité des prospects retenus qui ont un site, par
-// lots parallèles, dans la limite du budget global de l'exécution.
-async function enrichWithWebsites(leads: any[], budget: { count: number }) {
+// Complète email/qualité des prospects qui ont un site, par lots
+// parallèles, dans la limite du budget de l'exécution et du délai
+// avant la coupure de la fonction.
+async function enrichWithWebsites(leads: any[], budget: { count: number }, startedAt: number) {
   const toScrape = leads.filter((l) => l.website && !l.email);
   for (let i = 0; i < toScrape.length; i += SCRAPE_CONCURRENCY) {
     const remaining = MAX_SCRAPES_PER_RUN - budget.count;
-    if (remaining <= 0) return;
+    if (remaining <= 0 || Date.now() - startedAt > SCRAPE_DEADLINE_MS) return;
     const batch = toScrape.slice(i, i + Math.min(SCRAPE_CONCURRENCY, remaining));
     budget.count += batch.length;
     await Promise.all(batch.map(async (lead) => {
       const info = await inspectWebsite(lead.website);
       lead.email = info.email;
       lead.site_quality = info.quality;
+      lead.enriched = true;
     }));
   }
 }
@@ -331,18 +345,21 @@ async function enrichWithWebsites(leads: any[], budget: { count: number }) {
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 
 async function generateDailyLeads(supabase: any) {
-  // ---------- Pool du jour (villes interrogées l'une après l'autre) ----------
+  const startedAt = Date.now();
   const cities = pickDaily(CITIES, CITIES_PER_DAY);
+  console.log("[radar-daily] démarrage — villes du jour :", cities.map((c) => c.name).join(", "));
+
+  // ---------- Pool du jour (villes en parallèle, chacune sur un serveur différent) ----------
+  const settled = await Promise.allSettled(cities.map((city, i) => getCityResults(city, supabase, i)));
   let pool: any[] = [];
-  for (const city of cities) {
-    try {
-      const results = await getCityResults(city, supabase);
-      console.log("[radar-daily]", city.name, ":", results.length, "entreprises joignables");
-      pool = pool.concat(results);
-    } catch (err) {
-      console.error("[radar-daily]", city.name, ": échec Overpass —", String(err));
+  settled.forEach((s, i) => {
+    if (s.status === "fulfilled") {
+      console.log("[radar-daily]", cities[i].name, ":", s.value.length, "entreprises joignables");
+      pool = pool.concat(s.value);
+    } else {
+      console.error("[radar-daily]", cities[i].name, ": échec Overpass —", String(s.reason));
     }
-  }
+  });
   shuffleInPlace(pool);
 
   // ---------- Utilisateurs inscrits ----------
@@ -356,7 +373,8 @@ async function generateDailyLeads(supabase: any) {
   }
   console.log("[radar-daily] pool", pool.length, "— utilisateurs", userIds.length);
 
-  const budget = { count: 0 };
+  // ---------- Insertion immédiate (sans attendre les emails) ----------
+  const inserted: Array<{ userId: string; leads: any[] }> = [];
   for (const userId of userIds) {
     const { data: existing } = await supabase
       .from("radar_leads")
@@ -373,8 +391,6 @@ async function generateDailyLeads(supabase: any) {
       continue;
     }
 
-    await enrichWithWebsites(fresh, budget);
-
     const rows = fresh.map((r) => ({
       user_id: userId,
       osm_id: r.osm_id,
@@ -390,8 +406,31 @@ async function generateDailyLeads(supabase: any) {
     }));
 
     const { error: insertError } = await supabase.from("radar_leads").insert(rows);
-    console.log("[radar-daily]", userId, ":", insertError ? "erreur " + insertError.message : rows.length + " prospects ajoutés");
+    if (insertError) {
+      console.error("[radar-daily]", userId, ": erreur d'insertion —", insertError.message);
+      continue;
+    }
+    console.log("[radar-daily]", userId, ":", rows.length, "prospects ajoutés");
+    inserted.push({ userId, leads: fresh });
   }
+
+  // ---------- Emails trouvés sur les sites, ajoutés après coup ----------
+  // Si la fonction est coupée pendant cette étape, les prospects sont
+  // déjà enregistrés : seuls quelques emails manqueront.
+  const budget = { count: 0 };
+  for (const { userId, leads } of inserted) {
+    await enrichWithWebsites(leads, budget, startedAt);
+    const updates = leads.filter((l) => l.enriched);
+    await Promise.all(updates.map((l) =>
+      supabase
+        .from("radar_leads")
+        .update({ email: l.email, site_quality: l.site_quality, updated_at: new Date().toISOString() })
+        .eq("user_id", userId)
+        .eq("osm_id", l.osm_id)
+    ));
+    console.log("[radar-daily]", userId, ":", updates.filter((l) => l.email).length, "emails trouvés sur", updates.length, "sites visités");
+  }
+  console.log("[radar-daily] terminé en", Math.round((Date.now() - startedAt) / 1000), "s");
 }
 
 Deno.serve(async (req) => {
