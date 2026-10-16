@@ -11,10 +11,14 @@
 // Protégée par le header "x-cron-secret", comparé au secret
 // RADAR_CRON_SECRET (Edge Functions > Secrets).
 //
+// Recherche : plutôt qu'une requête Overpass sur toute la France (trop
+// lourde, elle expire et renvoie une liste vide), on tire chaque jour
+// quelques grandes villes réparties sur le territoire et on cherche
+// tous les métiers ciblés autour de chacune, en une requête par ville.
+//
 // Budget : l'ancienne version de ce type de job avait planté en
-// production (WORKER_RESOURCE_LIMIT). On limite donc le nombre de
-// catégories interrogées par jour, et on ne visite les sites web (pour
-// trouver l'email) que pour les prospects réellement retenus, en
+// production (WORKER_RESOURCE_LIMIT). On ne visite donc les sites web
+// (pour trouver l'email) que pour les prospects réellement retenus, en
 // parallèle et avec un plafond global.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -30,15 +34,20 @@ const CORS_HEADERS = {
 };
 
 const LEADS_PER_USER_PER_DAY = 50;
-const CATEGORIES_PER_DAY = 3;          // appels Overpass par exécution
-const RESULTS_PER_CATEGORY = 150;      // limite "out ... N;" d'Overpass
+const CITIES_PER_DAY = 3;              // une requête Overpass par ville
+const SEARCH_RADIUS_METERS = 10000;
+const RESULTS_PER_CITY = 400;          // limite "out ... N;" d'Overpass
 const MAX_SCRAPES_PER_RUN = 60;        // sites web visités max (pour l'email)
 const SCRAPE_CONCURRENCY = 10;
 const SEARCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const FRANCE_CACHE_CITY = "__france__";
+const CACHE_CATEGORY = "__radar_metiers__";
 const MAX_SCRAPE_BYTES = 50000;
-const CONTACT_PAGE_GUESSES = ["/contact", "/nous-contacter"];
+const CONTACT_PAGE_GUESSES = ["/contact"];
 const OSM_USER_AGENT = "ZenoaRadar/1.0 (app de prospection locale; contact via le site)";
+const OVERPASS_ENDPOINTS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter"
+];
 
 // Métiers ciblés -> tag OpenStreetMap. Déménageurs, wedding planners,
 // nettoyage/services à domicile et e-commerçants n'ont pas de tag OSM
@@ -73,6 +82,51 @@ const CATEGORY_TAGS: Record<string, { key: string; value: string }> = {
   pme_industrielle: { key: "man_made", value: "works" }
 };
 
+// Grandes villes réparties sur tout le territoire (coordonnées en dur :
+// pas besoin de géocoder via Nominatim).
+const CITIES: Array<{ name: string; lat: number; lon: number }> = [
+  { name: "Paris", lat: 48.8566, lon: 2.3522 },
+  { name: "Marseille", lat: 43.2965, lon: 5.3698 },
+  { name: "Lyon", lat: 45.7640, lon: 4.8357 },
+  { name: "Toulouse", lat: 43.6047, lon: 1.4442 },
+  { name: "Nice", lat: 43.7102, lon: 7.2620 },
+  { name: "Nantes", lat: 47.2184, lon: -1.5536 },
+  { name: "Montpellier", lat: 43.6108, lon: 3.8767 },
+  { name: "Strasbourg", lat: 48.5734, lon: 7.7521 },
+  { name: "Bordeaux", lat: 44.8378, lon: -0.5792 },
+  { name: "Lille", lat: 50.6292, lon: 3.0573 },
+  { name: "Rennes", lat: 48.1173, lon: -1.6778 },
+  { name: "Reims", lat: 49.2583, lon: 4.0317 },
+  { name: "Toulon", lat: 43.1242, lon: 5.9280 },
+  { name: "Saint-Étienne", lat: 45.4397, lon: 4.3872 },
+  { name: "Le Havre", lat: 49.4944, lon: 0.1079 },
+  { name: "Grenoble", lat: 45.1885, lon: 5.7245 },
+  { name: "Dijon", lat: 47.3220, lon: 5.0415 },
+  { name: "Angers", lat: 47.4784, lon: -0.5632 },
+  { name: "Nîmes", lat: 43.8367, lon: 4.3601 },
+  { name: "Clermont-Ferrand", lat: 45.7772, lon: 3.0870 },
+  { name: "Le Mans", lat: 48.0061, lon: 0.1996 },
+  { name: "Aix-en-Provence", lat: 43.5297, lon: 5.4474 },
+  { name: "Brest", lat: 48.3904, lon: -4.4861 },
+  { name: "Tours", lat: 47.3941, lon: 0.6848 },
+  { name: "Amiens", lat: 49.8941, lon: 2.2958 },
+  { name: "Limoges", lat: 45.8336, lon: 1.2611 },
+  { name: "Annecy", lat: 45.8992, lon: 6.1294 },
+  { name: "Perpignan", lat: 42.6887, lon: 2.8948 },
+  { name: "Metz", lat: 49.1193, lon: 6.1757 },
+  { name: "Besançon", lat: 47.2378, lon: 6.0241 },
+  { name: "Orléans", lat: 47.9030, lon: 1.9093 },
+  { name: "Rouen", lat: 49.4432, lon: 1.0999 },
+  { name: "Mulhouse", lat: 47.7508, lon: 7.3359 },
+  { name: "Caen", lat: 49.1829, lon: -0.3707 },
+  { name: "Nancy", lat: 48.6921, lon: 6.1844 },
+  { name: "Avignon", lat: 43.9493, lon: 4.8055 },
+  { name: "Poitiers", lat: 46.5802, lon: 0.3404 },
+  { name: "La Rochelle", lat: 46.1603, lon: -1.1511 },
+  { name: "Pau", lat: 43.2951, lon: -0.3708 },
+  { name: "Bayonne", lat: 43.4929, lon: -1.4748 }
+];
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -81,13 +135,13 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 // Tirage déterministe pour la journée (relancer la fonction le même
-// jour redonne les mêmes catégories), qui change chaque jour.
-function pickDailyCategories(allCategories: string[], count: number) {
+// jour redonne le même tirage), qui change chaque jour.
+function pickDaily<T>(items: T[], count: number) {
   const seed = new Date().toISOString().slice(0, 10);
   let hash = 0;
   for (const ch of seed) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
 
-  const shuffled = [...allCategories];
+  const shuffled = [...items];
   for (let i = shuffled.length - 1; i > 0; i--) {
     hash = (hash * 1103515245 + 12345) >>> 0;
     const j = hash % (i + 1);
@@ -113,59 +167,90 @@ function buildAddress(tags: Record<string, string>) {
   return parts.length ? parts.join(", ") : null;
 }
 
-// ---------- Overpass : une catégorie dans toute la France (avec cache 24h) ----------
-async function getCountryResults(category: string, supabase: any) {
-  const tag = CATEGORY_TAGS[category];
+function categoryOf(tags: Record<string, string>) {
+  for (const [category, tag] of Object.entries(CATEGORY_TAGS)) {
+    if (tags[tag.key] === tag.value) return category;
+  }
+  return null;
+}
 
+async function runOverpass(query: string) {
+  let lastError = "";
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "User-Agent": OSM_USER_AGENT, "Content-Type": "text/plain" },
+        body: query
+      });
+      if (!res.ok) {
+        lastError = endpoint + " a répondu " + res.status;
+        continue;
+      }
+      const data = await res.json();
+      // Overpass répond 200 avec une "remark" quand la requête expire :
+      // on la traite comme un échec pour essayer le serveur suivant.
+      if (data.remark && !(data.elements || []).length) {
+        lastError = endpoint + " : " + data.remark;
+        continue;
+      }
+      return data.elements || [];
+    } catch (err) {
+      lastError = endpoint + " : " + String(err);
+    }
+  }
+  throw new Error(lastError);
+}
+
+// ---------- Overpass : tous les métiers ciblés autour d'une ville (cache 24h) ----------
+async function getCityResults(city: { name: string; lat: number; lon: number }, supabase: any) {
   const cacheRes = await supabase
     .from("business_search_cache")
     .select("results, created_at")
-    .eq("category", category)
-    .eq("city", FRANCE_CACHE_CITY)
+    .eq("category", CACHE_CATEGORY)
+    .eq("city", city.name)
     .maybeSingle();
 
   if (cacheRes.data && Date.now() - new Date(cacheRes.data.created_at).getTime() < SEARCH_CACHE_TTL_MS) {
     return cacheRes.data.results as any[];
   }
 
-  const query =
-    "[out:json][timeout:50];" +
-    'area["ISO3166-1"="FR"][admin_level=2]->.a;' +
-    "(" +
-    `node["${tag.key}"="${tag.value}"](area.a);` +
-    `way["${tag.key}"="${tag.value}"](area.a);` +
-    ");" +
-    `out center tags ${RESULTS_PER_CATEGORY};`;
-
-  const res = await fetch("https://overpass-api.de/api/interpreter", {
-    method: "POST",
-    headers: { "User-Agent": OSM_USER_AGENT, "Content-Type": "text/plain" },
-    body: query
-  });
-  if (!res.ok) throw new Error("Overpass a répondu " + res.status);
-  const data = await res.json();
+  const around = `(around:${SEARCH_RADIUS_METERS},${city.lat},${city.lon})`;
+  const statements = Object.values(CATEGORY_TAGS)
+    .map((t) => `node["${t.key}"="${t.value}"]${around};way["${t.key}"="${t.value}"]${around};`)
+    .join("");
+  const elements = await runOverpass(`[out:json][timeout:60];(${statements});out center tags ${RESULTS_PER_CITY};`);
 
   const results: any[] = [];
-  for (const el of data.elements || []) {
+  for (const el of elements) {
     const tags = el.tags || {};
-    if (!tags.name) continue;
+    const category = categoryOf(tags);
+    if (!tags.name || !category) continue;
     const website = tags.website || tags["contact:website"] || null;
+    const phone = tags.phone || tags["contact:phone"] || null;
+    const email = tags.email || tags["contact:email"] || null;
+    // Sans aucun moyen de contact, la fiche est inutile pour prospecter.
+    if (!website && !phone && !email) continue;
     results.push({
       osm_id: el.type + "/" + el.id,
       name: tags.name,
       address: buildAddress(tags),
-      phone: tags.phone || tags["contact:phone"] || null,
+      phone,
       website,
-      email: tags.email || tags["contact:email"] || null,
+      email,
       site_quality: website ? "needs_update" : "no_site",
-      city: tags["addr:city"] || null
+      category,
+      city: tags["addr:city"] || city.name
     });
   }
 
-  await supabase.from("business_search_cache").upsert(
-    { category, city: FRANCE_CACHE_CITY, results, created_at: new Date().toISOString() },
-    { onConflict: "category,city" }
-  );
+  // Un résultat vide n'est jamais mis en cache, pour pouvoir retenter.
+  if (results.length) {
+    await supabase.from("business_search_cache").upsert(
+      { category: CACHE_CATEGORY, city: city.name, results, created_at: new Date().toISOString() },
+      { onConflict: "category,city" }
+    );
+  }
 
   return results;
 }
@@ -246,28 +331,30 @@ async function enrichWithWebsites(leads: any[], budget: { count: number }) {
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 
 async function generateDailyLeads(supabase: any) {
-  // ---------- Pool du jour (catégories interrogées en parallèle) ----------
-  const categories = pickDailyCategories(Object.keys(CATEGORY_TAGS), CATEGORIES_PER_DAY);
-  const errors: string[] = [];
-  const settled = await Promise.allSettled(categories.map((c) => getCountryResults(c, supabase)));
-
+  // ---------- Pool du jour (villes interrogées l'une après l'autre) ----------
+  const cities = pickDaily(CITIES, CITIES_PER_DAY);
   let pool: any[] = [];
-  settled.forEach((s, i) => {
-    if (s.status === "fulfilled") pool = pool.concat(s.value.map((r: any) => ({ ...r, category: categories[i] })));
-    else errors.push(categories[i] + " : " + String(s.reason));
-  });
+  for (const city of cities) {
+    try {
+      const results = await getCityResults(city, supabase);
+      console.log("[radar-daily]", city.name, ":", results.length, "entreprises joignables");
+      pool = pool.concat(results);
+    } catch (err) {
+      console.error("[radar-daily]", city.name, ": échec Overpass —", String(err));
+    }
+  }
   shuffleInPlace(pool);
-  console.log("[radar-daily] catégories", categories.join(", "), "— pool", pool.length, errors.length ? "— erreurs " + errors.join(" | ") : "");
 
   // ---------- Utilisateurs inscrits ----------
   const userIds: string[] = [];
   for (let page = 1; ; page++) {
     const res = await supabase.auth.admin.listUsers({ page, perPage: 200 });
+    if (res && res.error) console.error("[radar-daily] listUsers :", res.error.message);
     const users = (res && res.data && res.data.users) || [];
-    if (res && res.error) errors.push("listUsers : " + res.error.message);
     userIds.push(...users.map((u: any) => u.id));
     if (users.length < 200) break;
   }
+  console.log("[radar-daily] pool", pool.length, "— utilisateurs", userIds.length);
 
   const budget = { count: 0 };
   for (const userId of userIds) {
@@ -318,9 +405,9 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false }
   });
 
-  // La recherche dans toute la France peut prendre plus d'une minute :
-  // on répond tout de suite et on termine en arrière-plan, sinon
-  // l'appelant (panneau de test du dashboard, pg_net) abandonne avant.
+  // La génération peut prendre plus d'une minute : on répond tout de
+  // suite et on termine en arrière-plan, sinon l'appelant (panneau de
+  // test du dashboard, pg_net) abandonne avant.
   EdgeRuntime.waitUntil(
     generateDailyLeads(supabase).catch((err) => console.error("[radar-daily] échec :", String(err)))
   );
