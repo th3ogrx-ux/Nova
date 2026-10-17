@@ -332,3 +332,12 @@ input:focus, textarea:focus, select:focus {
 #app[data-theme="dark"] .main .icon-btn:hover { background: rgba(241, 238, 251, .08); }
 #app[data-theme="dark"] .main .progress-track { background: rgba(241, 238, 251, .1); }
 #app[data-theme="dark"] .main .switch-track { background: rgba(241, 238, 251, .14); }
+
+/* ---------- Ressources (grille de cartes avec couverture) ---------- */
+.resource-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; }
+.resource-card { position: relative; padding: 0; overflow: hidden; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
+.resource-card:hover, .resource-card:focus-visible { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(28, 20, 48, .18); outline: none; }
+.resource-cover { aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; background: rgba(191, 90, 242, .08); border-bottom: 1px solid var(--light-border); overflow: hidden; }
+.resource-delete { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; background: rgba(0, 0, 0, .55) !important; color: #fff !important; border-color: transparent !important; opacity: 0; transition: opacity .15s ease; }
+.resource-card:hover .resource-delete, .resource-card:focus-within .resource-delete { opacity: 1; }
+@media (hover: none) { .resource-delete { opacity: 1; } }

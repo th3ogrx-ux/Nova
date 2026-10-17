@@ -4,6 +4,7 @@ import { getSession, onAuthChange, renderAuthScreen } from "./auth.js";
 import { supabase, supabaseConfigured } from "./supabase.js";
 import { renderDashboard } from "./views/dashboard.js";
 import { renderRecherche } from "./views/recherche.js";
+import { renderRessources } from "./views/ressources.js";
 import { renderDemoPage } from "./views/demo.js";
 import { renderSettings, setOnProfileUpdated, applyAvatarPreview } from "./views/settings.js";
 import { applyTheme } from "./theme.js";
@@ -27,6 +28,7 @@ if ("serviceWorker" in navigator) {
 const VIEWS = {
   dashboard: { render: renderDashboard, title: "Tableau de bord" },
   recherche: { render: renderRecherche, title: "Zenoa Radar" },
+  ressources: { render: renderRessources, title: "Ressources" },
   settings: { render: renderSettings, title: "Paramètres" },
 };
 
