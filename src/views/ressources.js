@@ -1,10 +1,10 @@
 // Ressources — liens et PDF, avec page de couverture et recherche.
 // Les PDF et leurs couvertures sont stockés dans le bucket privé
-// "resources" (un dossier par utilisateur, voir resources.sql) et lus via
+// "user-resources" (un dossier par utilisateur, voir resources.sql) et lus via
 // des liens signés temporaires.
 import { supabase } from "../supabase.js";
 
-const BUCKET = "resources";
+const BUCKET = "user-resources";
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
 const SIGNED_URL_SECONDS = 60 * 60;
 const COVER_WIDTH = 600;
@@ -194,7 +194,7 @@ function openAddModal(userId, onAdded) {
         if (!url) throw new Error("Colle un lien valide (https://…).");
         progressEl.textContent = "Récupération de l'aperçu…";
         const preview = await fetchLinkPreview(url);
-        const { error } = await supabase.from("resources").insert({
+        const { error } = await supabase.from("user_resources").insert({
           user_id: userId,
           kind: "link",
           title: (typedTitle || preview.title || hostOf(url) || url).slice(0, 200),
@@ -229,7 +229,7 @@ function openAddModal(userId, onAdded) {
           if (!coverUp.error) coverPath = `${userId}/${id}-cover.jpg`;
         }
 
-        const { error } = await supabase.from("resources").insert({
+        const { error } = await supabase.from("user_resources").insert({
           user_id: userId,
           kind: "pdf",
           title: (typedTitle || pdfTitle || file.name.replace(/\.pdf$/i, "")).slice(0, 200),
@@ -245,7 +245,7 @@ function openAddModal(userId, onAdded) {
       onAdded();
     } catch (err) {
       const message = err.message || String(err);
-      errorEl.textContent = /resources|bucket/i.test(message)
+      errorEl.textContent = /user_resources|user-resources|bucket/i.test(message)
         ? "La partie Ressources n'est pas encore installée dans Supabase : colle resources.sql dans le SQL Editor, puis réessaie. (" + message + ")"
         : message;
       progressEl.textContent = "";
@@ -324,12 +324,12 @@ export async function renderRessources(root) {
 
   async function load() {
     const { data, error } = await supabase
-      .from("resources")
+      .from("user_resources")
       .select("id, kind, title, url, file_path, cover_url, cover_path, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     if (error) {
-      listEl.innerHTML = `<p class="error-msg">${/resources/.test(error.message || "")
+      listEl.innerHTML = `<p class="error-msg">${/user_resources/.test(error.message || "")
         ? "La partie Ressources n'est pas encore installée : colle le fichier resources.sql dans Supabase (SQL Editor), puis recharge la page."
         : "Impossible de charger les ressources."}</p>`;
       return;
@@ -364,7 +364,7 @@ export async function renderRessources(root) {
   async function deleteItem(item) {
     const ok = await window.confirmDialog(`Supprimer « ${item.title} » ?`, { danger: true, confirmLabel: "Supprimer" });
     if (!ok) return;
-    const { error } = await supabase.from("resources").delete().eq("id", item.id);
+    const { error } = await supabase.from("user_resources").delete().eq("id", item.id);
     if (error) return;
     const files = [item.file_path, item.cover_path].filter(Boolean);
     if (files.length) await supabase.storage.from(BUCKET).remove(files);
