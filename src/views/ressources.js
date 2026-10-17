@@ -3,6 +3,8 @@
 // "user-resources" (un dossier par utilisateur, voir resources.sql) et lus via
 // des liens signés temporaires.
 import { supabase } from "../supabase.js";
+import { loadPdfjs } from "../pdf-loader.js";
+import { openPdfBook } from "./pdf-book.js";
 
 const BUCKET = "user-resources";
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
@@ -69,10 +71,7 @@ async function fetchLinkPreview(url) {
 
 // ---------- PDF : couverture (rendu de la 1re page) + titre interne ----------
 async function readPdf(file) {
-  const pdfjs = await import("pdfjs-dist");
-  const { default: workerUrl } = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
-  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
-
+  const pdfjs = await loadPdfjs();
   const doc = await pdfjs.getDocument({ data: await file.arrayBuffer(), isEvalSupported: false }).promise;
   try {
     let title = null;
@@ -348,7 +347,7 @@ export async function renderRessources(root) {
     if (item.kind === "pdf") {
       const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(item.file_path, SIGNED_URL_SECONDS);
       if (error || !data) return;
-      openViewer(item.title, data.signedUrl, data.signedUrl);
+      openPdfBook({ title: item.title, url: data.signedUrl });
       return;
     }
     const id = youtubeId(item.url);
