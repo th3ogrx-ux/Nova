@@ -182,5 +182,5 @@ export async function renderDashboard(root) {
   `;
 
   renderChart(root.querySelector("#dashboard-chart"), buildSeries(recentRes.data || []));
-  renderSalesCard(root.querySelector("#dashboard-sales"), user.id);
+  await renderSalesCard(root.querySelector("#dashboard-sales"), user.id);
 }

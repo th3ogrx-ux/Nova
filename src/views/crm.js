@@ -391,5 +391,5 @@ export async function renderCrm(root) {
     });
   }
 
-  load();
+  await load();
 }

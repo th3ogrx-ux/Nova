@@ -28,7 +28,7 @@ export function renderRecherche(root) {
     </div>
   `;
 
-  initLeadsTabs(root);
+  return initLeadsTabs(root);
 }
 
 // ---------- Onglets "En attente" / "Historique" ----------
@@ -80,7 +80,7 @@ function initLeadsTabs(root) {
   tabEnAttente.addEventListener("click", () => loadTab("en_attente"));
   tabHistorique.addEventListener("click", () => loadTab("historique"));
 
-  loadTab("en_attente", { generate: true });
+  return loadTab("en_attente", { generate: true });
 }
 
 function renderLeads(container, leads, tab, onChanged) {

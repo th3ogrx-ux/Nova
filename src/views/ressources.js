@@ -333,5 +333,5 @@ export async function renderRessources(root) {
 
   searchEl.addEventListener("input", draw);
   root.querySelector("#resource-add").addEventListener("click", () => openAddModal(user.id, load));
-  load();
+  await load();
 }

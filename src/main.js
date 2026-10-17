@@ -50,13 +50,90 @@ window.addEventListener("error", () => {
   if (stillBlank) showFatalError("Une erreur inattendue s'est produite au chargement. Essaie de rafraîchir la page.");
 });
 
+// Chaque page n'est construite qu'une fois, puis gardée en mémoire et
+// simplement masquée quand on en change : revenir dessus est instantané,
+// sans écran "Chargement". Les autres pages sont préparées en arrière-plan
+// juste après l'ouverture de l'appli. Le Tableau de bord, qui résume les
+// autres pages, se remet à jour discrètement à chaque retour ; une page
+// préparée un autre jour aussi (ex. nouveaux prospects du Radar).
+const mainEl = document.querySelector(".main");
+const viewCache = new Map(); // nom -> { el, day, scrollTop }
+let currentView = null;
+let shownUserId = null;
+
+const todayStamp = () => new Date().toDateString();
+
+function mountView(name) {
+  const el = document.createElement("div");
+  el.hidden = name !== currentView;
+  viewRoot.appendChild(el);
+  const entry = { el, day: todayStamp(), scrollTop: 0, ready: null };
+  viewCache.set(name, entry);
+  entry.ready = Promise.resolve(VIEWS[name].render(el)).catch((err) => console.error("[Zenoa Radar] page " + name + " :", err));
+  return entry;
+}
+
+// Reconstruit la page dans un calque caché, puis remplace l'ancienne d'un
+// coup une fois prête — sauf si on est en train d'y écrire ou qu'une
+// fenêtre est ouverte, pour ne rien faire perdre.
+function refreshInBackground(name) {
+  const entry = viewCache.get(name);
+  if (!entry || entry.refreshing) return;
+  entry.refreshing = true;
+  const fresh = document.createElement("div");
+  fresh.hidden = true;
+  viewRoot.appendChild(fresh);
+  Promise.resolve(VIEWS[name].render(fresh))
+    .then(() => {
+      const busy = entry.el.contains(document.activeElement) || document.querySelector(".modal-overlay.open");
+      if (busy || viewCache.get(name) !== entry) { fresh.remove(); return; }
+      fresh.hidden = entry.el.hidden;
+      entry.el.replaceWith(fresh);
+      entry.el = fresh;
+      entry.day = todayStamp();
+    })
+    .catch((err) => { console.error("[Zenoa Radar] mise à jour de " + name + " :", err); fresh.remove(); })
+    .finally(() => { entry.refreshing = false; });
+}
+
 function switchView(name) {
-  const view = VIEWS[name] || VIEWS.dashboard;
+  if (!VIEWS[name]) name = "dashboard";
+  const view = VIEWS[name];
   document.querySelectorAll(".nav-item").forEach((el) => {
     el.classList.toggle("active", el.dataset.view === name);
   });
   document.title = view.title + " — Zenoa Radar";
-  view.render(viewRoot);
+
+  const previous = currentView && viewCache.get(currentView);
+  if (previous) previous.scrollTop = mainEl.scrollTop;
+  currentView = name;
+
+  let entry = viewCache.get(name);
+  if (!entry) entry = mountView(name);
+  else if (name === "dashboard" || entry.day !== todayStamp()) refreshInBackground(name);
+  viewCache.forEach((e, n) => { e.el.hidden = n !== name; });
+  mainEl.scrollTop = entry.scrollTop;
+}
+
+// Prépare les autres pages une par une, quand le navigateur est libre.
+// On n'attend pas plus de 1,5 s chacune : la génération quotidienne du
+// Radar peut durer, elle ne doit pas retarder les pages suivantes.
+function prepareOtherViews() {
+  const idle = window.requestIdleCallback || ((cb) => setTimeout(cb, 300));
+  const queue = Object.keys(VIEWS).filter((n) => !viewCache.has(n));
+  const next = () => {
+    const name = queue.shift();
+    if (!name || !shownUserId) return;
+    const entry = viewCache.get(name) || mountView(name);
+    Promise.race([entry.ready, new Promise((r) => setTimeout(r, 1500))]).then(() => idle(next));
+  };
+  idle(next);
+}
+
+function clearViews() {
+  viewCache.forEach((e) => e.el.remove());
+  viewCache.clear();
+  currentView = null;
 }
 
 function wireNav() {
@@ -78,6 +155,11 @@ async function refreshSidebarProfile(session) {
 }
 
 async function showApp(session) {
+  // Supabase prévient aussi à chaque renouvellement de la connexion (environ
+  // toutes les heures) : on ne recharge l'appli que si l'utilisateur change.
+  if (shownUserId === session.user.id) return;
+  clearViews();
+  shownUserId = session.user.id;
   screenAuth.style.display = "none";
   app.style.display = "";
 
@@ -85,9 +167,12 @@ async function showApp(session) {
   await refreshSidebarProfile(session);
 
   switchView("dashboard");
+  viewCache.get("dashboard").ready.then(prepareOtherViews);
 }
 
 function showAuth() {
+  shownUserId = null;
+  clearViews();
   app.style.display = "none";
   screenAuth.style.display = "";
   renderAuthScreen(screenAuth, async () => {
