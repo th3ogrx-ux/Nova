@@ -29,7 +29,7 @@ if ("serviceWorker" in navigator) {
 const VIEWS = {
   dashboard: { render: renderDashboard, title: "Tableau de bord" },
   recherche: { render: renderRecherche, title: "Zenoa Radar" },
-  crm: { render: renderCrm, title: "CRM – Agence Web" },
+  crm: { render: renderCrm, title: "CRM" },
   ressources: { render: renderRessources, title: "Ressources" },
   settings: { render: renderSettings, title: "Paramètres" },
 };

@@ -1,4 +1,4 @@
-// CRM – Agence Web : suivi de l'activité de création de sites pour les
+// CRM : suivi de l'activité de création de sites pour les
 // entreprises locales. En haut, un tableau de bord ; dessous, les
 // prospects & clients (pipeline en colonnes, relances du jour, tableau
 // complet) et les projets des clients gagnés. Tables : crm-agence.sql.
@@ -58,7 +58,7 @@ function sortedRelances(prospects, today) {
 
 export async function renderCrm(root) {
   root.innerHTML = `
-    <h1 class="page-title">CRM – Agence Web</h1>
+    <h1 class="page-title">CRM</h1>
     <div id="crm-dashboard"><p style="color:var(--light-text-dim);font-size:13.5px;">Chargement…</p></div>
     <div id="crm-main"></div>
   `;
