@@ -1,5 +1,5 @@
-// Ressources — liens et PDF, avec page de couverture et recherche.
-// Les PDF et leurs couvertures sont stockés dans le bucket privé
+// Ressources — liens et PDF, avec couverture Zenoa et recherche.
+// Les PDF sont stockés dans le bucket privé
 // "user-resources" (un dossier par utilisateur, voir resources.sql) et lus via
 // des liens signés temporaires.
 import { supabase } from "../supabase.js";
@@ -9,7 +9,6 @@ import { openPdfBook } from "./pdf-book.js";
 const BUCKET = "user-resources";
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
 const SIGNED_URL_SECONDS = 60 * 60;
-const COVER_WIDTH = 600;
 
 function escapeHtml(str) {
   const div = document.createElement("div");
@@ -50,49 +49,26 @@ function normalize(str) {
   return (str || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
-// ---------- Aperçu d'un lien ----------
-// YouTube : miniature officielle. Autres sites : image et titre de la page
-// via Microlink (gratuit, sans clé ; le navigateur ne peut pas lire
-// lui-même une autre page web à cause du CORS). En cas d'échec, la carte
-// affiche simplement l'icône du site.
-async function fetchLinkPreview(url) {
-  const id = youtubeId(url);
-  const preview = { title: null, image: id ? `https://img.youtube.com/vi/${encodeURIComponent(id)}/hqdefault.jpg` : null };
+// ---------- Titre automatique (quand le champ titre est laissé vide) ----------
+// Lien : titre de la page via Microlink (gratuit, sans clé ; le navigateur
+// ne peut pas lire lui-même une autre page web à cause du CORS).
+async function fetchLinkTitle(url) {
   try {
     const res = await fetch("https://api.microlink.io/?url=" + encodeURIComponent(url), { signal: AbortSignal.timeout(8000) });
     const json = await res.json();
-    if (json && json.status === "success" && json.data) {
-      preview.title = typeof json.data.title === "string" ? json.data.title.slice(0, 200) : null;
-      if (!preview.image) preview.image = safeHttpUrl(json.data.image && json.data.image.url);
-    }
-  } catch { /* pas d'aperçu : la carte affichera l'icône du site */ }
-  return preview;
+    if (json && json.status === "success" && json.data && typeof json.data.title === "string") return json.data.title.slice(0, 200);
+  } catch { /* pas de titre : on prendra le nom du site */ }
+  return null;
 }
 
-// ---------- PDF : couverture (rendu de la 1re page) + titre interne ----------
-async function readPdf(file) {
+// PDF : titre enregistré dans le fichier.
+async function readPdfTitle(file) {
   const pdfjs = await loadPdfjs();
   const doc = await pdfjs.getDocument({ data: await file.arrayBuffer(), isEvalSupported: false }).promise;
   try {
-    let title = null;
-    try {
-      const meta = await doc.getMetadata();
-      const raw = meta && meta.info && typeof meta.info.Title === "string" ? meta.info.Title.trim() : "";
-      if (raw) title = raw.slice(0, 200);
-    } catch { /* pas de métadonnées */ }
-
-    const page = await doc.getPage(1);
-    const base = page.getViewport({ scale: 1 });
-    const viewport = page.getViewport({ scale: COVER_WIDTH / base.width });
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(viewport.width);
-    canvas.height = Math.round(viewport.height);
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    await page.render({ canvasContext: ctx, viewport }).promise;
-    const cover = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
-    return { cover, title };
+    const meta = await doc.getMetadata();
+    const raw = meta && meta.info && typeof meta.info.Title === "string" ? meta.info.Title.trim() : "";
+    return raw ? raw.slice(0, 200) : null;
   } finally {
     doc.destroy();
   }
@@ -191,14 +167,16 @@ function openAddModal(userId, onAdded) {
       if (kind === "link") {
         const url = safeHttpUrl(overlay.querySelector("[data-url]").value);
         if (!url) throw new Error("Colle un lien valide (https://…).");
-        progressEl.textContent = "Récupération de l'aperçu…";
-        const preview = await fetchLinkPreview(url);
+        let pageTitle = null;
+        if (!typedTitle) {
+          progressEl.textContent = "Récupération du titre…";
+          pageTitle = await fetchLinkTitle(url);
+        }
         const { error } = await supabase.from("user_resources").insert({
           user_id: userId,
           kind: "link",
-          title: (typedTitle || preview.title || hostOf(url) || url).slice(0, 200),
-          url,
-          cover_url: preview.image
+          title: (typedTitle || pageTitle || hostOf(url) || url).slice(0, 200),
+          url
         });
         if (error) throw error;
       } else {
@@ -209,34 +187,24 @@ function openAddModal(userId, onAdded) {
 
         const id = crypto.randomUUID();
         const filePath = `${userId}/${id}.pdf`;
-        let coverPath = null;
 
-        progressEl.textContent = "Création de la page de couverture…";
-        let cover = null;
         let pdfTitle = null;
-        try {
-          ({ cover, title: pdfTitle } = await readPdf(file));
-        } catch (err) {
-          console.warn("[Ressources] couverture impossible :", err);
+        if (!typedTitle) {
+          try { pdfTitle = await readPdfTitle(file); } catch (err) { console.warn("[Ressources] lecture du titre impossible :", err); }
         }
 
         progressEl.textContent = "Envoi du PDF…";
         const up = await supabase.storage.from(BUCKET).upload(filePath, file, { contentType: "application/pdf" });
         if (up.error) throw up.error;
-        if (cover) {
-          const coverUp = await supabase.storage.from(BUCKET).upload(`${userId}/${id}-cover.jpg`, cover, { contentType: "image/jpeg" });
-          if (!coverUp.error) coverPath = `${userId}/${id}-cover.jpg`;
-        }
 
         const { error } = await supabase.from("user_resources").insert({
           user_id: userId,
           kind: "pdf",
           title: (typedTitle || pdfTitle || file.name.replace(/\.pdf$/i, "")).slice(0, 200),
-          file_path: filePath,
-          cover_path: coverPath
+          file_path: filePath
         });
         if (error) {
-          await supabase.storage.from(BUCKET).remove([filePath, coverPath].filter(Boolean));
+          await supabase.storage.from(BUCKET).remove([filePath]);
           throw error;
         }
       }
@@ -254,29 +222,28 @@ function openAddModal(userId, onAdded) {
 }
 
 // ---------- Page ----------
-function coverHtml(item, signedCovers) {
-  if (item.kind === "pdf") {
-    const src = item.cover_path && signedCovers[item.cover_path];
-    return src
-      ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:top;">`
-      : `<div style="font-size:42px;">📄</div>`;
-  }
-  if (item.cover_url) {
-    return `<img src="${escapeHtml(item.cover_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;" onerror="this.replaceWith(Object.assign(document.createElement('div'),{textContent:'🔗',style:'font-size:42px'}))">`;
-  }
-  const host = hostOf(item.url);
-  return `<img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128" alt="" loading="lazy" style="width:56px;height:56px;border-radius:12px;">`;
+// Couverture "cinéma" identique pour toutes les ressources : logo Zenoa,
+// titre au centre. Seul le titre change d'une carte à l'autre.
+function coverHtml(item) {
+  const len = (item.title || "").length;
+  const size = len <= 28 ? "lg" : len <= 60 ? "md" : "sm";
+  return `
+    <div class="resource-cover cine-cover">
+      <div class="cine-beam"></div>
+      <div class="cine-brand"><img src="/sidebar-logo.png" alt=""><span>ZENOA</span></div>
+      <div class="cine-title cine-title-${size}">${escapeHtml(item.title)}</div>
+      <div class="cine-footer"><span></span>Ressources<span></span></div>
+      <div class="cine-shine"></div>
+    </div>
+  `;
 }
 
-function cardHtml(item, signedCovers) {
+function cardHtml(item) {
   const meta = item.kind === "pdf" ? "PDF" : hostOf(item.url);
   return `
     <div class="card resource-card" data-resource-id="${item.id}" tabindex="0" role="button" aria-label="Ouvrir ${escapeHtml(item.title)}">
-      <div class="resource-cover">${coverHtml(item, signedCovers)}</div>
-      <div style="padding:12px 14px;">
-        <div style="font-weight:700;font-size:13.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escapeHtml(item.title)}</div>
-        <div style="font-size:11.5px;color:var(--light-text-dim);margin-top:4px;">${item.kind === "pdf" ? "📄" : "🔗"} ${escapeHtml(meta)}</div>
-      </div>
+      ${coverHtml(item)}
+      <div style="padding:10px 14px;font-size:11.5px;color:var(--light-text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.kind === "pdf" ? "📄" : "🔗"} ${escapeHtml(meta)}</div>
       <button type="button" class="icon-btn resource-delete" data-delete title="Supprimer">✕</button>
     </div>
   `;
@@ -296,7 +263,6 @@ export async function renderRessources(root) {
   const searchEl = root.querySelector("#resource-search");
   const { data: { user } } = await supabase.auth.getUser();
   let items = [];
-  let signedCovers = {};
 
   function draw() {
     const q = normalize(searchEl.value.trim());
@@ -309,7 +275,7 @@ export async function renderRessources(root) {
       listEl.innerHTML = `<p style="color:var(--light-text-dim);font-size:13.5px;">Aucune ressource ne correspond à « ${escapeHtml(searchEl.value.trim())} ».</p>`;
       return;
     }
-    listEl.innerHTML = `<div class="resource-grid">${shown.map((i) => cardHtml(i, signedCovers)).join("")}</div>`;
+    listEl.innerHTML = `<div class="resource-grid">${shown.map(cardHtml).join("")}</div>`;
     listEl.querySelectorAll("[data-resource-id]").forEach((card) => {
       const item = items.find((i) => i.id === card.dataset.resourceId);
       card.addEventListener("click", (e) => {
@@ -324,7 +290,7 @@ export async function renderRessources(root) {
   async function load() {
     const { data, error } = await supabase
       .from("user_resources")
-      .select("id, kind, title, url, file_path, cover_url, cover_path, created_at")
+      .select("id, kind, title, url, file_path, cover_path, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     if (error) {
@@ -334,12 +300,6 @@ export async function renderRessources(root) {
       return;
     }
     items = data || [];
-    const coverPaths = items.map((i) => i.cover_path).filter(Boolean);
-    signedCovers = {};
-    if (coverPaths.length) {
-      const { data: signed } = await supabase.storage.from(BUCKET).createSignedUrls(coverPaths, SIGNED_URL_SECONDS);
-      (signed || []).forEach((s) => { if (s.signedUrl) signedCovers[s.path] = s.signedUrl; });
-    }
     draw();
   }
 
