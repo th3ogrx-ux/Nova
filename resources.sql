@@ -56,4 +56,10 @@ create policy "user-resources: delete own files" on storage.objects
   for delete to authenticated
   using (bucket_id = 'user-resources' and (storage.foldername(name))[1] = auth.uid()::text);
 
+-- ---------- Catégories ----------
+-- Les ressources déjà présentes vont dans la première catégorie.
+alter table public.user_resources add column if not exists category text
+  check (char_length(category) <= 100);
+update public.user_resources set category = 'Trouver les prospects' where category is null;
+
 notify pgrst, 'reload schema';

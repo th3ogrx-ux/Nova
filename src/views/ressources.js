@@ -7,6 +7,11 @@ import { loadPdfjs } from "../pdf-loader.js";
 import { openPdfBook } from "./pdf-book.js";
 
 const BUCKET = "user-resources";
+
+// Catégories de ressources, dans l'ordre d'affichage. Une ressource sans
+// catégorie (ajoutée avant leur création) est rangée dans la première.
+const CATEGORIES = ["Trouver les prospects"];
+const categoryOf = (item) => (CATEGORIES.includes(item.category) ? item.category : CATEGORIES[0]);
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
 const SIGNED_URL_SECONDS = 60 * 60;
 
@@ -132,6 +137,10 @@ function openAddModal(userId, onAdded) {
         <label class="field-label">Titre (facultatif)</label>
         <input type="text" data-title maxlength="200" placeholder="Rempli automatiquement si vide">
       </div>
+      <div class="field">
+        <label class="field-label">Choisir la catégorie</label>
+        <select data-category>${CATEGORIES.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("")}</select>
+      </div>
       <div class="error-msg" data-error></div>
       <div data-progress style="font-size:12.5px;color:var(--text-dim);min-height:16px;margin-bottom:6px;"></div>
       <div class="modal-actions" style="margin-top:10px;">
@@ -162,6 +171,7 @@ function openAddModal(userId, onAdded) {
     e.preventDefault();
     errorEl.textContent = "";
     const typedTitle = overlay.querySelector("[data-title]").value.trim();
+    const category = overlay.querySelector("[data-category]").value;
     submitBtn.disabled = true;
     try {
       if (kind === "link") {
@@ -175,6 +185,7 @@ function openAddModal(userId, onAdded) {
         const { error } = await supabase.from("user_resources").insert({
           user_id: userId,
           kind: "link",
+          category,
           title: (typedTitle || pageTitle || hostOf(url) || url).slice(0, 200),
           url
         });
@@ -200,6 +211,7 @@ function openAddModal(userId, onAdded) {
         const { error } = await supabase.from("user_resources").insert({
           user_id: userId,
           kind: "pdf",
+          category,
           title: (typedTitle || pdfTitle || file.name.replace(/\.pdf$/i, "")).slice(0, 200),
           file_path: filePath
         });
@@ -212,7 +224,9 @@ function openAddModal(userId, onAdded) {
       onAdded();
     } catch (err) {
       const message = err.message || String(err);
-      errorEl.textContent = /user_resources|user-resources|bucket/i.test(message)
+      errorEl.textContent = /category/i.test(message)
+        ? "Les catégories ne sont pas encore installées dans Supabase : colle le SQL des catégories (resources.sql) dans le SQL Editor, puis réessaie."
+        : /user_resources|user-resources|bucket/i.test(message)
         ? "La partie Ressources n'est pas encore installée dans Supabase : colle resources.sql dans le SQL Editor, puis réessaie. (" + message + ")"
         : message;
       progressEl.textContent = "";
@@ -275,7 +289,17 @@ export async function renderRessources(root) {
       listEl.innerHTML = `<p style="color:var(--light-text-dim);font-size:13.5px;">Aucune ressource ne correspond à « ${escapeHtml(searchEl.value.trim())} ».</p>`;
       return;
     }
-    listEl.innerHTML = `<div class="resource-grid">${shown.map(cardHtml).join("")}</div>`;
+    listEl.innerHTML = CATEGORIES.map((cat) => {
+      const inCat = shown.filter((i) => categoryOf(i) === cat);
+      if (!inCat.length && q) return "";
+      return `
+        <section class="resource-section">
+          <h2 class="resource-section-title">${escapeHtml(cat)}</h2>
+          ${inCat.length
+            ? `<div class="resource-grid">${inCat.map(cardHtml).join("")}</div>`
+            : `<p style="color:var(--light-text-dim);font-size:13px;">Rien dans cette catégorie pour l'instant.</p>`}
+        </section>`;
+    }).join("");
     listEl.querySelectorAll("[data-resource-id]").forEach((card) => {
       const item = items.find((i) => i.id === card.dataset.resourceId);
       card.addEventListener("click", (e) => {
@@ -290,7 +314,7 @@ export async function renderRessources(root) {
   async function load() {
     const { data, error } = await supabase
       .from("user_resources")
-      .select("id, kind, title, url, file_path, cover_path, created_at")
+      .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     if (error) {
