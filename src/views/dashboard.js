@@ -2,6 +2,8 @@
 // Radar : totaux par statut et graphique "Suivi" des 14 derniers jours
 // (même principe que le graphique de l'ancienne appli).
 import { supabase } from "../supabase.js";
+import { getCurrentUser } from "../session.js";
+import { readCache, writeCache, sameData } from "../data-cache.js";
 import { renderSalesCard } from "./sales-card.js";
 
 const DAYS = 14;
@@ -134,13 +136,7 @@ function renderChart(container, series) {
   container.appendChild(legend);
 }
 
-export async function renderDashboard(root) {
-  root.innerHTML = `
-    <h1 class="page-title">Tableau de bord</h1>
-    <p style="color:var(--light-text-dim);font-size:14px;margin-bottom:20px;">Chargement des statistiques...</p>
-  `;
-
-  const { data: { user } } = await supabase.auth.getUser();
+async function fetchDashboard(userId) {
   const since = new Date();
   since.setDate(since.getDate() - (DAYS - 1));
   since.setHours(0, 0, 0, 0);
@@ -148,31 +144,26 @@ export async function renderDashboard(root) {
   const countQuery = (status) => supabase
     .from("radar_leads")
     .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("status", status);
 
   const [recentRes, ...countRes] = await Promise.all([
     supabase
       .from("radar_leads")
       .select("status, updated_at")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .neq("status", "en_attente")
       .gte("updated_at", since.toISOString()),
     ...TILES.map((t) => countQuery(t.status))
   ]);
+  if (recentRes.error || countRes.some((r) => r.error)) return null;
+  return { recent: recentRes.data || [], counts: countRes.map((r) => r.count || 0) };
+}
 
-  if (recentRes.error || countRes.some((r) => r.error)) {
-    root.innerHTML = `<h1 class="page-title">Tableau de bord</h1><p class="error-msg">Impossible de charger les statistiques.</p>`;
-    return;
-  }
-
-  root.innerHTML = `
-    <h1 class="page-title">Tableau de bord</h1>
-
-    <div class="card" id="dashboard-sales" style="padding:20px;margin-bottom:24px;"></div>
-
+function drawStats(statsEl, stats) {
+  statsEl.innerHTML = `
     <div class="stat-grid" style="margin-bottom:24px;">
-      ${TILES.map((t, i) => `<div class="card stat-tile"><div class="stat-tile-value">${countRes[i].count || 0}</div><div class="stat-tile-label">${t.label}</div></div>`).join("")}
+      ${TILES.map((t, i) => `<div class="card stat-tile"><div class="stat-tile-value">${stats.counts[i]}</div><div class="stat-tile-label">${t.label}</div></div>`).join("")}
     </div>
 
     <div class="card" style="padding:20px;">
@@ -180,7 +171,31 @@ export async function renderDashboard(root) {
       <div id="dashboard-chart"></div>
     </div>
   `;
+  renderChart(statsEl.querySelector("#dashboard-chart"), buildSeries(stats.recent));
+}
 
-  renderChart(root.querySelector("#dashboard-chart"), buildSeries(recentRes.data || []));
-  await renderSalesCard(root.querySelector("#dashboard-sales"), user.id);
+// Affiche tout de suite les derniers chiffres connus (s'il y en a), puis
+// les chiffres à jour dès que Supabase répond.
+export async function renderDashboard(root) {
+  root.innerHTML = `
+    <h1 class="page-title">Tableau de bord</h1>
+    <div class="card" id="dashboard-sales" style="padding:20px;margin-bottom:24px;"></div>
+    <div id="dashboard-stats"><p style="color:var(--light-text-dim);font-size:14px;margin-bottom:20px;">Chargement des statistiques...</p></div>
+  `;
+  const statsEl = root.querySelector("#dashboard-stats");
+  const user = await getCurrentUser();
+  const cacheKey = "dashboard:" + user.id;
+  const cached = readCache(cacheKey);
+  if (cached) drawStats(statsEl, cached);
+
+  const [stats] = await Promise.all([
+    fetchDashboard(user.id),
+    renderSalesCard(root.querySelector("#dashboard-sales"), user.id)
+  ]);
+  if (!stats) {
+    if (!cached) statsEl.innerHTML = `<p class="error-msg">Impossible de charger les statistiques.</p>`;
+    return;
+  }
+  writeCache(cacheKey, stats);
+  if (!cached || !sameData(cached, stats)) drawStats(statsEl, stats);
 }

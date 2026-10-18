@@ -3,6 +3,8 @@
 // "user-resources" (un dossier par utilisateur, voir resources.sql) et lus via
 // des liens signés temporaires.
 import { supabase } from "../supabase.js";
+import { getCurrentUser } from "../session.js";
+import { readCache, writeCache, sameData } from "../data-cache.js";
 import { loadPdfjs } from "../pdf-loader.js";
 import { openPdfBook, preloadBookReader } from "./pdf-book.js";
 import { getPdfDocument } from "../pdf-loader.js";
@@ -281,7 +283,7 @@ export async function renderRessources(root) {
 
   const listEl = root.querySelector("#resource-list");
   const searchEl = root.querySelector("#resource-search");
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   let items = [];
 
   // Liens signés des PDF, gardés jusqu'à 5 min avant leur expiration :
@@ -348,6 +350,7 @@ export async function renderRessources(root) {
     });
   }
 
+  const cacheKey = "ressources:" + user.id;
   async function load() {
     const { data, error } = await supabase
       .from("user_resources")
@@ -355,16 +358,26 @@ export async function renderRessources(root) {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     if (error) {
+      if (items.length) return; // on garde les dernières ressources affichées
       listEl.innerHTML = `<p class="error-msg">${/user_resources/.test(error.message || "")
         ? "La partie Ressources n'est pas encore installée : colle le fichier resources.sql dans Supabase (SQL Editor), puis recharge la page."
         : "Impossible de charger les ressources."}</p>`;
       return;
     }
-    items = data || [];
-    draw();
+    const fresh = data || [];
+    writeCache(cacheKey, fresh);
+    const changed = !sameData(fresh, items) || !listEl.querySelector(".resource-section");
+    items = fresh;
+    if (changed) draw();
     signAllPdfs().catch(() => {});
     if (items.some((i) => i.kind === "pdf")) {
-      (window.requestIdleCallback || ((cb) => setTimeout(cb, 500)))(preloadBookReader);
+      (window.requestIdleCallback || ((cb) => setTimeout(cb, 500)))(() => {
+        preloadBookReader();
+        // Les 3 PDF les plus récents commencent à charger tout de suite
+        // (sauf en mode "économie de données") : souvent déjà prêts au clic.
+        const saveData = navigator.connection && navigator.connection.saveData;
+        if (!saveData) items.filter((i) => i.kind === "pdf").slice(0, 3).forEach(warmPdf);
+      });
     }
   }
 
@@ -396,5 +409,11 @@ export async function renderRessources(root) {
 
   searchEl.addEventListener("input", draw);
   root.querySelector("#resource-add").addEventListener("click", () => openAddModal(user.id, load));
+  // Les dernières ressources connues s'affichent tout de suite.
+  const cached = readCache(cacheKey);
+  if (cached && cached.length) {
+    items = cached;
+    draw();
+  }
   await load();
 }

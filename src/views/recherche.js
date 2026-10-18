@@ -2,6 +2,8 @@
 // ouverture de la journée, les prospects du jour sont générés (voir
 // src/radar-generate.js) : aucune recherche à lancer soi-même.
 import { supabase } from "../supabase.js";
+import { getCurrentUser } from "../session.js";
+import { readCache, writeCache, sameData } from "../data-cache.js";
 import { generateTodayLeadsIfNeeded } from "../radar-generate.js";
 
 const QUALITY_LABELS = {
@@ -24,6 +26,7 @@ export function renderRecherche(root) {
         <button type="button" class="btn btn-sm primary" id="tab-en-attente">En attente</button>
         <button type="button" class="btn btn-sm ghost" id="tab-historique">Historique</button>
       </div>
+      <div id="leads-status"></div>
       <div id="leads-list"></div>
     </div>
   `;
@@ -44,43 +47,66 @@ function initLeadsTabs(root) {
     tabHistorique.classList.toggle("ghost", tab !== "historique");
   }
 
-  let generationNotice = "";
+  const statusEl = root.querySelector("#leads-status");
+  let activeTab = "en_attente";
+  let shownKey = null; // onglet (et données) actuellement affichés
 
-  async function loadTab(tab, { generate = false } = {}) {
-    setActiveTab(tab);
-    listEl.innerHTML = `<p style="color:var(--light-text-dim);font-size:13.5px;">Chargement...</p>`;
-
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (generate) {
-      try {
-        await generateTodayLeadsIfNeeded(user.id, (message) => {
-          listEl.innerHTML = `<p style="color:var(--light-text-dim);font-size:13.5px;">${escapeHtml(message)}</p>`;
-        });
-      } catch (err) {
-        generationNotice = `<p class="error-msg" style="margin-bottom:12px;">${escapeHtml(err.message)}</p>`;
-      }
-    }
-
-    let query = supabase.from("radar_leads").select("*").eq("user_id", user.id);
+  async function fetchLeads(userId, tab) {
+    let query = supabase.from("radar_leads").select("*").eq("user_id", userId);
     query = tab === "historique"
       ? query.in("status", HISTORY_STATUSES).order("updated_at", { ascending: false })
       : query.eq("status", "en_attente").order("created_at", { ascending: false });
+    return query;
+  }
 
-    const { data: leads, error } = await query;
-    if (error) {
-      listEl.innerHTML = `<p class="error-msg">Erreur : ${escapeHtml(error.message)}</p>`;
-      return;
+  // Affiche tout de suite les derniers prospects connus de l'onglet, puis
+  // la liste à jour. `useCache: false` après un clic sur une fiche : on
+  // garde l'écran tel quel jusqu'à la liste à jour (pas de retour en arrière).
+  async function loadTab(tab, { useCache = true } = {}) {
+    activeTab = tab;
+    setActiveTab(tab);
+    const user = await getCurrentUser();
+    const cacheKey = `radar:${tab}:${user.id}`;
+    const cached = useCache ? readCache(cacheKey) : null;
+    if (cached) {
+      renderLeads(listEl, cached, tab, () => loadTab(tab, { useCache: false }));
+      shownKey = tab;
+    } else if (shownKey !== tab) {
+      listEl.innerHTML = `<p style="color:var(--light-text-dim);font-size:13.5px;">Chargement...</p>`;
     }
 
-    renderLeads(listEl, leads || [], tab, () => loadTab(tab));
-    if (tab === "en_attente" && generationNotice) listEl.insertAdjacentHTML("afterbegin", generationNotice);
+    const { data: leads, error } = await fetchLeads(user.id, tab);
+    if (activeTab !== tab) return; // on a changé d'onglet entre-temps
+    if (error) {
+      if (!cached) listEl.innerHTML = `<p class="error-msg">Erreur : ${escapeHtml(error.message)}</p>`;
+      return;
+    }
+    writeCache(cacheKey, leads || []);
+    if (!cached || !sameData(cached, leads || []) || shownKey !== tab) {
+      renderLeads(listEl, leads || [], tab, () => loadTab(tab, { useCache: false }));
+    }
+    shownKey = tab;
+  }
+
+  // Prospects du jour : cherchés en arrière-plan, au-dessus de la liste,
+  // sans bloquer la page (la recherche OpenStreetMap peut prendre du temps).
+  async function generateToday() {
+    const user = await getCurrentUser();
+    try {
+      const added = await generateTodayLeadsIfNeeded(user.id, (message) => {
+        statusEl.innerHTML = `<p class="radar-status"><span class="book-spinner" style="width:16px;height:16px;border-width:2px;"></span>${escapeHtml(message)}</p>`;
+      });
+      statusEl.innerHTML = "";
+      if (added && activeTab === "en_attente") await loadTab("en_attente", { useCache: false });
+    } catch (err) {
+      statusEl.innerHTML = `<p class="error-msg" style="margin-bottom:12px;">${escapeHtml(err.message)}</p>`;
+    }
   }
 
   tabEnAttente.addEventListener("click", () => loadTab("en_attente"));
   tabHistorique.addEventListener("click", () => loadTab("historique"));
 
-  return loadTab("en_attente", { generate: true });
+  return Promise.all([loadTab("en_attente"), generateToday()]);
 }
 
 function renderLeads(container, leads, tab, onChanged) {

@@ -27,7 +27,7 @@ function escapeHtml(str) {
 // tout de suite, sans attendre le lien signé).
 export function openPdfBook({ title, url }) {
   const overlay = document.createElement("div");
-  overlay.className = "modal-overlay open book-overlay";
+  overlay.className = "modal-overlay open book-overlay is-loading";
   overlay.style.zIndex = "59";
   overlay.innerHTML = `
     <div class="book-header">
@@ -40,7 +40,8 @@ export function openPdfBook({ title, url }) {
     </div>
     <div class="book-stage" data-stage>
       <button type="button" class="book-nav book-nav-prev" data-prev title="Page précédente (←)" aria-label="Page précédente">‹</button>
-      <div class="book-container" data-book><div class="book-loading"><span class="book-spinner"></span>Ouverture du livre…</div></div>
+      <div class="book-container" data-book></div>
+      <div class="book-loading book-loading-overlay" data-loading><span class="book-spinner"></span>Ouverture du livre…</div>
       <button type="button" class="book-nav book-nav-next" data-next title="Page suivante (→)" aria-label="Page suivante">›</button>
     </div>
   `;
@@ -48,6 +49,7 @@ export function openPdfBook({ title, url }) {
 
   const counterEl = overlay.querySelector("[data-counter]");
   const bookEl = overlay.querySelector("[data-book]");
+  const loadingEl = overlay.querySelector("[data-loading]");
   const prevBtn = overlay.querySelector("[data-prev]");
   const nextBtn = overlay.querySelector("[data-next]");
   let pageFlip = null;
@@ -104,8 +106,6 @@ export function openPdfBook({ title, url }) {
         el.innerHTML = `<canvas></canvas><span class="book-page-number">${i + 1}</span>`;
         pageEls.push(el);
       }
-      bookEl.innerHTML = "";
-      pageEls.forEach((el) => bookEl.appendChild(el));
 
       const rendered = new Set();
       async function renderPage(index) {
@@ -142,6 +142,10 @@ export function openPdfBook({ title, url }) {
       await renderPage(0); // la couverture s'affiche déjà dessinée
       if (closed) return;
       renderAround(0);
+      // Pages ajoutées cachées, puis montrées une fois rangées en livre :
+      // sinon on les voit un instant empilées (grand trait blanc).
+      bookEl.style.visibility = "hidden";
+      pageEls.forEach((el) => bookEl.appendChild(el));
       pageFlip = new PageFlip(bookEl, {
         width: pageW,
         height: pageH,
@@ -160,9 +164,16 @@ export function openPdfBook({ title, url }) {
       });
       pageFlip.on("changeOrientation", () => updateControls(pageFlip.getCurrentPageIndex()));
       updateControls(0);
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        bookEl.style.visibility = "";
+        loadingEl.remove();
+        overlay.classList.remove("is-loading");
+      }));
     } catch (err) {
       console.error("[Livre PDF]", err);
       if (!closed) {
+        loadingEl.remove();
+        bookEl.style.visibility = "";
         bookEl.innerHTML = pdfUrl
           ? `<p class="book-loading">Impossible d'afficher ce PDF en mode livre. <a href="${escapeHtml(pdfUrl)}" target="_blank" rel="noopener" style="color:var(--warm-2);">L'ouvrir dans un onglet</a></p>`
           : `<p class="book-loading">Impossible d'ouvrir ce PDF pour le moment. Réessaie dans un instant.</p>`;

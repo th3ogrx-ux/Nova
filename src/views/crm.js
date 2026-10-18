@@ -3,6 +3,8 @@
 // prospects & clients (pipeline en colonnes, relances du jour, tableau
 // complet) et les projets des clients gagnés. Tables : crm-agence.sql.
 import { supabase } from "../supabase.js";
+import { getCurrentUser } from "../session.js";
+import { readCache, writeCache, sameData } from "../data-cache.js";
 import {
   ETAPES, STATUTS, ETAPE_COLORS, STATUT_PILLS, PROJETS_TABLE,
   escapeHtml, dateKey, addDays, shortDate, formatEuros, normalize, isRelanceDue,
@@ -65,22 +67,32 @@ export async function renderCrm(root) {
 
   const dashEl = root.querySelector("#crm-dashboard");
   const mainEl = root.querySelector("#crm-main");
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   let data = { prospects: [], projets: [] };
   let tab = "prospects";
   let view = readSavedView();
   let search = "";
 
+  // Première fois : affiche tout de suite les dernières données connues,
+  // puis les données à jour (redessin seulement si elles ont changé).
+  const cacheKey = "crm:" + user.id;
+  let shownFromCache = false;
   async function load() {
+    let fresh;
     try {
-      data = await loadCrm(user.id);
+      fresh = await loadCrm(user.id);
     } catch (err) {
+      if (shownFromCache) return;
       dashEl.innerHTML = `<p class="error-msg">${isMissingTable(err) ? MISSING_TABLE_MESSAGE : "Impossible de charger le CRM : " + escapeHtml(err.message)}</p>`;
       mainEl.innerHTML = "";
       return;
     }
-    renderAll();
+    writeCache(cacheKey, fresh);
+    const changed = !sameData(fresh, data);
+    data = fresh;
+    if (changed || !shownFromCache) renderAll();
+    shownFromCache = false;
   }
 
   const editProspect = (p) => openProspectModal(user.id, p, load);
@@ -390,5 +402,11 @@ export async function renderCrm(root) {
     });
   }
 
+  const cached = readCache(cacheKey);
+  if (cached) {
+    data = cached;
+    shownFromCache = true;
+    renderAll();
+  }
   await load();
 }

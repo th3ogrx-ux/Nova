@@ -1,5 +1,6 @@
 // Paramètres — pseudo, photo de profil, apparence, déconnexion, suppression de compte.
 import { supabase } from "../supabase.js";
+import { getCurrentUser } from "../session.js";
 import { signOut } from "../auth.js";
 import { getTheme, setTheme } from "../theme.js";
 
@@ -71,7 +72,7 @@ export async function renderSettings(root) {
     </div>
   `;
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   const { data: profile } = await supabase.from("user_profiles").select("pseudo, avatar_url").eq("user_id", user.id).maybeSingle();
 
   const pseudoInput = root.querySelector("#settings-pseudo");

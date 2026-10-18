@@ -9,6 +9,8 @@ import { renderCrm } from "./views/crm.js";
 import { renderDemoPage } from "./views/demo.js";
 import { renderSettings, setOnProfileUpdated, applyAvatarPreview } from "./views/settings.js";
 import { applyTheme } from "./theme.js";
+import { setCurrentUser } from "./session.js";
+import { readCache, writeCache, clearCache } from "./data-cache.js";
 
 // Applique le mode sombre/clair enregistré avant le premier rendu de
 // l'appli (#app reste de toute façon caché jusqu'à la connexion).
@@ -146,12 +148,21 @@ function wireNav() {
   document.getElementById("settings-btn").addEventListener("click", () => switchView("settings"));
 }
 
+// Nom et photo de la barre latérale : les derniers connus s'affichent tout
+// de suite, puis ceux à jour.
 async function refreshSidebarProfile(session) {
   const email = session.user.email || "";
-  const { data: profile } = await supabase.from("user_profiles").select("pseudo, avatar_url").eq("user_id", session.user.id).maybeSingle();
-  const pseudo = profile && profile.pseudo;
-  document.getElementById("my-name-display").textContent = pseudo || email;
-  applyAvatarPreview(document, "#my-avatar", (profile && profile.avatar_url) || null, email);
+  const cacheKey = "profile:" + session.user.id;
+  const show = (profile) => {
+    document.getElementById("my-name-display").textContent = (profile && profile.pseudo) || email;
+    applyAvatarPreview(document, "#my-avatar", (profile && profile.avatar_url) || null, email);
+  };
+  const cached = readCache(cacheKey);
+  show(cached);
+  const { data: profile, error } = await supabase.from("user_profiles").select("pseudo, avatar_url").eq("user_id", session.user.id).maybeSingle();
+  if (error) return;
+  writeCache(cacheKey, profile || {});
+  show(profile);
 }
 
 async function showApp(session) {
@@ -160,18 +171,22 @@ async function showApp(session) {
   if (shownUserId === session.user.id) return;
   clearViews();
   shownUserId = session.user.id;
+  setCurrentUser(session.user);
   screenAuth.style.display = "none";
   app.style.display = "";
 
   setOnProfileUpdated(() => refreshSidebarProfile(session));
-  await refreshSidebarProfile(session);
+  refreshSidebarProfile(session); // sans attendre : n'empêche pas la page de s'afficher
 
   switchView("dashboard");
   viewCache.get("dashboard").ready.then(prepareOtherViews);
 }
 
 function showAuth() {
+  // Déconnexion : on oublie l'utilisateur et ses données gardées en mémoire.
+  if (shownUserId) clearCache();
   shownUserId = null;
+  setCurrentUser(null);
   clearViews();
   app.style.display = "none";
   screenAuth.style.display = "";

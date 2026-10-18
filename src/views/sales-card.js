@@ -2,6 +2,7 @@
 // d'affaires du mois, graphique du CA par jour sur 30 jours, et bouton
 // "Historique" ouvrant la liste complète (table public.sales, voir sales.sql).
 import { supabase } from "../supabase.js";
+import { readCache, writeCache, sameData } from "../data-cache.js";
 
 const CHART_DAYS = 30;
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -185,8 +186,12 @@ function renderBarChart(container, sales) {
   }
 }
 
+// Affiche tout de suite les dernières ventes connues, puis les ventes à jour.
 export async function renderSalesCard(container, userId) {
-  container.innerHTML = HEADER_HTML + `<p style="color:var(--light-text-dim);font-size:13.5px;">Chargement des ventes...</p>`;
+  const cacheKey = "sales:" + userId;
+  const cached = readCache(cacheKey);
+  if (cached) drawSalesCard(container, userId, cached);
+  else container.innerHTML = HEADER_HTML + `<p style="color:var(--light-text-dim);font-size:13.5px;">Chargement des ventes...</p>`;
 
   const monthStart = new Date();
   monthStart.setDate(1);
@@ -197,6 +202,7 @@ export async function renderSalesCard(container, userId) {
   const rangeRes = await supabase.from("sales").select("amount, sold_on").eq("user_id", userId).gte("sold_on", since);
 
   if (rangeRes.error) {
+    if (cached) return; // on garde les dernières ventes affichées
     const missingTable = /sales/.test(rangeRes.error.message || "");
     container.innerHTML = HEADER_HTML + `<p class="error-msg">${missingTable
       ? "La table des ventes n'existe pas encore : colle le fichier sales.sql dans Supabase (SQL Editor), puis recharge la page."
@@ -206,6 +212,17 @@ export async function renderSalesCard(container, userId) {
   }
 
   const sales = rangeRes.data || [];
+  writeCache(cacheKey, sales);
+  // Pas de redessin si rien n'a changé (ou si l'on est en train d'écrire
+  // une vente : on ne vide pas le formulaire sous les doigts).
+  if (cached && (sameData(cached, sales) || container.contains(document.activeElement))) return;
+  drawSalesCard(container, userId, sales);
+}
+
+function drawSalesCard(container, userId, sales) {
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  const monthKey = dateKey(monthStart);
   const monthSales = sales.filter((s) => s.sold_on >= monthKey);
   const monthTotal = monthSales.reduce((sum, s) => sum + Number(s.amount), 0);
 
