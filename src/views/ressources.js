@@ -109,12 +109,11 @@ function openModal(innerHtml, { wide = false } = {}) {
   return { overlay, close };
 }
 
-function openViewer(title, src, externalUrl) {
+function openViewer(title, src) {
   openModal(`
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;">
       <h2 style="font-size:15px;font-weight:700;letter-spacing:normal;text-transform:none;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(title)}</h2>
       <div style="display:flex;gap:8px;flex-shrink:0;">
-        <a class="btn ghost btn-sm" href="${escapeHtml(externalUrl)}" target="_blank" rel="noopener">Ouvrir dans un onglet</a>
         <button type="button" class="icon-btn" data-close title="Fermer" style="width:32px;height:32px;">✕</button>
       </div>
     </div>
@@ -371,13 +370,7 @@ export async function renderRessources(root) {
     if (changed) draw();
     signAllPdfs().catch(() => {});
     if (items.some((i) => i.kind === "pdf")) {
-      (window.requestIdleCallback || ((cb) => setTimeout(cb, 500)))(() => {
-        preloadBookReader();
-        // Les 3 PDF les plus récents commencent à charger tout de suite
-        // (sauf en mode "économie de données") : souvent déjà prêts au clic.
-        const saveData = navigator.connection && navigator.connection.saveData;
-        if (!saveData) items.filter((i) => i.kind === "pdf").slice(0, 3).forEach(warmPdf);
-      });
+      (window.requestIdleCallback || ((cb) => setTimeout(cb, 500)))(preloadBookReader);
     }
   }
 
@@ -388,7 +381,7 @@ export async function renderRessources(root) {
     }
     const id = youtubeId(item.url);
     if (id) {
-      openViewer(item.title, `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}`, item.url);
+      openViewer(item.title, `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}`);
       return;
     }
     // La plupart des sites interdisent l'affichage dans une autre page :

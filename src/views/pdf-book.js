@@ -3,14 +3,14 @@
 // page). Rendu des pages par pdf.js, animation par StPageFlip (MIT).
 // Les pages ne sont dessinées qu'autour de la page courante, pour ouvrir
 // vite même un gros PDF.
-import { loadPdfWorker, getPdfDocument } from "../pdf-loader.js";
+import { loadPdfjs, getPdfDocument } from "../pdf-loader.js";
 
 const loadPageFlip = () => import("page-flip/dist/js/page-flip.module.js");
 
 // Télécharge le lecteur (pdf.js, son worker, l'animation) en avance, pour
 // que le premier livre s'ouvre sans attendre.
 export function preloadBookReader() {
-  loadPdfWorker().catch(() => {});
+  loadPdfjs().catch(() => {});
   loadPageFlip().catch(() => {});
 }
 
@@ -34,14 +34,13 @@ export function openPdfBook({ title, url }) {
       <div class="book-title">${escapeHtml(title)}</div>
       <div class="book-counter" data-counter></div>
       <div style="display:flex;gap:8px;flex-shrink:0;">
-        <a class="btn ghost btn-sm" data-tab-link target="_blank" rel="noopener" style="display:none;">Ouvrir dans un onglet</a>
         <button type="button" class="icon-btn" data-close title="Fermer (Échap)" style="width:32px;height:32px;">✕</button>
       </div>
     </div>
     <div class="book-stage" data-stage>
       <button type="button" class="book-nav book-nav-prev" data-prev title="Page précédente (←)" aria-label="Page précédente">‹</button>
       <div class="book-container" data-book></div>
-      <div class="book-loading book-loading-overlay" data-loading><span class="book-spinner"></span>Ouverture du livre…</div>
+      <div class="book-loading book-loading-overlay" data-loading><span class="book-spinner"></span><span data-loading-text>Ouverture du livre…</span></div>
       <button type="button" class="book-nav book-nav-next" data-next title="Page suivante (→)" aria-label="Page suivante">›</button>
     </div>
   `;
@@ -80,10 +79,9 @@ export function openPdfBook({ title, url }) {
   (async () => {
     try {
       pdfUrl = await url;
-      const tabLink = overlay.querySelector("[data-tab-link]");
-      tabLink.href = pdfUrl;
-      tabLink.style.display = "";
-      const [{ PageFlip }, loadedDoc] = await Promise.all([loadPageFlip(), getPdfDocument(pdfUrl)]);
+      const loadingText = overlay.querySelector("[data-loading-text]");
+      const onProgress = (p) => { if (p > 0) loadingText.textContent = `Ouverture du livre… ${p} %`; };
+      const [{ PageFlip }, loadedDoc] = await Promise.all([loadPageFlip(), getPdfDocument(pdfUrl, onProgress)]);
       doc = loadedDoc;
       if (closed) return;
 
@@ -174,9 +172,16 @@ export function openPdfBook({ title, url }) {
       if (!closed) {
         loadingEl.remove();
         bookEl.style.visibility = "";
-        bookEl.innerHTML = pdfUrl
-          ? `<p class="book-loading">Impossible d'afficher ce PDF en mode livre. <a href="${escapeHtml(pdfUrl)}" target="_blank" rel="noopener" style="color:var(--warm-2);">L'ouvrir dans un onglet</a></p>`
-          : `<p class="book-loading">Impossible d'ouvrir ce PDF pour le moment. Réessaie dans un instant.</p>`;
+        overlay.classList.remove("is-loading");
+        bookEl.innerHTML = `
+          <div class="book-loading">
+            <p style="margin:0;">Impossible d'ouvrir ce PDF pour le moment (${escapeHtml(err.message || "erreur inconnue")}).</p>
+            <button type="button" class="btn primary btn-sm" data-retry>Réessayer</button>
+          </div>`;
+        bookEl.querySelector("[data-retry]").addEventListener("click", () => {
+          close();
+          openPdfBook({ title, url });
+        });
       }
     }
   })();

@@ -14,39 +14,77 @@ export function loadPdfjs() {
   return pdfjsPromise;
 }
 
-// Un seul "worker" pdf.js, démarré à l'avance et réutilisé pour tous les PDF
-// (sinon chaque ouverture relance le sien).
-let workerPromise = null;
+// PDF téléchargé en entier en une seule demande (avec la progression en %),
+// puis ouvert. Le chargement par petits morceaux était plus rapide en test
+// mais pouvait rester bloqué indéfiniment avec le stockage Supabase.
+// Les documents ouverts restent en mémoire : rouvrir un livre est immédiat.
+const MAX_OPEN_DOCS = 3;
+const STALL_MS = 30000; // plus rien reçu pendant 30 s : on abandonne
+const docs = new Map(); // url -> { promise, percent, listeners }
 
-export function loadPdfWorker() {
-  if (!workerPromise) workerPromise = loadPdfjs().then((pdfjs) => new pdfjs.PDFWorker({ name: "zenoa-pdf" }));
-  return workerPromise;
+async function downloadPdf(url, onProgress) {
+  const controller = new AbortController();
+  let stallTimer = null;
+  const armStall = () => {
+    clearTimeout(stallTimer);
+    stallTimer = setTimeout(() => controller.abort(), STALL_MS);
+  };
+  armStall();
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) throw new Error("téléchargement refusé (" + res.status + ")");
+    const total = Number(res.headers.get("content-length")) || 0;
+    if (!res.body || !total) return new Uint8Array(await res.arrayBuffer());
+    const reader = res.body.getReader();
+    const chunks = [];
+    let received = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      armStall();
+      chunks.push(value);
+      received += value.length;
+      onProgress(Math.min(99, Math.round((received * 100) / total)));
+    }
+    const out = new Uint8Array(received);
+    let offset = 0;
+    for (const c of chunks) { out.set(c, offset); offset += c.length; }
+    return out;
+  } catch (err) {
+    if (err.name === "AbortError") throw new Error("le téléchargement ne répond plus");
+    throw err;
+  } finally {
+    clearTimeout(stallTimer);
+  }
 }
 
-// Documents déjà ouverts (ou en cours d'ouverture), par adresse : rouvrir un
-// livre est immédiat, et on peut commencer à charger un PDF dès qu'on passe
-// dessus. Le fichier arrive en continu, et les pages à afficher sont
-// demandées en priorité par gros morceaux (512 Ko : peu d'allers-retours).
-const MAX_OPEN_DOCS = 3;
-const docs = new Map();
-
-export function getPdfDocument(url) {
-  if (docs.has(url)) {
-    const cached = docs.get(url);
+// `onProgress(pourcentage)` : facultatif, appelé pendant le téléchargement.
+export function getPdfDocument(url, onProgress) {
+  let entry = docs.get(url);
+  if (entry) {
     docs.delete(url);
-    docs.set(url, cached);
-    return cached;
+    docs.set(url, entry);
+  } else {
+    entry = { percent: 0, listeners: new Set() };
+    entry.promise = (async () => {
+      const [pdfjs, data] = await Promise.all([
+        loadPdfjs(),
+        downloadPdf(url, (p) => { entry.percent = p; entry.listeners.forEach((fn) => fn(p)); })
+      ]);
+      return pdfjs.getDocument({ data, isEvalSupported: false }).promise;
+    })();
+    entry.promise.catch(() => docs.delete(url)); // une erreur n'est pas gardée : on pourra réessayer
+    docs.set(url, entry);
+    while (docs.size > MAX_OPEN_DOCS) {
+      const [oldUrl, old] = docs.entries().next().value;
+      docs.delete(oldUrl);
+      old.promise.then((d) => d.destroy()).catch(() => {});
+    }
   }
-  const promise = (async () => {
-    const [pdfjs, worker] = await Promise.all([loadPdfjs(), loadPdfWorker()]);
-    return pdfjs.getDocument({ url, worker, isEvalSupported: false, disableAutoFetch: true, rangeChunkSize: 512 * 1024 }).promise;
-  })();
-  promise.catch(() => docs.delete(url));
-  docs.set(url, promise);
-  while (docs.size > MAX_OPEN_DOCS) {
-    const [oldUrl, old] = docs.entries().next().value;
-    docs.delete(oldUrl);
-    old.then((d) => d.destroy()).catch(() => {});
+  if (onProgress) {
+    entry.listeners.add(onProgress);
+    onProgress(entry.percent);
+    entry.promise.finally(() => entry.listeners.delete(onProgress)).catch(() => {});
   }
-  return promise;
+  return entry.promise;
 }
