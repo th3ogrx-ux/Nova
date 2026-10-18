@@ -10,7 +10,7 @@ const BUCKET = "user-resources";
 
 // Catégories de ressources, dans l'ordre d'affichage. Une ressource sans
 // catégorie (ajoutée avant leur création) est rangée dans la première.
-const CATEGORIES = ["Trouver les prospects"];
+const CATEGORIES = ["Trouver les prospects", "Vendre", "Closer", "Créer un site"];
 const categoryOf = (item) => (CATEGORIES.includes(item.category) ? item.category : CATEGORIES[0]);
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
 const SIGNED_URL_SECONDS = 60 * 60;
