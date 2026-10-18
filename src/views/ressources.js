@@ -10,8 +10,13 @@ const BUCKET = "user-resources";
 
 // Catégories de ressources, dans l'ordre d'affichage. Une ressource sans
 // catégorie (ajoutée avant leur création) est rangée dans la première.
-const CATEGORIES = ["Trouver les prospects", "Vendre", "Closer", "Créer un site"];
-const categoryOf = (item) => (CATEGORIES.includes(item.category) ? item.category : CATEGORIES[0]);
+const CATEGORIES = ["Trouver les prospects", "Vendre et closer", "Créer un site"];
+// "Vendre" et "Closer" ont existé quelques minutes en deux catégories séparées.
+const MERGED = { "Vendre": "Vendre et closer", "Closer": "Vendre et closer" };
+const categoryOf = (item) => {
+  const cat = MERGED[item.category] || item.category;
+  return CATEGORIES.includes(cat) ? cat : CATEGORIES[0];
+};
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
 const SIGNED_URL_SECONDS = 60 * 60;
 
