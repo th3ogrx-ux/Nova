@@ -3,7 +3,16 @@
 // page). Rendu des pages par pdf.js, animation par StPageFlip (MIT).
 // Les pages ne sont dessinées qu'autour de la page courante, pour ouvrir
 // vite même un gros PDF.
-import { loadPdfjs } from "../pdf-loader.js";
+import { loadPdfWorker, getPdfDocument } from "../pdf-loader.js";
+
+const loadPageFlip = () => import("page-flip/dist/js/page-flip.module.js");
+
+// Télécharge le lecteur (pdf.js, son worker, l'animation) en avance, pour
+// que le premier livre s'ouvre sans attendre.
+export function preloadBookReader() {
+  loadPdfWorker().catch(() => {});
+  loadPageFlip().catch(() => {});
+}
 
 const RENDER_AHEAD = 3;
 const MAX_PIXEL_RATIO = 2;
@@ -14,6 +23,8 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// `url` : adresse du PDF, ou promesse de l'adresse (la fenêtre s'ouvre
+// tout de suite, sans attendre le lien signé).
 export function openPdfBook({ title, url }) {
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay open book-overlay";
@@ -23,13 +34,13 @@ export function openPdfBook({ title, url }) {
       <div class="book-title">${escapeHtml(title)}</div>
       <div class="book-counter" data-counter></div>
       <div style="display:flex;gap:8px;flex-shrink:0;">
-        <a class="btn ghost btn-sm" href="${escapeHtml(url)}" target="_blank" rel="noopener">Ouvrir dans un onglet</a>
+        <a class="btn ghost btn-sm" data-tab-link target="_blank" rel="noopener" style="display:none;">Ouvrir dans un onglet</a>
         <button type="button" class="icon-btn" data-close title="Fermer (Échap)" style="width:32px;height:32px;">✕</button>
       </div>
     </div>
     <div class="book-stage" data-stage>
       <button type="button" class="book-nav book-nav-prev" data-prev title="Page précédente (←)" aria-label="Page précédente">‹</button>
-      <div class="book-container" data-book><p class="book-loading">Ouverture du livre…</p></div>
+      <div class="book-container" data-book><div class="book-loading"><span class="book-spinner"></span>Ouverture du livre…</div></div>
       <button type="button" class="book-nav book-nav-next" data-next title="Page suivante (→)" aria-label="Page suivante">›</button>
     </div>
   `;
@@ -47,7 +58,6 @@ export function openPdfBook({ title, url }) {
     closed = true;
     document.removeEventListener("keydown", onKey);
     try { if (pageFlip) pageFlip.destroy(); } catch { /* déjà détruit */ }
-    if (doc) doc.destroy();
     overlay.remove();
   }
 
@@ -64,10 +74,15 @@ export function openPdfBook({ title, url }) {
   prevBtn.addEventListener("click", () => pageFlip && pageFlip.flipPrev());
   nextBtn.addEventListener("click", () => pageFlip && pageFlip.flipNext());
 
+  let pdfUrl = null;
   (async () => {
     try {
-      const [pdfjs, { PageFlip }] = await Promise.all([loadPdfjs(), import("page-flip/dist/js/page-flip.module.js")]);
-      doc = await pdfjs.getDocument({ url, isEvalSupported: false }).promise;
+      pdfUrl = await url;
+      const tabLink = overlay.querySelector("[data-tab-link]");
+      tabLink.href = pdfUrl;
+      tabLink.style.display = "";
+      const [{ PageFlip }, loadedDoc] = await Promise.all([loadPageFlip(), getPdfDocument(pdfUrl)]);
+      doc = loadedDoc;
       if (closed) return;
 
       const pageCount = doc.numPages;
@@ -107,8 +122,13 @@ export function openPdfBook({ title, url }) {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         await page.render({ canvasContext: ctx, viewport }).promise;
       }
+      // Une page à la fois, la page affichée d'abord : plus rapide que de
+      // toutes les dessiner en même temps.
+      let queue = Promise.resolve();
       const renderAround = (index) => {
-        for (let i = index - 1; i <= index + RENDER_AHEAD; i++) renderPage(i);
+        const order = [index, index + 1, index - 1];
+        for (let i = 2; i <= RENDER_AHEAD; i++) order.push(index + i);
+        order.forEach((i) => { queue = queue.then(() => renderPage(i)).catch(() => {}); });
       };
 
       function updateControls(index) {
@@ -119,6 +139,8 @@ export function openPdfBook({ title, url }) {
         nextBtn.disabled = index >= last || (pageFlip.getOrientation() === "landscape" && index > 0 && index + 1 >= last);
       }
 
+      await renderPage(0); // la couverture s'affiche déjà dessinée
+      if (closed) return;
       renderAround(0);
       pageFlip = new PageFlip(bookEl, {
         width: pageW,
@@ -141,7 +163,9 @@ export function openPdfBook({ title, url }) {
     } catch (err) {
       console.error("[Livre PDF]", err);
       if (!closed) {
-        bookEl.innerHTML = `<p class="book-loading">Impossible d'afficher ce PDF en mode livre. <a href="${escapeHtml(url)}" target="_blank" rel="noopener" style="color:var(--warm-2);">L'ouvrir dans un onglet</a></p>`;
+        bookEl.innerHTML = pdfUrl
+          ? `<p class="book-loading">Impossible d'afficher ce PDF en mode livre. <a href="${escapeHtml(pdfUrl)}" target="_blank" rel="noopener" style="color:var(--warm-2);">L'ouvrir dans un onglet</a></p>`
+          : `<p class="book-loading">Impossible d'ouvrir ce PDF pour le moment. Réessaie dans un instant.</p>`;
       }
     }
   })();

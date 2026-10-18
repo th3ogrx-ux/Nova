@@ -481,7 +481,9 @@ input:focus, textarea:focus, select:focus {
 .book-container { display: flex; align-items: center; justify-content: center; }
 .book-page { background: #fff; overflow: hidden; box-shadow: 0 0 1px rgba(0, 0, 0, .3); }
 .book-page-number { position: absolute; bottom: 6px; right: 9px; font-size: 10px; color: #8a8597; z-index: 1; }
-.book-loading { color: #c7c2db; font-size: 14px; text-align: center; }
+.book-loading { color: #c7c2db; font-size: 14px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.book-spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgba(191, 90, 242, .2); border-top-color: var(--warm-1); animation: book-spin .8s linear infinite; }
+@keyframes book-spin { to { transform: rotate(360deg); } }
 .book-nav { flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .2); background: rgba(255, 255, 255, .08); color: #fff; font-size: 30px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding-bottom: 4px; transition: background .15s ease, opacity .15s ease; }
 .book-nav:hover:not(:disabled) { background: rgba(191, 90, 242, .35); }
 .book-nav:disabled { opacity: .25; cursor: default; }

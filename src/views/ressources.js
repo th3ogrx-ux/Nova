@@ -4,7 +4,8 @@
 // des liens signés temporaires.
 import { supabase } from "../supabase.js";
 import { loadPdfjs } from "../pdf-loader.js";
-import { openPdfBook } from "./pdf-book.js";
+import { openPdfBook, preloadBookReader } from "./pdf-book.js";
+import { getPdfDocument } from "../pdf-loader.js";
 
 const BUCKET = "user-resources";
 
@@ -283,6 +284,34 @@ export async function renderRessources(root) {
   const { data: { user } } = await supabase.auth.getUser();
   let items = [];
 
+  // Liens signés des PDF, gardés jusqu'à 5 min avant leur expiration :
+  // ouvrir un livre ne refait pas de demande à Supabase à chaque fois.
+  const signed = new Map();
+  function signedPdfUrl(path) {
+    const hit = signed.get(path);
+    if (hit && hit.expires > Date.now() + 5 * 60 * 1000) return hit.promise;
+    const promise = supabase.storage.from(BUCKET).createSignedUrl(path, SIGNED_URL_SECONDS).then(({ data, error }) => {
+      if (error || !data) throw error || new Error("Lien du PDF indisponible");
+      return data.signedUrl;
+    });
+    signed.set(path, { promise, expires: Date.now() + SIGNED_URL_SECONDS * 1000 });
+    promise.catch(() => signed.delete(path));
+    return promise;
+  }
+  async function signAllPdfs() {
+    const paths = items.filter((i) => i.kind === "pdf" && i.file_path && !signed.has(i.file_path)).map((i) => i.file_path);
+    if (!paths.length) return;
+    const expires = Date.now() + SIGNED_URL_SECONDS * 1000;
+    const { data } = await supabase.storage.from(BUCKET).createSignedUrls(paths, SIGNED_URL_SECONDS);
+    (data || []).forEach((d) => { if (d.signedUrl && d.path) signed.set(d.path, { promise: Promise.resolve(d.signedUrl), expires }); });
+  }
+  // Dès qu'on passe sur un PDF (souris, doigt, clavier), son ouverture
+  // commence : au clic, le livre est souvent déjà prêt.
+  function warmPdf(item) {
+    if (item.kind !== "pdf" || !item.file_path) return;
+    signedPdfUrl(item.file_path).then(getPdfDocument).catch(() => {});
+  }
+
   function draw() {
     const q = normalize(searchEl.value.trim());
     const shown = q ? items.filter((i) => normalize(i.title + " " + (i.url ? hostOf(i.url) : "pdf")).includes(q)) : items;
@@ -312,6 +341,9 @@ export async function renderRessources(root) {
         openItem(item);
       });
       card.addEventListener("keydown", (e) => { if (e.key === "Enter") openItem(item); });
+      card.addEventListener("pointerenter", () => warmPdf(item));
+      card.addEventListener("touchstart", () => warmPdf(item), { passive: true });
+      card.addEventListener("focus", () => warmPdf(item));
       card.querySelector("[data-delete]").addEventListener("click", () => deleteItem(item));
     });
   }
@@ -330,13 +362,15 @@ export async function renderRessources(root) {
     }
     items = data || [];
     draw();
+    signAllPdfs().catch(() => {});
+    if (items.some((i) => i.kind === "pdf")) {
+      (window.requestIdleCallback || ((cb) => setTimeout(cb, 500)))(preloadBookReader);
+    }
   }
 
   async function openItem(item) {
     if (item.kind === "pdf") {
-      const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(item.file_path, SIGNED_URL_SECONDS);
-      if (error || !data) return;
-      openPdfBook({ title: item.title, url: data.signedUrl });
+      openPdfBook({ title: item.title, url: signedPdfUrl(item.file_path) });
       return;
     }
     const id = youtubeId(item.url);
