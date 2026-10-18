@@ -179,15 +179,30 @@ function leadCardHtml(lead, tab) {
   `;
 }
 
+// Si Supabase refuse la modification, on l'affiche sous la fiche au lieu
+// de ne rien faire (sans `.select()`, une modification bloquée par les
+// droits de la base ne renvoie même pas d'erreur).
 async function setLeadStatus(btn, leadId, status, onChanged) {
   btn.disabled = true;
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("radar_leads")
     .update({ status, updated_at: new Date().toISOString() })
-    .eq("id", leadId);
+    .eq("id", leadId)
+    .select("id");
 
-  if (error) {
+  if (error || !data || !data.length) {
     btn.disabled = false;
+    const card = btn.closest("[data-lead-id]");
+    let msg = card.querySelector("[data-status-error]");
+    if (!msg) {
+      msg = document.createElement("div");
+      msg.dataset.statusError = "";
+      msg.className = "error-msg";
+      msg.style.cssText = "flex-basis:100%;margin-top:0;";
+      card.appendChild(msg);
+    }
+    msg.textContent = "Pas enregistré : ta base Supabase refuse ce changement (" +
+      (error ? error.message : "modification non autorisée") + "). Colle le correctif SQL de Zenoa Radar dans Supabase.";
     return;
   }
   onChanged();

@@ -6,7 +6,7 @@ import { supabase } from "../supabase.js";
 import {
   ETAPES, STATUTS, ETAPE_COLORS, STATUT_PILLS, PROJETS_TABLE,
   escapeHtml, dateKey, addDays, shortDate, formatEuros, normalize, isRelanceDue,
-  isMissingTable, MISSING_TABLE_MESSAGE, loadCrm, saveProspect, seedExamplesIfNeeded
+  isMissingTable, MISSING_TABLE_MESSAGE, loadCrm, saveProspect
 } from "./crm-data.js";
 import { openProspectModal, openProjetModal } from "./crm-modals.js";
 
@@ -75,7 +75,6 @@ export async function renderCrm(root) {
   async function load() {
     try {
       data = await loadCrm(user.id);
-      if (await seedExamplesIfNeeded(user.id, data)) data = await loadCrm(user.id);
     } catch (err) {
       dashEl.innerHTML = `<p class="error-msg">${isMissingTable(err) ? MISSING_TABLE_MESSAGE : "Impossible de charger le CRM : " + escapeHtml(err.message)}</p>`;
       mainEl.innerHTML = "";
