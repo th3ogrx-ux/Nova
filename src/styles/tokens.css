@@ -8,21 +8,21 @@
 :root {
   /* --- Surfaces sombres (sidebar, écrans d'auth) --- */
   --bg-deep: #000;        /* fond principal sombre (était #04010a à l'origine) */
-  --bg-panel: #0c0518;    /* fond secondaire (ex: menu déroulant natif) */
+  --bg-panel: #140708;    /* fond secondaire (ex: menu déroulant natif) */
 
-  /* --- Accent "warm" (magenta/violet clair) — CTA principal, logo --- */
-  --warm-1: #bf5af2;
-  --warm-2: #e0b3ff;
+  /* --- Accent "warm" (rouge cramoisi) — CTA principal, logo --- */
+  --warm-1: #e11d2e;
+  --warm-2: #ff6b5e;
 
-  /* --- Accent "cool" (violet profond) — chrome discret (switches, scrollbar, séparateurs) --- */
-  --cool-1: #300a66;
-  --cool-2: #5b21b6;
+  /* --- Accent "cool" (rouge sombre) — chrome discret (switches, scrollbar, séparateurs) --- */
+  --cool-1: #3d0709;
+  --cool-2: #9b1220;
 
   /* --- Neutres sur fond sombre --- */
-  --metal-1: #c7c2db;
-  --metal-2: #f1eefb;
-  --text-dim: #8a84a0;
-  --text-mid: #bdb6d4;
+  --metal-1: #d8c9c4;
+  --metal-2: #f6efec;
+  --text-dim: #9c8886;
+  --text-mid: #c9b6b2;
 
   /* --- États --- */
   --danger: #D9534F;
@@ -30,18 +30,19 @@
   --warning: #f6923d;
 
   /* --- Surface claire (zone de contenu principale, look "dashboard SaaS") --- */
-  --light-bg: #fff;
-  --light-text: #1c1430;
-  --light-text-dim: #6b6478;
-  --light-card-bg: #f7f5fb;
-  --light-border: rgba(28, 20, 48, .12);
+  --light-bg: #fbf8f6;
+  --light-text: #1d0f10;
+  --light-text-dim: #7a6563;
+  --light-card-bg: #fff;
+  --light-border: rgba(60, 12, 14, .13);
 
   /* --- Accents vifs (boutons secondaires, badges, liens) --- */
   --accent-blue-1: #2f80ff;
   --accent-blue-2: #5ba6ff;
   --accent-orange-1: #f6923d;
   --accent-orange-2: #f6b93d;
-  --accent-purple-badge: #7c3aed;
+  --gold: #c9a45c;               /* filets fins "luxe" */
+  --accent-purple-badge: #b3121f;
 
   /* --- Typographie --- */
   --font-body: "Segoe UI", -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;

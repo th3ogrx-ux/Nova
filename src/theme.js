@@ -5,9 +5,10 @@ const STORAGE_KEY = "zenoa-theme";
 
 export function getTheme() {
   try {
-    return localStorage.getItem(STORAGE_KEY) === "dark" ? "dark" : "light";
+    // Noir et rouge par défaut ; le mode clair (ivoire) reste au choix.
+    return localStorage.getItem(STORAGE_KEY) === "light" ? "light" : "dark";
   } catch {
-    return "light";
+    return "dark";
   }
 }
 

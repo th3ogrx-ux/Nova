@@ -38,7 +38,7 @@ function safeHttpUrl(value) {
 }
 
 function etapeDot(etape) {
-  return `<span class="crm-dot" style="background:${ETAPE_COLORS[etape] || "#8e86a3"};"></span>`;
+  return `<span class="crm-dot" style="background:${ETAPE_COLORS[etape] || "#9c8886"};"></span>`;
 }
 
 function etapePill(etape) {

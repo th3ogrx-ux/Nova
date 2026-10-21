@@ -10,11 +10,11 @@ export const STATUTS = ["Attente contenu", "En création", "En validation", "En 
 
 // Couleur de chaque étape (pastille du pipeline, du tableau, du tableau de bord).
 export const ETAPE_COLORS = {
-  "À contacter": "#8e86a3",
+  "À contacter": "#9c8886",
   "Contacté": "var(--warning)",
   "Intéressé": "var(--accent-blue-2)",
-  "Rendez-vous": "var(--warm-1)",
-  "Maquette envoyée": "#a78bfa",
+  "Rendez-vous": "#3fb7b0",
+  "Maquette envoyée": "#e08fa0",
   "Devis envoyé": "#e0a43a",
   "Gagné": "var(--ok)",
   "Perdu": "var(--danger)"

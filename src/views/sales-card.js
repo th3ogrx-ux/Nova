@@ -112,7 +112,7 @@ async function openSalesHistory(userId, onChanged) {
     body.innerHTML = `
       <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;">${sales.length} vente${sales.length > 1 ? "s" : ""} — ${formatEuros(total)} au total</div>
       ${sales.map((s) => `
-        <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(199,194,219,.12);font-size:13px;">
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(232, 205, 198,.12);font-size:13px;">
           <span style="color:var(--text-dim);width:78px;flex-shrink:0;">${longDate(s.sold_on)}</span>
           <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(s.client) || `<span style="color:var(--text-dim);">Sans nom</span>`}</span>
           <span style="font-weight:700;white-space:nowrap;">${formatEuros(Number(s.amount))}</span>
