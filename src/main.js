@@ -38,7 +38,7 @@ const VIEWS = {
   recherche: { render: renderRecherche, title: "Zenoa Radar", roles: ["admin", "radar"] },
   crm: { render: renderCrm, title: "CRM", roles: ["admin", "radar"] },
   ressources: { render: renderRessources, title: "Ressources", roles: ["admin", "radar"] },
-  espace: { render: renderEspace, title: "Mon espace", roles: ["client"] },
+  espace: { render: renderEspace, title: "Mon espace", roles: ["client", "admin"] },
   settings: { render: renderSettings, title: "Paramètres", roles: ["admin", "radar", "client"] },
 };
 
@@ -51,6 +51,8 @@ function applyRoleToNav() {
   document.querySelectorAll(".nav-item[data-roles]").forEach((el) => {
     el.hidden = !el.dataset.roles.split(" ").includes(role);
   });
+  // Pour toi (admin), cette page est un aperçu de ce que voient tes clients.
+  document.getElementById("espace-nav-label").textContent = role === "admin" ? "Aperçu client" : "Mon espace";
 }
 
 const screenAuth = document.getElementById("screen-auth");
@@ -121,7 +123,7 @@ function switchView(name) {
   document.querySelectorAll(".nav-item").forEach((el) => {
     el.classList.toggle("active", el.dataset.view === name);
   });
-  document.title = view.title + " — Zenoa Radar";
+  document.title = (name === "espace" && getCurrentRole() === "admin" ? "Aperçu client" : view.title) + " — Zenoa Radar";
 
   const previous = currentView && viewCache.get(currentView);
   if (previous) previous.scrollTop = mainEl.scrollTop;

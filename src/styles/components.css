@@ -645,3 +645,46 @@ select option { background-color: #150a0b; color: #f6efec; }
 
 /* Texte blanc sur les boutons cramoisis, aussi en mode clair. */
 .main .btn.primary, .main .btn.primary:hover { color: #fff; border-color: rgba(255, 160, 150, .35); }
+
+/* ============================================================
+   Espace clients (suivi de visibilité Google)
+   ============================================================ */
+.espace-preview-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 14px; margin-bottom: 18px; border: 1px dashed rgba(225, 29, 46, .45); border-radius: var(--radius-md); font-size: 12.5px; color: var(--light-text-dim); }
+.espace-preview-bar select { width: auto; min-width: 220px; padding: 8px 40px 8px 12px; font-size: 13px; }
+.espace-grid { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.espace-tile .stat-tile-value { font-size: 32px; }
+.espace-star-big { color: #f4b740; font-size: 24px; }
+.espace-delta { font-size: 12.5px; color: var(--light-text-dim); font-weight: 600; }
+.espace-delta.up { color: var(--ok); }
+.espace-delta.down { color: var(--danger); }
+.espace-delta-note { font-weight: 400; color: var(--light-text-dim); }
+.espace-month-note { font-size: 12.5px; color: var(--light-text-dim); margin: -12px 0 24px; }
+
+.espace-stars { color: #f4b740; letter-spacing: 1px; font-size: 15px; white-space: nowrap; }
+.espace-stars-off { color: var(--light-border); }
+.espace-review { padding: 14px 16px; margin-bottom: 10px; border: 1px solid var(--light-border); border-radius: var(--radius-md); }
+.espace-review.to-answer { border-color: rgba(246, 146, 61, .55); background: rgba(246, 146, 61, .07); box-shadow: inset 3px 0 0 var(--warning); }
+.espace-review-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
+.espace-review-date { font-size: 12px; color: var(--light-text-dim); }
+.espace-review-text { margin: 8px 0 0; font-size: 14px; line-height: 1.5; }
+.espace-reply { margin-top: 10px; padding: 9px 12px; border-left: 2px solid var(--warm-1); font-size: 13px; line-height: 1.5; color: var(--light-text-dim); background: rgba(225, 29, 46, .05); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.espace-reply span { display: block; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--warm-1); margin-bottom: 3px; font-weight: 700; }
+
+.espace-tasks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.espace-task-col { background: rgba(225, 29, 46, .04); border: 1px solid var(--light-border); border-radius: var(--radius-md); padding: 10px; }
+.espace-task-head { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; padding: 2px 2px 10px; }
+.espace-task-head b { margin-left: auto; color: var(--light-text-dim); font-size: 11.5px; }
+.espace-task { background: var(--light-card-bg); border: 1px solid var(--light-border); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px; font-size: 13px; line-height: 1.4; }
+.espace-task.empty { color: var(--light-text-dim); text-align: center; }
+
+.espace-request { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+.espace-qr-box { background: #fff; padding: 6px; border-radius: var(--radius-md); line-height: 0; flex-shrink: 0; }
+.espace-qr-box img { width: 168px; height: 168px; display: block; }
+
+@media (max-width: 760px) {
+  .espace-tasks { grid-template-columns: 1fr; }
+  .espace-request { justify-content: center; }
+  .espace-tile .stat-tile-value { font-size: 28px; }
+}
+
+.espace-card .panel-title { margin-bottom: 14px; }
