@@ -81,6 +81,10 @@ alter table public.pro_strategies drop constraint if exists pro_strategies_canau
 alter table public.pro_strategies add constraint pro_strategies_canaux_ok
   check (canaux <@ array['instagram','email','telephone','linkedin','tiktok','facebook','whatsapp','sms','terrain','google_maps','autre']::text[] and cardinality(canaux) <= 11);
 
+-- Description de la stratégie : l'idée (c'est quoi ?) et le déroulé (comment ça se passe ?).
+alter table public.pro_strategies add column if not exists idee text check (char_length(idee) <= 3000);
+alter table public.pro_strategies add column if not exists deroule text check (char_length(deroule) <= 6000);
+
 -- Offre que vend une stratégie (facultatif).
 alter table public.pro_strategies add column if not exists offer_id uuid references public.pro_offers(id) on delete set null;
 

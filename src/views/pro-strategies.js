@@ -19,6 +19,7 @@ function cardHtml(st, { board = false, offer = null } = {}) {
   return `<div class="pro-scard-top"><span class="pro-chips">${canauxChips(s, { max: board ? 1 : 2 })}</span>${board ? moveButtons(STATUTS.findIndex((x) => x.key === s.statut), STATUTS.length) : pill(s.statut)}</div>
     <h3 class="pro-scard-title">${escapeHtml(s.titre)}</h3>
     <p class="pro-scard-target">${s.cible ? "Cible : " + escapeHtml(s.cible) : "<span class='pro-muted'>Aucune cible précisée</span>"}</p>
+    ${s.idee ? `<p class="pro-scard-idea">${escapeHtml(s.idee)}</p>` : ""}
     ${offer ? `<div class="pro-scard-offer">${offerChip(offer)}</div>` : ""}
     <div class="pro-scard-foot">
       <div class="pro-scard-rate"><b>${st.all.envoyes ? fmtPct(st.tauxAll) : "—"}</b><span>taux de réponse</span></div>
@@ -83,6 +84,7 @@ export function openStrategyModal(strategy, ctx, data) {
         ${canalOptions.map((c) => `<label class="pro-pick"><input type="checkbox" data-canal="${c.key}"${chosen.includes(c.key) ? " checked" : ""}><span>${canalIcon(c.key, 15)} ${escapeHtml(c.label)}</span></label>`).join("")}
       </fieldset>
       ${field("Cible", `<input type="text" name="cible" maxlength="200" value="${escapeHtml(s.cible || "")}" placeholder="Ex : coiffeurs de Lyon, sans site web">`)}
+      ${field("L'idée en bref (c'est quoi ?)", `<textarea name="idee" rows="3" maxlength="3000" placeholder="Ex : j'envoie un message Instagram aux coiffeurs qui n'ont pas de site, avec une maquette gratuite en accroche.">${escapeHtml(s.idee || "")}</textarea>`)}
       ${field("Offre que tu vends avec cette stratégie", `<select name="offer_id"><option value="">— Aucune offre choisie —</option>${(data.offers || []).map((o) => `<option value="${o.id}"${o.id === s.offer_id ? " selected" : ""}>${escapeHtml(o.nom)} · ${escapeHtml(offerPriceLabel(o))}</option>`).join("")}</select>${(data.offers || []).length ? "" : `<p class="pro-muted" style="margin:6px 0 0;">Tu n'as pas encore de pack : crée-en un dans « Scripts et offres ».</p>`}`)}
       <div class="error-msg" data-error></div>
       <div class="modal-actions">${strategy ? `<button type="button" class="btn danger" data-delete style="margin-right:auto;">Supprimer</button>` : ""}<button type="button" class="btn ghost" data-close>Annuler</button><button type="submit" class="btn primary">Enregistrer</button></div>
@@ -164,6 +166,15 @@ function renderDetail(root, data, ctx) {
       <div class="pro-detail-actions"><button type="button" class="btn ghost btn-sm" data-edit>Modifier</button><button type="button" class="btn primary btn-sm" data-log>+ Noter des messages</button></div>
     </header>
 
+    <section class="pro-grid2 pro-seq" style="--i:1">
+      <div class="card pro-panel"><h2 class="panel-title">L'idée</h2><p class="pro-muted pro-panel-sub">C'est quoi, cette stratégie ?</p>
+        <textarea class="pro-notes" data-field="idee" rows="6" maxlength="3000" placeholder="Explique la stratégie en quelques phrases : à qui tu t'adresses, avec quel message, pourquoi ça devrait marcher." aria-label="L'idée de la stratégie">${escapeHtml(s.idee || "")}</textarea>
+        <div class="pro-saved" data-saved="idee" aria-live="polite"></div></div>
+      <div class="card pro-panel"><h2 class="panel-title">Le déroulé</h2><p class="pro-muted pro-panel-sub">Comment ça se passe, étape par étape ?</p>
+        <textarea class="pro-notes" data-field="deroule" rows="6" maxlength="6000" placeholder="Les étapes, dans l'ordre :&#10;1. Repérer les prospects&#10;2. Envoyer le premier message&#10;3. Relancer au bout de 3 jours&#10;4. Proposer un appel" aria-label="Le déroulé de la stratégie">${escapeHtml(s.deroule || "")}</textarea>
+        <div class="pro-saved" data-saved="deroule" aria-live="polite"></div></div>
+    </section>
+
     <div class="pro-kpis four">
       ${[["Envoyés", st.all.envoyes, 0], ["Réponses", st.all.reponses, 0], ["Taux de réponse", st.tauxAll, 1, " %"], ["Clients", st.all.clients, 0]].map(([l, v, d, suf], i) =>
         `<div class="card pro-kpi pro-seq" style="--i:${i + 1}"><div class="pro-kpi-label">${l}</div><div class="pro-kpi-value"><b data-count="${v}" data-dec="${d}" data-suffix="${suf || ""}">0</b></div></div>`).join("")}
@@ -215,7 +226,20 @@ function renderDetail(root, data, ctx) {
     if (!ok) return;
     try { await deleteLog(b.dataset.delLog); ctx.reload(); } catch (err) { toast(friendlyError(err), "error"); }
   }));
-  const notes = root.querySelector(".pro-notes"), saved = root.querySelector("[data-saved]");
+  // L'idée et le déroulé s'enregistrent tout seuls (quelques secondes après la dernière frappe, et en quittant le champ).
+  root.querySelectorAll("textarea[data-field]").forEach((ta) => {
+    const field = ta.dataset.field, status = root.querySelector(`[data-saved="${field}"]`);
+    const save = async () => {
+      const value = ta.value.trim() || null;
+      if (value === (s[field] || null)) return;
+      try { await saveStrategy({ [field]: value }, s.id); s[field] = value; status.textContent = "Enregistré ✓"; setTimeout(() => (status.textContent = ""), 1800); }
+      catch (err) { status.textContent = friendlyError(err); }
+    };
+    const later = debounce(save, 1500);
+    ta.addEventListener("input", later);
+    ta.addEventListener("blur", () => { later.cancel(); save(); });
+  });
+  const notes = root.querySelector('.pro-notes:not([data-field])'), saved = root.querySelector('[data-saved=""], .pro-saved:not([data-saved])');
   notes.addEventListener("blur", async () => {
     if (notes.value === (s.notes || "")) return;
     try { await saveStrategy({ notes: notes.value.trim() || null }, s.id); s.notes = notes.value.trim() || null; saved.textContent = "Enregistré ✓"; setTimeout(() => (saved.textContent = ""), 1800); } catch (err) { saved.textContent = friendlyError(err); }
