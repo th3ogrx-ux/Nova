@@ -9,7 +9,6 @@ import { getSession, onAuthChange, renderAuthScreen, signOut } from "./auth.js";
 import { supabase, supabaseConfigured } from "./supabase.js";
 import { renderDashboard } from "./views/dashboard.js";
 import { renderRecherche } from "./views/recherche.js";
-import { renderRessources } from "./views/ressources.js";
 import { renderProspection } from "./views/prospection.js";
 import { renderEspace } from "./views/espace.js";
 import { renderMessages } from "./views/messages.js";
@@ -42,14 +41,13 @@ if ("serviceWorker" in navigator) {
 }
 
 // "roles" : qui peut ouvrir la page. Un client n'a accès qu'à son espace et à
-// ses paramètres ; le Radar et les Ressources lui sont fermés (la base
+// ses paramètres ; le Radar lui sont fermés (la base
 // de données le lui interdit aussi : ceci évite seulement de lui montrer des
 // pages vides ou de lancer des recherches à sa place).
 const VIEWS = {
   dashboard: { render: renderDashboard, title: "Tableau de bord", roles: ["admin", "radar"] },
   recherche: { render: renderRecherche, title: "Radar", roles: ["admin", "radar"] },
   prospection: { render: renderProspection, title: "Prospection", roles: ["admin"] },
-  ressources: { render: renderRessources, title: "Ressources", roles: ["admin", "radar"] },
   clients: { render: renderClients, title: "Clients", roles: ["admin"] },
   espace: { render: renderEspace, title: "Mon espace", roles: ["client", "admin"] },
   messages: { render: renderMessages, title: "Messages", roles: ["client", "admin"] },

@@ -70,7 +70,7 @@ Pour `test:sql`, il faut un PostgreSQL local : `PGHOST=… PGPORT=… PGUSER=pos
 - **Pas d'alerte e-mail** (aucun service payant) : les alertes sont dans l'appli (bandeau + journal). Consulte-les régulièrement.
 - **Suppression en fin de contrat** : manuelle (bouton « Supprimer ce client »). Les messages (24 mois) et le journal (12 mois) sont purgés automatiquement si `pg_cron` est disponible.
 - **Plan gratuit Supabase** : pas de sauvegardes automatiques, projet mis en pause après 7 jours d'inactivité, pas de SLA.
-- **Dépendances tierces** utilisées par l'admin : `api.microlink.io` (aperçu de lien), YouTube/OpenStreetMap (incrustations). Aucune donnée client n'y est envoyée.
+- **Dépendances tierces** : OpenStreetMap (carte des pages de maquette publiques). Aucune donnée client n'y est envoyée.
 
 ## 6. Checklist avant de saisir de vraies données de clients
 - [ ] (Conseillé) 2FA activée sur le compte admin

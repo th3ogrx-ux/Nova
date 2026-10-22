@@ -2,7 +2,7 @@
 // (main.js) : les pages n'ont pas à les redemander au serveur à chaque fois.
 //
 // Rôles :
-//   "admin"  : toi (désigné dans espace.sql) — Radar, CRM, Ressources + gestion des clients
+//   "admin"  : toi (désigné dans espace.sql) — Radar, Prospection + gestion des clients
 //   "client" : un client de l'espace — uniquement son espace (voir src/views/espace.js)
 //   "none"   : compte SANS profil (client supprimé, inscription inconnue...) — aucun accès
 //   "radar"  : uniquement tant que l'espace clients n'est pas installé (espace.sql pas encore collé) : l'appli comme avant
