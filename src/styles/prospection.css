@@ -343,9 +343,14 @@ i.pro-cell.l1 { background: rgba(225, 29, 46, .28); } i.pro-cell.l2 { background
 
 /* ---------- Programme semaine par semaine ---------- */
 .pro-price-btns { display: flex; flex-wrap: wrap; gap: 8px; }
-.pro-phase-weeks { text-transform: none !important; letter-spacing: normal !important; font-size: 12px !important; }
-.pro-phase-weeks em { font-style: normal; opacity: .75; }
-.pro-phase-weeks textarea { width: 100%; font-size: 13px; resize: vertical; }
+.pro-phase-weeks { border-top: 1px dashed var(--light-border); padding-top: 8px; }
+.pro-phase-weeks summary { cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--light-text); padding: 4px 0; list-style-position: inside; }
+.pro-phase-weeks summary em { font-style: normal; font-weight: 400; color: var(--light-text-dim); margin-left: 6px; }
+.pro-wk-list { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 10px; }
+.pro-wk { display: flex; gap: 10px; align-items: flex-start; }
+.pro-wk label { margin-top: 8px; flex-shrink: 0; }
+.pro-wk .pro-week-n { min-width: 64px; display: inline-block; }
+.modal-box .pro-wk textarea { flex: 1 1 0; width: auto; min-width: 0; font-size: 13.5px; resize: vertical; min-height: 56px; }
 .pro-program { display: flex; flex-direction: column; gap: 22px; max-height: 58vh; overflow-y: auto; padding-right: 4px; }
 .pro-program-phase header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--light-border); }
 .pro-program-phase h3 { font-family: var(--font-heading); font-size: 17px; }

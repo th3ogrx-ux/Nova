@@ -71,10 +71,10 @@ create table if not exists public.pro_offers (
 
 -- Offres à long terme : liste d'étapes [{titre, mois, prix, mode: 'mois'|'total', detail}], ex. 3 mois à 180 € puis 3 mois de réseaux sociaux.
 alter table public.pro_offers add column if not exists phases jsonb not null default '[]'::jsonb;
--- Chaque étape peut aussi contenir « taches » : le travail prévu, une ligne par semaine.
+-- Chaque étape peut aussi contenir « semaines » : une liste de textes, le travail prévu semaine par semaine.
 alter table public.pro_offers drop constraint if exists pro_offers_phases_ok;
 alter table public.pro_offers add constraint pro_offers_phases_ok
-  check (jsonb_typeof(phases) = 'array' and jsonb_array_length(phases) <= 12 and char_length(phases::text) <= 30000);
+  check (jsonb_typeof(phases) = 'array' and jsonb_array_length(phases) <= 12 and char_length(phases::text) <= 120000);
 
 create table if not exists public.pro_reviews (
   id        uuid primary key default gen_random_uuid(),

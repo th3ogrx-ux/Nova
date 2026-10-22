@@ -1,5 +1,5 @@
 // Prospection > Scripts et offres : scripts en bulles de message, packs d'offre en cartes de tarifs comparables.
-import { CANAUX, sum, rate, saveOffer, deleteOffer, escapeHtml, fmtInt, fmtPct, fmtEuro, canalIcon, cleanPhases, phaseCost, phasesSummary, offerProgram } from "./pro-data.js";
+import { CANAUX, sum, rate, saveOffer, deleteOffer, escapeHtml, fmtInt, fmtPct, fmtEuro, canalIcon, cleanPhases, phaseCost, phasesSummary, offerProgram, weeksOf, weeksCount } from "./pro-data.js";
 import { emptyState, openModal, modalHeader, field, readForm, toast, friendlyError, copyText } from "./pro-ui.js";
 import { openScriptModal } from "./pro-strategies.js";
 
@@ -70,7 +70,7 @@ function phaseTimeline(phases) {
 }
 
 function programText(offer) {
-  return offerProgram(offer.phases).map(({ phase, fromMonth, weeks }) => `${phase.titre} (mois ${fromMonth}${phase.mois > 1 ? " à " + (fromMonth + phase.mois - 1) : ""}, ${costText(phase)})\n` + weeks.filter((w) => w.task).map((w) => `  Semaine ${w.n} : ${w.task}`).join("\n")).join("\n\n");
+  return offerProgram(offer.phases).map(({ phase, fromMonth, weeks }) => `${phase.titre} (mois ${fromMonth}${phase.mois > 1 ? " à " + (fromMonth + phase.mois - 1) : ""}, ${costText(phase)})\n` + weeks.filter((w) => w.task).map((w) => `  Semaine ${w.n} : ${w.task.replace(/\n/g, "\n    ")}`).join("\n")).join("\n\n");
 }
 
 // Programme complet : tout le travail à faire, étape par étape et semaine par semaine.
@@ -82,10 +82,19 @@ function openProgramModal(offer) {
     <div class="pro-program">${prog.map(({ phase, fromMonth, weeks }) => `
       <section class="pro-program-phase">
         <header><span class="pro-phase-when">${monthsLabel(fromMonth, phase.mois)}</span><h3>${escapeHtml(phase.titre)}</h3><span class="pro-phase-cost">${costText(phase)}</span></header>
-        <ol class="pro-weeks">${weeks.map((w) => `<li class="${w.task ? "" : "empty"}"><span class="pro-week-n">S${w.n}</span><span>${w.task ? escapeHtml(w.task) : "À définir"}</span></li>`).join("")}</ol>
+        <ol class="pro-weeks">${weeks.map((w) => `<li class="${w.task ? "" : "empty"}"><span class="pro-week-n">S${w.n}</span><span>${w.task ? escapeHtml(w.task).replace(/\n/g, "<br>") : "À définir"}</span></li>`).join("")}</ol>
       </section>`).join("")}</div>
     <div class="modal-actions"><button type="button" class="btn ghost" data-close>Fermer</button><button type="button" class="btn primary" data-copy-program>Copier le programme</button></div>`, { maxWidth: 620 });
   overlay.querySelector("[data-copy-program]").addEventListener("click", async () => toast((await copyText(programText(offer))) ? "Programme copié ✓" : "Copie impossible"));
+}
+
+function weekBox(i, text = "") {
+  return `<div class="pro-wk"><label for="wk-${Math.random().toString(36).slice(2, 8)}-${i}"><span class="pro-week-n">Sem. ${i + 1}</span></label>
+    <textarea data-w rows="2" maxlength="600" placeholder="Ce que tu fais cette semaine…" aria-label="Semaine ${i + 1}">${escapeHtml(text)}</textarea></div>`;
+}
+function weekBoxes(p) {
+  const weeks = weeksOf(p);
+  return Array.from({ length: Math.max(weeks.length, weeksCount(p.mois || 3)) }, (_, i) => weekBox(i, weeks[i] || "")).join("");
 }
 
 function phaseRow(p = {}) {
@@ -97,8 +106,11 @@ function phaseRow(p = {}) {
       <label>Ce prix est<select data-f="mode"><option value="total"${p.mode === "total" ? " selected" : ""}>au total</option><option value="mois"${p.mode !== "total" ? " selected" : ""}>par mois</option></select></label>
     </div>
     <input type="text" data-f="detail" maxlength="200" placeholder="En une phrase : ce que tu fais pendant cette étape (facultatif)" value="${escapeHtml(p.detail || "")}" aria-label="Détail de l'étape">
-    <label class="pro-phase-weeks">Travail semaine par semaine <em>(une ligne par semaine)</em>
-      <textarea data-f="taches" rows="4" maxlength="1500" placeholder="Semaine 1 : créer et vérifier la fiche Google&#10;Semaine 2 : ajouter les photos et les services&#10;Semaine 3 : répondre aux avis">${escapeHtml(p.taches || "")}</textarea></label>
+    <details class="pro-phase-weeks"${weeksOf(p).length ? " open" : ""}>
+      <summary>Travail semaine par semaine <em data-weeks-info></em></summary>
+      <div class="pro-wk-list" data-weeks>${weekBoxes(p)}</div>
+      <button type="button" class="btn ghost btn-sm" data-add-week>+ Ajouter une semaine</button>
+    </details>
   </div>`;
 }
 
@@ -127,7 +139,19 @@ function openOfferModal(offer, ctx) {
   const form = overlay.querySelector("[data-form]"), errorEl = overlay.querySelector("[data-error]");
   form.nom.focus();
   const box = form.querySelector("[data-phases]"), totalEl = form.querySelector("[data-phases-total]");
-  const readPhases = () => cleanPhases([...box.querySelectorAll("[data-phase]")].map((row) => Object.fromEntries([...row.querySelectorAll("[data-f]")].map((i) => [i.dataset.f, i.value]))));
+  const readPhases = () => cleanPhases([...box.querySelectorAll("[data-phase]")].map((row) => ({
+    ...Object.fromEntries([...row.querySelectorAll("[data-f]")].map((i) => [i.dataset.f, i.value])),
+    semaines: [...row.querySelectorAll("[data-w]")].map((t) => t.value)
+  })));
+  // Le nombre de cases suit la durée de l'étape (environ 4 semaines par mois) ; une case remplie n'est jamais retirée.
+  const syncWeeks = (row, { trim = false } = {}) => {
+    const list = row.querySelector("[data-weeks]"), want = weeksCount(Number(row.querySelector('[data-f="mois"]').value) || 1);
+    let boxes = list.querySelectorAll(".pro-wk");
+    while (boxes.length < want) { list.insertAdjacentHTML("beforeend", weekBox(boxes.length)); boxes = list.querySelectorAll(".pro-wk"); }
+    while (trim && boxes.length > want && !boxes[boxes.length - 1].querySelector("textarea").value.trim()) { boxes[boxes.length - 1].remove(); boxes = list.querySelectorAll(".pro-wk"); }
+    const filled = [...list.querySelectorAll("textarea")].filter((t) => t.value.trim()).length;
+    row.querySelector("[data-weeks-info]").textContent = `(${filled} sur ${boxes.length} remplie${filled > 1 ? "s" : ""})`;
+  };
   const syncPhases = () => {
     const phases = readPhases();
     form.prix.disabled = phases.length > 0;
@@ -137,14 +161,25 @@ function openOfferModal(offer, ctx) {
     form.prix.value = Math.round(sm.total * 100) / 100;
     totalEl.textContent = `Total : ${fmtEuro(sm.total)} sur ${sm.mois} mois (${fmtEuro(sm.parMois)} par mois en moyenne)`;
   };
-  box.addEventListener("input", syncPhases);
+  box.addEventListener("input", (e) => { const row = e.target.closest("[data-phase]"); if (row) syncWeeks(row, { trim: e.target.matches('[data-f="mois"]') }); syncPhases(); });
+  box.addEventListener("click", (e) => {
+    const add = e.target.closest("[data-add-week]");
+    if (!add) return;
+    const row = add.closest("[data-phase]"), list = row.querySelector("[data-weeks]");
+    if (list.querySelectorAll(".pro-wk").length >= 60) return;
+    list.insertAdjacentHTML("beforeend", weekBox(list.querySelectorAll(".pro-wk").length));
+    list.lastElementChild.querySelector("textarea").focus();
+    syncWeeks(row);
+  });
   box.addEventListener("click", (e) => { const rm = e.target.closest("[data-rm]"); if (rm) { rm.closest("[data-phase]").remove(); syncPhases(); } });
   form.querySelector("[data-add-phase]").addEventListener("click", () => {
     if (box.querySelectorAll("[data-phase]").length >= 12) return;
     box.insertAdjacentHTML("beforeend", phaseRow());
+    syncWeeks(box.lastElementChild);
     box.lastElementChild.querySelector('[data-f="titre"]').focus();
     syncPhases();
   });
+  box.querySelectorAll("[data-phase]").forEach(syncWeeks);
   syncPhases();
   form.addEventListener("submit", async (e) => {
     e.preventDefault();

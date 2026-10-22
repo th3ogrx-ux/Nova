@@ -179,6 +179,15 @@ export async function saveObjectif(n) {
 }
 
 // ---------- Offres à étapes (long terme) ----------
+// Travail semaine par semaine d'une étape : liste de textes (ancien format : une ligne = une semaine).
+export function weeksOf(p) {
+  let weeks = Array.isArray(p && p.semaines) ? p.semaines : String((p && p.taches) || "").replace(/\r/g, "").split("\n");
+  weeks = weeks.slice(0, 60).map((w) => String(w == null ? "" : w).trim().slice(0, 600));
+  while (weeks.length && !weeks[weeks.length - 1]) weeks.pop(); // les semaines vides à la fin ne comptent pas
+  return weeks;
+}
+export const weeksCount = (mois) => Math.max(1, Math.round(mois * 4.33));
+
 export function cleanPhases(list) {
   return (Array.isArray(list) ? list : []).map((p) => ({
     titre: String((p && p.titre) || "").trim().slice(0, 80),
@@ -186,7 +195,7 @@ export function cleanPhases(list) {
     prix: Math.max(0, Number(p && p.prix) || 0),
     mode: p && p.mode === "total" ? "total" : "mois",
     detail: String((p && p.detail) || "").trim().slice(0, 200),
-    taches: String((p && p.taches) || "").replace(/\r/g, "").split("\n").map((l) => l.trim().slice(0, 200)).slice(0, 60).join("\n").trim()
+    semaines: weeksOf(p)
   })).filter((p) => p.titre);
 }
 export const phaseCost = (p) => (p.mode === "mois" ? p.prix * p.mois : p.prix);
@@ -200,10 +209,10 @@ export function phasesSummary(phases) {
 export function offerProgram(phases) {
   let week = 1, month = 1;
   return phases.map((p) => {
-    const lines = p.taches ? p.taches.split("\n") : [];
-    const count = Math.max(lines.length, Math.round(p.mois * 4.33));
+    const lines = weeksOf(p);
+    const count = Math.max(lines.length, weeksCount(p.mois));
     const weeks = Array.from({ length: count }, (_, i) => ({ n: week + i, task: (lines[i] || "").trim() }));
-    const out = { phase: p, fromMonth: month, weeks, planned: lines.filter((l) => l.trim()).length };
+    const out = { phase: p, fromMonth: month, weeks, planned: lines.filter(Boolean).length };
     week += count; month += p.mois;
     return out;
   });
