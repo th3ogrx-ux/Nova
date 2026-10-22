@@ -20,6 +20,7 @@ import { logEvent, loadSecurityAlerts } from "./security-log.js";
 import { renderDemoPage } from "./views/demo.js";
 import { renderSettings, setOnProfileUpdated, applyAvatarPreview } from "./views/settings.js";
 import { applyTheme } from "./theme.js";
+import { initCustomSelects } from "./custom-select.js";
 import { setCurrentUser, getCurrentRole, loadRole } from "./session.js";
 import { initA11y, markActiveNav } from "./a11y.js";
 import { readCache, writeCache, clearCache } from "./data-cache.js";
@@ -27,6 +28,7 @@ import { readCache, writeCache, clearCache } from "./data-cache.js";
 // Applique le mode sombre/clair enregistré avant le premier rendu de
 // l'appli (#app reste de toute façon caché jusqu'à la connexion).
 applyTheme();
+initCustomSelects(); // listes déroulantes aux couleurs du site (ordinateur)
 
 // Rend confirmDialog disponible globalement, pratique à réutiliser
 // depuis n'importe quelle vue sans import répété.
@@ -60,10 +62,11 @@ const homeView = () => (getCurrentRole() === "client" ? "espace" : "dashboard");
 // Affiche dans le menu uniquement les pages permises au rôle courant.
 function applyRoleToNav() {
   const role = getCurrentRole();
-  document.querySelectorAll(".nav-item[data-roles]").forEach((el) => {
+  document.querySelectorAll(".nav-item[data-roles], .nav-group[data-roles]").forEach((el) => {
     el.hidden = !el.dataset.roles.split(" ").includes(role);
   });
   // Pour toi (admin), cette page est un aperçu de ce que voient tes clients.
+  document.getElementById("my-role-display").textContent = role === "admin" ? "Fondateur Zenoa" : "";
   const espaceLabel = document.getElementById("espace-nav-label");
   espaceLabel.textContent = role === "admin" ? "Aperçu client" : "Mon espace";
   if (role === "admin") espaceLabel.dataset.short = "Aperçu"; else delete espaceLabel.dataset.short; // nom court dans la barre du téléphone

@@ -891,3 +891,54 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 
 /* Téléphone / tactile : pas de flou derrière les fenêtres (il rend la saisie saccadée sur les longs formulaires). */
 @media (pointer: coarse) { .modal-overlay { backdrop-filter: none; background: #000c; } }
+
+/* ============================================================
+   Listes déroulantes personnalisées (voir custom-select.js)
+   ============================================================ */
+.zs { position: relative; display: block; width: 100%; min-width: 0; }
+.zs-native { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; opacity: 0; pointer-events: none; }
+.zs-btn {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left;
+  font: inherit; font-size: 15px; cursor: pointer; min-height: 46px;
+  background: #ffffff08; border: 1px solid rgba(232, 205, 198, .18); color: var(--metal-2);
+  border-radius: var(--radius-md); padding: 11px 14px 11px 15px;
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+.zs-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zs-chevron { display: inline-flex; color: var(--warm-2); transition: transform .2s ease; }
+.zs-btn[aria-expanded="true"] .zs-chevron { transform: rotate(180deg); }
+.zs-btn:hover { border-color: rgba(225, 29, 46, .55); }
+.zs-btn:focus-visible, .zs-btn[aria-expanded="true"] { outline: none; border-color: var(--warm-1); box-shadow: 0 0 0 3px rgba(225, 29, 46, .15); }
+.zs-btn:disabled { opacity: .5; cursor: not-allowed; }
+.main .zs-btn { background: #fff; border-color: var(--light-border); color: var(--light-text); }
+#app[data-theme="dark"] .main .zs-btn { background: #150a0b; }
+.modal-box .zs-btn { background: #0a0a0a; border-color: rgba(246, 239, 236, .16); color: var(--metal-2); }
+.crm-form-grid .zs-btn { padding: 9px 12px; font-size: 14px; min-height: 42px; }
+/* Pastille (statut d'une tâche) */
+.zs.crm-inline-select { display: inline-block; width: auto; }
+.zs.crm-inline-select .zs-btn { width: auto; min-height: 0; padding: 5px 10px 5px 12px; font-size: 12px; font-weight: 600; border-radius: var(--radius-pill); gap: 8px; }
+.zs.crm-pill-ok .zs-btn { color: var(--ok); border-color: #4fbf7a66; }
+.zs.crm-pill-warning .zs-btn { color: var(--warning); border-color: #f6923d66; }
+.zs.crm-pill-blue .zs-btn { color: var(--accent-blue-1); border-color: rgba(47, 128, 255, .4); }
+.espace-preview-bar .zs { width: auto; min-width: 220px; }
+.espace-preview-bar .zs-btn { min-height: 38px; font-size: 13px; padding: 7px 12px; }
+
+/* Menu déroulant */
+.zs-pop {
+  position: fixed; z-index: 200; overflow-y: auto; padding: 6px; border-radius: 14px;
+  background: linear-gradient(180deg, #1b0d0e, #120708); color: var(--metal-2);
+  border: 1px solid rgba(225, 29, 46, .4);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .6), 0 0 0 1px rgba(0, 0, 0, .4), 0 0 28px -10px rgba(225, 29, 46, .45);
+  animation: zs-in .14s ease-out;
+}
+.zs-pop.light { background: #fff; color: var(--light-text, #1d0f10); border-color: rgba(60, 12, 14, .18); box-shadow: 0 18px 44px rgba(60, 12, 14, .18); }
+@keyframes zs-in { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
+.zs-opt { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 12px; border-radius: 9px; font-size: 14px; cursor: pointer; transition: background .12s ease; }
+.zs-opt-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.zs-tick { color: var(--warm-2); display: inline-flex; width: 14px; }
+.zs-opt.active { background: rgba(225, 29, 46, .2); }
+.zs-pop.light .zs-opt.active { background: rgba(225, 29, 46, .1); }
+.zs-opt.selected { font-weight: 700; }
+.zs-opt.disabled { opacity: .4; cursor: not-allowed; }
+.zs-pop::-webkit-scrollbar { width: 8px; }
+@media (prefers-reduced-motion: reduce) { .zs-pop { animation: none; } }

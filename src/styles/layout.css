@@ -97,6 +97,16 @@
 .nav-icon svg { width: 100%; height: 100%; }
 .nav-item.active .nav-icon { opacity: 1; }
 .nav-label { white-space: nowrap; }
+/* Titres de groupe dans le menu : un trait, le titre au milieu, un trait. */
+.nav-group { display: flex; align-items: center; gap: 10px; margin: 16px 6px 8px; font-size: 10.5px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--text-dim); }
+.nav-group:first-child { margin-top: 4px; }
+.nav-group::before, .nav-group::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(225, 29, 46, .45)); }
+.nav-group::after { background: linear-gradient(270deg, transparent, rgba(225, 29, 46, .45)); }
+.nav-group[hidden] { display: none; }
+#app.sidebar-collapsed .nav-group span { display: none; }
+#app.sidebar-collapsed .nav-group { margin: 12px 14px; }
+#app.sidebar-collapsed .nav-group::before { flex: 1; background: rgba(225, 29, 46, .4); }
+#app.sidebar-collapsed .nav-group::after { display: none; }
 #app.sidebar-collapsed .nav-item { justify-content: center; padding-left: 0; padding-right: 0; gap: 0; }
 #app.sidebar-collapsed .nav-label { display: none; }
 
@@ -172,6 +182,7 @@
   .nav-item .nav-icon { width: 21px; height: 21px; }
   .nav-label, #app.sidebar-collapsed .nav-label { display: block; font-size: 9.5px; line-height: 1.15; max-width: 100%; overflow: hidden; overflow-wrap: anywhere; white-space: normal; text-align: center; }
   /* Noms courts dans la barre du bas : 7 entrées doivent tenir côte à côte. */
+  .nav-group { display: none; }
   .nav-label[data-short] { font-size: 0; line-height: 0; }
   .nav-label[data-short]::after { content: attr(data-short); font-size: 9.5px; line-height: 1.15; }
   .nav-item.active { box-shadow: 0 0 0 1px rgba(255, 110, 100, .4) inset; }

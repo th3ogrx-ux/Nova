@@ -10,19 +10,20 @@ export function renderScripts(root, data, ctx) {
     <section>
       <div class="pro-panel-head pro-seq" style="--i:0"><h2 class="panel-title">Scripts</h2></div>
       ${groups.length ? groups.map(({ s, scripts }, gi) => `
-        <div class="pro-sgroup pro-seq" style="--i:${gi + 1}">
-          <div class="pro-sgroup-head"><button type="button" class="pro-link" data-open="${s.id}">${escapeHtml(s.titre)}</button>${canauxChips(s, { max: 3 })}</div>
+        <details class="pro-sgroup pro-seq" style="--i:${gi + 1}" open>
+          <summary class="pro-sgroup-head"><span class="pro-sgroup-title">${escapeHtml(s.titre)}</span>${canauxChips(s, { max: 3 })}<span class="pro-count">${scripts.length}</span></summary>
+          <div class="pro-sgroup-bar"><button type="button" class="pro-link pro-sgroup-open" data-open="${s.id}">Ouvrir la stratégie →</button></div>
           <div class="pro-bubbles">${scripts.map((sc) => {
             const t = sum(data.logs.filter((l) => l.script_id === sc.id));
             return `<div class="pro-msg">
-              <div class="pro-bubble out">${escapeHtml(sc.texte).replace(/\n/g, "<br>")}</div>
+              <div class="pro-bubble out clamp" data-expand tabindex="0" role="button" aria-expanded="false" title="Cliquer pour lire tout le message">${escapeHtml(sc.texte).replace(/\n/g, "<br>")}</div>
               <div class="pro-msg-foot"><span class="pro-vbadge">${sc.version}</span>
                 <span class="pro-msg-rate"><b>${t.envoyes ? fmtPct(rate(t.reponses, t.envoyes)) : "—"}</b> de réponses${t.envoyes ? ` · ${fmtInt(t.envoyes)} envoyés` : ""}</span>
                 <button type="button" class="btn ghost btn-sm" data-copy="${sc.id}">Copier</button>
                 <button type="button" class="icon-btn" data-edit-script="${sc.id}" aria-label="Modifier la version ${sc.version}">✎</button></div>
             </div>`;
           }).join("")}</div>
-        </div>`).join("")
+        </details>`).join("")
         : `<div class="card">${emptyState({ title: "Aucun script pour l'instant", text: "Les scripts se rangent par stratégie : ouvre une stratégie et écris son message (version A, puis B pour comparer).", cta: data.strategies.length ? "Voir mes stratégies" : "Créer une stratégie", action: "to-strat" })}</div>`}
     </section>
 
@@ -41,7 +42,13 @@ export function renderScripts(root, data, ctx) {
         : `<div class="card">${emptyState({ title: "Aucun pack d'offre", text: "Présente 2 ou 3 packs côte à côte (ex. Essentiel, Pro, Premium) : c'est plus simple à comparer pour toi comme pour tes prospects.", cta: "Créer un pack", action: "new-offer2" })}</div>`}
     </section>`;
 
-  root.querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", () => ctx.openStrategy(b.dataset.open)));
+  root.querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); ctx.openStrategy(b.dataset.open); }));
+  // Un script long est replié sur quelques lignes : un clic le déplie.
+  root.querySelectorAll("[data-expand]").forEach((b) => {
+    const toggle = () => { const open = b.classList.toggle("clamp") === false; b.setAttribute("aria-expanded", String(open)); };
+    b.addEventListener("click", toggle);
+    b.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
+  });
   const toStrat = root.querySelector('[data-action="to-strat"]'); if (toStrat) toStrat.addEventListener("click", () => ctx.goTab("strategies"));
   root.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", async () => { const sc = data.scripts.find((x) => x.id === b.dataset.copy); toast((await copyText(sc.texte)) ? "Message copié ✓" : "Copie impossible"); }));
   root.querySelectorAll("[data-edit-script]").forEach((b) => b.addEventListener("click", () => { const sc = data.scripts.find((x) => x.id === b.dataset.editScript); openScriptModal(data.strategies.find((s) => s.id === sc.strategy_id), sc, sc.version, ctx); }));
