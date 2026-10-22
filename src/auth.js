@@ -29,7 +29,7 @@ export function renderAuthScreen(container, onSignedIn) {
     container.innerHTML = `
       <div class="auth-screen">
         <div class="card auth-card">
-          <span class="metal-title auth-logo">ZENOA RADAR</span>
+          <span class="metal-title auth-logo">ZENOA AGENCY</span>
           <h1 class="auth-title">${mode === "login" ? "Connexion" : "Créer un compte"}</h1>
           <form id="auth-form">
             <div class="field">

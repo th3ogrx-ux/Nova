@@ -1,7 +1,7 @@
 {
-  "name": "Zenoa Radar",
-  "short_name": "Zenoa Radar",
-  "description": "Zenoa Radar — prospection locale, maquettes de sites vitrine.",
+  "name": "Zenoa Agency",
+  "short_name": "Zenoa Agency",
+  "description": "Zenoa Agency — prospection locale, maquettes de sites vitrine.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

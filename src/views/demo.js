@@ -91,7 +91,7 @@ export async function renderDemoPage(container, slug) {
              </div>`}
       </section>
 
-      <div class="demo-footer">Site créé avec Zenoa Radar</div>
+      <div class="demo-footer">Site créé par Zenoa Agency</div>
     </div>
   `;
 }

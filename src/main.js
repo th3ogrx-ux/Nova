@@ -36,7 +36,7 @@ window.confirmDialog = confirmDialog;
 // installable comme une PWA sur la plupart des navigateurs).
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch((err) => console.error("[Zenoa Radar] service worker :", err));
+    navigator.serviceWorker.register("/sw.js").catch((err) => console.error("[Zenoa Agency] service worker :", err));
   });
 }
 
@@ -46,7 +46,7 @@ if ("serviceWorker" in navigator) {
 // pages vides ou de lancer des recherches à sa place).
 const VIEWS = {
   dashboard: { render: renderDashboard, title: "Tableau de bord", roles: ["admin", "radar"] },
-  recherche: { render: renderRecherche, title: "Zenoa Radar", roles: ["admin", "radar"] },
+  recherche: { render: renderRecherche, title: "Radar", roles: ["admin", "radar"] },
   ressources: { render: renderRessources, title: "Ressources", roles: ["admin", "radar"] },
   clients: { render: renderClients, title: "Clients", roles: ["admin"] },
   espace: { render: renderEspace, title: "Mon espace", roles: ["client", "admin"] },
@@ -102,7 +102,7 @@ function mountView(name) {
   viewRoot.appendChild(el);
   const entry = { el, day: todayStamp(), scrollTop: 0, ready: null };
   viewCache.set(name, entry);
-  entry.ready = Promise.resolve(VIEWS[name].render(el)).catch((err) => console.error("[Zenoa Radar] page " + name + " :", err));
+  entry.ready = Promise.resolve(VIEWS[name].render(el)).catch((err) => console.error("[Zenoa Agency] page " + name + " :", err));
   return entry;
 }
 
@@ -125,7 +125,7 @@ function refreshInBackground(name) {
       entry.el = fresh;
       entry.day = todayStamp();
     })
-    .catch((err) => { console.error("[Zenoa Radar] mise à jour de " + name + " :", err); fresh.remove(); })
+    .catch((err) => { console.error("[Zenoa Agency] mise à jour de " + name + " :", err); fresh.remove(); })
     .finally(() => { entry.refreshing = false; });
 }
 
@@ -139,7 +139,7 @@ function switchView(name) {
     el.classList.toggle("active", el.dataset.view === name);
   });
   markActiveNav(name);
-  document.title = (name === "espace" && getCurrentRole() === "admin" ? "Aperçu client" : view.title) + " — Zenoa Radar";
+  document.title = (name === "espace" && getCurrentRole() === "admin" ? "Aperçu client" : view.title) + " — Zenoa Agency";
 
   const previous = currentView && viewCache.get(currentView);
   if (previous) previous.scrollTop = mainEl.scrollTop;
@@ -350,7 +350,7 @@ function showFatalError(message) {
   screenAuth.innerHTML = `
     <div class="auth-screen">
       <div class="card auth-card">
-        <span class="metal-title auth-logo">ZENOA RADAR</span>
+        <span class="metal-title auth-logo">ZENOA AGENCY</span>
         <h1 class="auth-title" style="color:var(--danger);">Oups, un problème</h1>
         <p style="font-size:13.5px;color:var(--text-dim);text-align:center;line-height:1.6;">${message}</p>
       </div>
@@ -390,7 +390,7 @@ async function boot() {
       else showAuth();
     });
   } catch (err) {
-    console.error("[Zenoa Radar] Erreur au démarrage :", err);
+    console.error("[Zenoa Agency] Erreur au démarrage :", err);
     showFatalError("Une erreur inattendue a empêché le chargement de la page. Essaie de rafraîchir ; si ça persiste, contacte l'administrateur.");
   }
 }

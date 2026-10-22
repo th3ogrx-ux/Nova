@@ -1,4 +1,4 @@
-# Zenoa Radar
+# Zenoa Agency
 
 SaaS de prospection : recherche d'entreprises locales sans site web ou
 avec un site à moderniser (via OpenStreetMap), mini CRM, premier

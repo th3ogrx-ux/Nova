@@ -1,4 +1,4 @@
-// Génération des prospects du jour pour Zenoa Radar.
+// Génération des prospects du jour pour le Radar.
 //
 // La recherche OpenStreetMap (Overpass) se fait depuis le navigateur :
 // les serveurs Overpass gratuits refusent les appels venant des
@@ -225,7 +225,7 @@ export async function generateTodayLeadsIfNeeded(userId, onStatus) {
   if (countError) throw new Error(countError.message);
   if (count > 0) return 0;
 
-  onStatus("Zenoa Radar cherche tes entreprises du jour… (ça peut prendre jusqu'à une minute)");
+  onStatus("Le Radar cherche tes entreprises du jour… (ça peut prendre jusqu'à une minute)");
 
   const seed = startOfDay.toISOString().slice(0, 10) + userId;
   const cities = pickDaily(CITIES, CITIES_PER_DAY, seed);

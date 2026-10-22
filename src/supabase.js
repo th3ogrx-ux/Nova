@@ -19,7 +19,7 @@ const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabaseConfigured = Boolean(url && anonKey);
 
 if (!supabaseConfigured) {
-  console.error("[Zenoa Radar] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY manquantes — vérifie les variables d'environnement sur Vercel (puis redéploie : elles sont lues au moment du build).");
+  console.error("[Zenoa Agency] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY manquantes — vérifie les variables d'environnement sur Vercel (puis redéploie : elles sont lues au moment du build).");
 }
 
 export const supabase = createClient(

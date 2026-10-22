@@ -1,4 +1,4 @@
-// Zenoa Radar — prospection automatique quotidienne. À la première
+// Radar — prospection automatique quotidienne. À la première
 // ouverture de la journée, les prospects du jour sont générés (voir
 // src/radar-generate.js) : aucune recherche à lancer soi-même.
 import { supabase } from "../supabase.js";
@@ -19,7 +19,7 @@ const HISTORY_STATUSES = ["contacte", "interesse", "pas_interesse"];
 
 export function renderRecherche(root) {
   root.innerHTML = `
-    <h1 class="page-title">Zenoa Radar</h1>
+    <h1 class="page-title">Radar</h1>
 
     <div style="margin-top:4px;">
       <div style="display:flex;gap:8px;margin-bottom:14px;">
@@ -228,7 +228,7 @@ async function setLeadStatus(btn, leadId, status, onChanged) {
       card.appendChild(msg);
     }
     msg.textContent = "Pas enregistré : ta base Supabase refuse ce changement (" +
-      (error ? error.message : "modification non autorisée") + "). Colle le correctif SQL de Zenoa Radar dans Supabase.";
+      (error ? error.message : "modification non autorisée") + "). Colle le correctif SQL du Radar dans Supabase.";
     return;
   }
   onChanged();
