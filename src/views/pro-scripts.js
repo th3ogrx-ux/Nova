@@ -1,5 +1,5 @@
 // Prospection > Scripts et offres : scripts en bulles de message, packs d'offre en cartes de tarifs comparables.
-import { CANAUX, sum, rate, saveOffer, deleteOffer, escapeHtml, fmtInt, fmtPct, fmtEuro, canalIcon, cleanPhases, phaseCost, phasesSummary } from "./pro-data.js";
+import { CANAUX, sum, rate, saveOffer, deleteOffer, escapeHtml, fmtInt, fmtPct, fmtEuro, canalIcon, cleanPhases, phaseCost, phasesSummary, offerProgram } from "./pro-data.js";
 import { emptyState, openModal, modalHeader, field, readForm, toast, friendlyError, copyText } from "./pro-ui.js";
 import { openScriptModal } from "./pro-strategies.js";
 
@@ -35,7 +35,7 @@ export function renderScripts(root, data, ctx) {
           ${o.description ? `<p class="pro-muted">${escapeHtml(o.description)}</p>` : ""}
           ${(o.phases || []).length ? phaseTimeline(o.phases) : ""}
           <ul>${(o.atouts || "").split("\n").map((a) => a.trim()).filter(Boolean).map((a) => `<li><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>${escapeHtml(a)}</span></li>`).join("")}</ul>
-          <button type="button" class="btn ghost btn-sm" data-edit-offer="${o.id}">Modifier</button>
+          <div class="pro-price-btns">${(o.phases || []).length ? `<button type="button" class="btn primary btn-sm" data-program="${o.id}">Voir le programme complet</button>` : ""}<button type="button" class="btn ghost btn-sm" data-edit-offer="${o.id}">Modifier</button></div>
         </article>`).join("")}</div>`
         : `<div class="card">${emptyState({ title: "Aucun pack d'offre", text: "Présente 2 ou 3 packs côte à côte (ex. Essentiel, Pro, Premium) : c'est plus simple à comparer pour toi comme pour tes prospects.", cta: "Créer un pack", action: "new-offer2" })}</div>`}
     </section>`;
@@ -44,6 +44,7 @@ export function renderScripts(root, data, ctx) {
   const toStrat = root.querySelector('[data-action="to-strat"]'); if (toStrat) toStrat.addEventListener("click", () => ctx.goTab("strategies"));
   root.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", async () => { const sc = data.scripts.find((x) => x.id === b.dataset.copy); toast((await copyText(sc.texte)) ? "Message copié ✓" : "Copie impossible"); }));
   root.querySelectorAll("[data-edit-script]").forEach((b) => b.addEventListener("click", () => { const sc = data.scripts.find((x) => x.id === b.dataset.editScript); openScriptModal(data.strategies.find((s) => s.id === sc.strategy_id), sc, sc.version, ctx); }));
+  root.querySelectorAll("[data-program]").forEach((b) => b.addEventListener("click", () => openProgramModal(data.offers.find((o) => o.id === b.dataset.program))));
   const newOffer = () => openOfferModal(null, ctx);
   root.querySelector('[data-action="new-offer"]').addEventListener("click", newOffer);
   const n2 = root.querySelector('[data-action="new-offer2"]'); if (n2) n2.addEventListener("click", newOffer);
@@ -68,6 +69,25 @@ function phaseTimeline(phases) {
   }).join("")}</ol>`;
 }
 
+function programText(offer) {
+  return offerProgram(offer.phases).map(({ phase, fromMonth, weeks }) => `${phase.titre} (mois ${fromMonth}${phase.mois > 1 ? " à " + (fromMonth + phase.mois - 1) : ""}, ${costText(phase)})\n` + weeks.filter((w) => w.task).map((w) => `  Semaine ${w.n} : ${w.task}`).join("\n")).join("\n\n");
+}
+
+// Programme complet : tout le travail à faire, étape par étape et semaine par semaine.
+function openProgramModal(offer) {
+  const prog = offerProgram(offer.phases), sm = phasesSummary(offer.phases);
+  const planned = prog.reduce((a, p) => a + p.planned, 0);
+  const { overlay } = openModal(`${modalHeader("Programme : " + offer.nom)}
+    <p class="pro-muted" style="margin:0 0 14px;">${fmtEuro(sm.total)} sur ${sm.mois} mois · ${planned ? planned + " semaine" + (planned > 1 ? "s" : "") + " détaillée" + (planned > 1 ? "s" : "") : "aucune semaine détaillée pour l'instant"}</p>
+    <div class="pro-program">${prog.map(({ phase, fromMonth, weeks }) => `
+      <section class="pro-program-phase">
+        <header><span class="pro-phase-when">${monthsLabel(fromMonth, phase.mois)}</span><h3>${escapeHtml(phase.titre)}</h3><span class="pro-phase-cost">${costText(phase)}</span></header>
+        <ol class="pro-weeks">${weeks.map((w) => `<li class="${w.task ? "" : "empty"}"><span class="pro-week-n">S${w.n}</span><span>${w.task ? escapeHtml(w.task) : "À définir"}</span></li>`).join("")}</ol>
+      </section>`).join("")}</div>
+    <div class="modal-actions"><button type="button" class="btn ghost" data-close>Fermer</button><button type="button" class="btn primary" data-copy-program>Copier le programme</button></div>`, { maxWidth: 620 });
+  overlay.querySelector("[data-copy-program]").addEventListener("click", async () => toast((await copyText(programText(offer))) ? "Programme copié ✓" : "Copie impossible"));
+}
+
 function phaseRow(p = {}) {
   return `<div class="pro-phase-row" data-phase>
     <div class="pro-phase-row-top"><input type="text" data-f="titre" maxlength="80" placeholder="Ex : Fiche Google et visibilité locale" value="${escapeHtml(p.titre || "")}" aria-label="Nom de l'étape"><button type="button" class="icon-btn" data-rm aria-label="Retirer cette étape">✕</button></div>
@@ -76,7 +96,9 @@ function phaseRow(p = {}) {
       <label>Prix<span class="pro-phase-unit"><input type="number" data-f="prix" min="0" step="1" value="${p.prix != null ? p.prix : ""}"> €</span></label>
       <label>Ce prix est<select data-f="mode"><option value="total"${p.mode === "total" ? " selected" : ""}>au total</option><option value="mois"${p.mode !== "total" ? " selected" : ""}>par mois</option></select></label>
     </div>
-    <input type="text" data-f="detail" maxlength="200" placeholder="Ce que tu fais pendant cette étape (facultatif)" value="${escapeHtml(p.detail || "")}" aria-label="Détail de l'étape">
+    <input type="text" data-f="detail" maxlength="200" placeholder="En une phrase : ce que tu fais pendant cette étape (facultatif)" value="${escapeHtml(p.detail || "")}" aria-label="Détail de l'étape">
+    <label class="pro-phase-weeks">Travail semaine par semaine <em>(une ligne par semaine)</em>
+      <textarea data-f="taches" rows="4" maxlength="1500" placeholder="Semaine 1 : créer et vérifier la fiche Google&#10;Semaine 2 : ajouter les photos et les services&#10;Semaine 3 : répondre aux avis">${escapeHtml(p.taches || "")}</textarea></label>
   </div>`;
 }
 

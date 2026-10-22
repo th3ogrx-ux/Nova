@@ -185,7 +185,8 @@ export function cleanPhases(list) {
     mois: Math.min(60, Math.max(1, Math.floor(Number(p && p.mois) || 1))),
     prix: Math.max(0, Number(p && p.prix) || 0),
     mode: p && p.mode === "total" ? "total" : "mois",
-    detail: String((p && p.detail) || "").trim().slice(0, 200)
+    detail: String((p && p.detail) || "").trim().slice(0, 200),
+    taches: String((p && p.taches) || "").replace(/\r/g, "").split("\n").map((l) => l.trim().slice(0, 200)).slice(0, 60).join("\n").trim()
   })).filter((p) => p.titre);
 }
 export const phaseCost = (p) => (p.mode === "mois" ? p.prix * p.mois : p.prix);
@@ -193,4 +194,17 @@ export const phaseCost = (p) => (p.mode === "mois" ? p.prix * p.mois : p.prix);
 export function phasesSummary(phases) {
   const total = phases.reduce((a, p) => a + phaseCost(p), 0), mois = phases.reduce((a, p) => a + p.mois, 0);
   return { total, mois, parMois: mois ? total / mois : 0 };
+}
+
+// Programme complet d'une offre : semaine par semaine, étape après étape (une ligne de « taches » = une semaine).
+export function offerProgram(phases) {
+  let week = 1, month = 1;
+  return phases.map((p) => {
+    const lines = p.taches ? p.taches.split("\n") : [];
+    const count = Math.max(lines.length, Math.round(p.mois * 4.33));
+    const weeks = Array.from({ length: count }, (_, i) => ({ n: week + i, task: (lines[i] || "").trim() }));
+    const out = { phase: p, fromMonth: month, weeks, planned: lines.filter((l) => l.trim()).length };
+    week += count; month += p.mois;
+    return out;
+  });
 }
