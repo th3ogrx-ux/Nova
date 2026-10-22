@@ -1,7 +1,7 @@
 // Prospection > Stratégies : cartes riches, vue Kanban, page détail (scripts A/B, historique, notes).
 import {
   CANAUX, STATUTS, statutOf, strategyStats, weeklySeries, sum, rate, inRange, dateKey, parseKey, shortDay, mondayOf,
-  escapeHtml, fmtInt, fmtPct, canalIcon, saveStrategy, deleteStrategy, saveScript, deleteScript, deleteLog
+  escapeHtml, fmtInt, fmtPct, canalIcon, offerPriceLabel, saveStrategy, deleteStrategy, saveScript, deleteScript, deleteLog
 } from "./pro-data.js";
 import { miniBars, lineChart, runCounters } from "./pro-charts.js";
 import { renderBoard, moveButtons } from "./pro-kanban.js";
@@ -12,11 +12,14 @@ const canalOptions = Object.entries(CANAUX).map(([key, c]) => ({ key, label: c.l
 const pill = (statut) => { const s = statutOf(statut); return `<span class="pro-pill"><i style="background:${s.color}"></i>${escapeHtml(s.label)}</span>`; };
 const allStats = (data) => strategyStats(data, "2000-01-01", dateKey());
 
-function cardHtml(st, { board = false, index = 0, total = 1 } = {}) {
+const offerChip = (offer) => (offer ? `<span class="pro-chip offer" title="Offre vendue : ${escapeHtml(offer.nom)}">★ ${escapeHtml(offer.nom)} · ${escapeHtml(offerPriceLabel(offer))}</span>` : "");
+
+function cardHtml(st, { board = false, offer = null } = {}) {
   const s = st.strategy;
   return `<div class="pro-scard-top"><span class="pro-chip">${canalIcon(s.canal)} ${escapeHtml(CANAUX[s.canal].label)}</span>${board ? moveButtons(STATUTS.findIndex((x) => x.key === s.statut), STATUTS.length) : pill(s.statut)}</div>
     <h3 class="pro-scard-title">${escapeHtml(s.titre)}</h3>
     <p class="pro-scard-target">${s.cible ? "Cible : " + escapeHtml(s.cible) : "<span class='pro-muted'>Aucune cible précisée</span>"}</p>
+    ${offer ? `<div class="pro-scard-offer">${offerChip(offer)}</div>` : ""}
     <div class="pro-scard-foot">
       <div class="pro-scard-rate"><b>${st.all.envoyes ? fmtPct(st.tauxAll) : "—"}</b><span>taux de réponse</span></div>
       <div class="pro-scard-spark">${miniBars(st.weeks.map((w) => w.envoyes), { w: board ? 84 : 120 })}<span>${fmtInt(st.all.envoyes)} envoyés · ${fmtInt(st.all.clients)} client${st.all.clients > 1 ? "s" : ""}</span></div>
@@ -28,6 +31,7 @@ export function renderStrategies(root, data, ctx) {
   if (state.detailId && data.strategies.some((s) => s.id === state.detailId)) return renderDetail(root, data, ctx);
   state.detailId = null;
   const stats = allStats(data);
+  const offerOf = (s) => data.offers.find((o) => o.id === s.offer_id) || null;
   const mode = state.stratView === "kanban" ? "kanban" : "cards";
   root.innerHTML = `
     <div class="pro-toolbar pro-seq" style="--i:0">
@@ -36,16 +40,16 @@ export function renderStrategies(root, data, ctx) {
     </div>
     <div data-body></div>`;
   const body = root.querySelector("[data-body]");
-  root.querySelector('[data-action="new"]').addEventListener("click", () => openStrategyModal(null, ctx));
+  root.querySelector('[data-action="new"]').addEventListener("click", () => openStrategyModal(null, ctx, data));
   root.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => { state.stratView = b.dataset.mode; ctx.rerender({ animate: false }); }));
 
   if (!stats.length) {
     body.innerHTML = `<div class="card">${emptyState({ title: "Aucune stratégie pour l'instant", text: "Une stratégie, c'est une façon d'aborder tes prospects : un canal, une cible, un script. Crée la première, puis compare-les avec des chiffres.", cta: "Créer ma première stratégie", action: "new2" })}</div>`;
-    body.querySelector('[data-action="new2"]').addEventListener("click", () => openStrategyModal(null, ctx));
+    body.querySelector('[data-action="new2"]').addEventListener("click", () => openStrategyModal(null, ctx, data));
     return;
   }
   if (mode === "cards") {
-    body.innerHTML = `<div class="pro-cards">${stats.map((st, i) => `<article class="card pro-scard pro-seq" style="--i:${i + 1}" data-id="${st.strategy.id}" tabindex="0" role="button" aria-label="Ouvrir ${escapeHtml(st.strategy.titre)}">${cardHtml(st)}</article>`).join("")}</div>`;
+    body.innerHTML = `<div class="pro-cards">${stats.map((st, i) => `<article class="card pro-scard pro-seq" style="--i:${i + 1}" data-id="${st.strategy.id}" tabindex="0" role="button" aria-label="Ouvrir ${escapeHtml(st.strategy.titre)}">${cardHtml(st, { offer: offerOf(st.strategy) })}</article>`).join("")}</div>`;
     body.querySelectorAll(".pro-scard").forEach((c) => {
       c.addEventListener("click", () => ctx.openStrategy(c.dataset.id));
       c.addEventListener("keydown", (e) => { if (e.key === "Enter") ctx.openStrategy(c.dataset.id); });
@@ -54,7 +58,7 @@ export function renderStrategies(root, data, ctx) {
     const byId = Object.fromEntries(stats.map((s) => [s.strategy.id, s]));
     renderBoard(body, {
       columns: STATUTS, items: stats.map((s) => s.strategy), colOf: (s) => s.statut,
-      cardHtml: (s) => `<div class="pro-scard">${cardHtml(byId[s.id], { board: true })}</div>`,
+      cardHtml: (s) => `<div class="pro-scard">${cardHtml(byId[s.id], { board: true, offer: offerOf(s) })}</div>`,
       onMove: async (id, statut) => {
         const s = data.strategies.find((x) => x.id === id); const before = s.statut;
         s.statut = statut; ctx.rerender({ animate: false });
@@ -66,7 +70,7 @@ export function renderStrategies(root, data, ctx) {
 }
 
 // ---------- Fenêtre création / modification ----------
-export function openStrategyModal(strategy, ctx) {
+export function openStrategyModal(strategy, ctx, data) {
   const s = strategy || { canal: "instagram", statut: "a_tester" };
   const { overlay, close } = openModal(`${modalHeader(strategy ? "Modifier la stratégie" : "Nouvelle stratégie")}
     <form data-form>
@@ -76,6 +80,7 @@ export function openStrategyModal(strategy, ctx) {
         ${field("Statut", `<select name="statut">${options(STATUTS, s.statut)}</select>`)}
       </div>
       ${field("Cible", `<input type="text" name="cible" maxlength="200" value="${escapeHtml(s.cible || "")}" placeholder="Ex : coiffeurs de Lyon, sans site web">`)}
+      ${field("Offre que tu vends avec cette stratégie", `<select name="offer_id"><option value="">— Aucune offre choisie —</option>${(data.offers || []).map((o) => `<option value="${o.id}"${o.id === s.offer_id ? " selected" : ""}>${escapeHtml(o.nom)} · ${escapeHtml(offerPriceLabel(o))}</option>`).join("")}</select>${(data.offers || []).length ? "" : `<p class="pro-muted" style="margin:6px 0 0;">Tu n'as pas encore de pack : crée-en un dans « Scripts et offres ».</p>`}`)}
       <div class="error-msg" data-error></div>
       <div class="modal-actions">${strategy ? `<button type="button" class="btn danger" data-delete style="margin-right:auto;">Supprimer</button>` : ""}<button type="button" class="btn ghost" data-close>Annuler</button><button type="submit" class="btn primary">Enregistrer</button></div>
     </form>`, { maxWidth: 480 });
@@ -145,7 +150,7 @@ function renderDetail(root, data, ctx) {
   root.innerHTML = `
     <button type="button" class="btn ghost btn-sm pro-back" data-back>← Toutes les stratégies</button>
     <header class="pro-detail-head pro-seq" style="--i:0">
-      <div><div class="pro-detail-meta"><span class="pro-chip">${canalIcon(s.canal)} ${escapeHtml(CANAUX[s.canal].label)}</span>${pill(s.statut)}</div>
+      <div><div class="pro-detail-meta"><span class="pro-chip">${canalIcon(s.canal)} ${escapeHtml(CANAUX[s.canal].label)}</span>${pill(s.statut)}${offerChip(data.offers.find((o) => o.id === s.offer_id))}</div>
         <h2 class="pro-detail-title">${escapeHtml(s.titre)}</h2>
         <p class="pro-muted">${s.cible ? "Cible : " + escapeHtml(s.cible) : "Aucune cible précisée"}</p></div>
       <div class="pro-detail-actions"><button type="button" class="btn ghost btn-sm" data-edit>Modifier</button><button type="button" class="btn primary btn-sm" data-log>+ Noter des messages</button></div>
@@ -190,7 +195,7 @@ function renderDetail(root, data, ctx) {
     </div>`;
 
   root.querySelector("[data-back]").addEventListener("click", () => ctx.openStrategy(null));
-  root.querySelector("[data-edit]").addEventListener("click", () => openStrategyModal(s, ctx));
+  root.querySelector("[data-edit]").addEventListener("click", () => openStrategyModal(s, ctx, data));
   root.querySelector("[data-log]").addEventListener("click", () => ctx.openQuick(s.id));
   const add = (v) => openScriptModal(s, null, v, ctx);
   const addA = root.querySelector('[data-action="add-a"]'); if (addA) addA.addEventListener("click", () => add("A"));

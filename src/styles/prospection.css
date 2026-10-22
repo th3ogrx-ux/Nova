@@ -382,3 +382,8 @@ i.pro-cell.l1 { background: rgba(225, 29, 46, .28); } i.pro-cell.l2 { background
 }
 
 .pro-draft-note { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid rgba(201, 164, 92, .5); background: rgba(201, 164, 92, .1); font-size: 13px; color: var(--light-text); }
+
+/* ---------- Offre rattachée à une stratégie ---------- */
+.pro-chip.offer { color: var(--gold); border-color: rgba(201, 164, 92, .5); background: rgba(201, 164, 92, .08); max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.pro-scard-offer { margin: -2px 0 0; min-width: 0; }
+#app:not([data-theme="dark"]) .pro-chip.offer { color: #7d5f24; }

@@ -225,3 +225,10 @@ export function offerProgram(phases) {
     return out;
   });
 }
+
+// Petit libellé de prix d'une offre : « 890 € », « 79 € / mois » ou « 480 € sur 6 mois » (offre à étapes).
+export function offerPriceLabel(o) {
+  const phases = Array.isArray(o.phases) ? cleanPhases(o.phases) : [];
+  if (phases.length) { const sm = phasesSummary(phases); return `${fmtEuro(sm.total)} sur ${sm.mois} mois`; }
+  return fmtEuro(o.prix) + (o.periode === "mois" ? " / mois" : "");
+}

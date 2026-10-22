@@ -119,6 +119,10 @@ insert into public.pro_logs (strategy_id, envoyes, reponses) values ('20000000-0
 select tst.eq('admin saisit un log', (select count(*) from public.pro_logs), 1);
 select tst.denied('admin : taux de réponse > 100000 refusé', $$insert into public.pro_logs (envoyes) values (100001)$$);
 select tst.denied('admin : canal inconnu refusé', $$insert into public.pro_strategies (titre, canal) values ('x', 'pigeon')$$);
+insert into public.pro_offers (id, nom, prix) values ('30000000-0000-0000-0000-000000000001', 'Pack test', 100);
+update public.pro_strategies set offer_id = '30000000-0000-0000-0000-000000000001';
+select tst.eq('admin rattache une offre à sa stratégie', (select count(*) from public.pro_strategies where offer_id is not null), 1);
+select tst.denied('admin : offre inconnue refusée', $$update public.pro_strategies set offer_id = gen_random_uuid()$$);
 select tst.denied('admin : écrire pour un autre compte refusé', $$insert into public.pro_strategies (user_id, titre) values ('00000000-0000-0000-0000-0000000000a1', 'intrus')$$);
 rollback;
 begin; set local role authenticated;

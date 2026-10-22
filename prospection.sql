@@ -69,6 +69,9 @@ create table if not exists public.pro_offers (
   created_at  timestamptz not null default now()
 );
 
+-- Offre que vend une stratégie (facultatif).
+alter table public.pro_strategies add column if not exists offer_id uuid references public.pro_offers(id) on delete set null;
+
 -- Offres à long terme : liste d'étapes [{titre, mois, prix, mode: 'mois'|'total', detail}], ex. 3 mois à 180 € puis 3 mois de réseaux sociaux.
 alter table public.pro_offers add column if not exists phases jsonb not null default '[]'::jsonb;
 -- Chaque étape peut aussi contenir « semaines » : une liste de textes, le travail prévu semaine par semaine.
@@ -120,18 +123,25 @@ end $$;
 -- Une stratégie ou un prospect ne peut référencer que ses propres lignes.
 create or replace function public.pro_same_owner() returns trigger
 language plpgsql security definer set search_path = public as $$
+declare v_strategy uuid; v_offer uuid;
 begin
-  if tg_table_name = 'pro_scripts' and not exists (select 1 from public.pro_strategies where id = new.strategy_id and user_id = new.user_id) then
-    raise exception 'Stratégie inconnue.';
-  end if;
-  if tg_table_name in ('pro_logs','pro_prospects') then
-    if new.strategy_id is not null and not exists (select 1 from public.pro_strategies where id = new.strategy_id and user_id = new.user_id) then
+  -- Chaque table n'a pas les mêmes colonnes : on lit seulement celles qui existent.
+  if tg_table_name = 'pro_strategies' then
+    v_offer := new.offer_id;
+    if v_offer is not null and not exists (select 1 from public.pro_offers where id = v_offer and user_id = new.user_id) then
+      raise exception 'Offre inconnue.';
+    end if;
+  else
+    v_strategy := new.strategy_id;
+    if v_strategy is not null and not exists (select 1 from public.pro_strategies where id = v_strategy and user_id = new.user_id) then
       raise exception 'Stratégie inconnue.';
     end if;
   end if;
   return new;
 end $$;
 revoke all on function public.pro_same_owner() from public, anon, authenticated;
+drop trigger if exists pro_strategies_owner on public.pro_strategies;
+create trigger pro_strategies_owner before insert or update on public.pro_strategies for each row execute function public.pro_same_owner();
 drop trigger if exists pro_scripts_owner on public.pro_scripts;
 create trigger pro_scripts_owner before insert or update on public.pro_scripts for each row execute function public.pro_same_owner();
 drop trigger if exists pro_logs_owner on public.pro_logs;

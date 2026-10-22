@@ -57,7 +57,7 @@ export function readForm(form) {
 export function friendlyError(err) {
   console.error("[Prospection]", err);
   const m = String((err && err.message) || "");
-  if (/pro_offers_phases_ok|violates check constraint|phases|titres_mois/i.test(m)) return "Ce pack est trop long pour la version actuelle de la base de données. Recolle prospection.sql dans Supabase (SQL Editor > Run), puis réessaie. Ton texte est gardé.";
+  if (/pro_offers_phases_ok|violates check constraint|phases|titres_mois|offer_id|schema cache|column/i.test(m)) return "La base de données n'est pas à jour (ou le pack est trop long). Recolle prospection.sql dans Supabase (SQL Editor > Run), puis réessaie. Ton texte est gardé.";
   if (/JWT|expired|not authenticated|401/i.test(m)) return "Ta session a expiré : reconnecte-toi, puis réessaie. Ton texte est gardé.";
   if (/Failed to fetch|NetworkError|network/i.test(m)) return "Pas de connexion pour le moment. Réessaie dans un instant. Ton texte est gardé.";
   return "Enregistrement impossible" + (m ? " (" + m.slice(0, 110) + ")" : "") + ". Ton texte est gardé : réessaie dans un instant.";
