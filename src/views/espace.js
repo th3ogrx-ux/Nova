@@ -6,8 +6,13 @@ import { supabase } from "../supabase.js";
 import { getCurrentRole, getCurrentBusinessId } from "../session.js";
 import { readCache, writeCache, sameData } from "../data-cache.js";
 import {
-  escapeHtml, loadEspaceData, summarize, monthLabel, formatDate, formatNumber, formatRating, variation
+  escapeHtml, loadEspaceData, summarize, monthLabel, formatDate, formatNumber, formatRating, variation, reviewSeries, statSeries
 } from "./espace-data.js";
+import { renderReviewsChart, renderCallsChart } from "./espace-charts.js";
+
+// Période des graphiques (6 ou 12 mois), gardée d'une visite à l'autre.
+const RANGE_KEY = "zenoa-espace-periode";
+let chartRange = (() => { try { return localStorage.getItem(RANGE_KEY) === "12" ? 12 : 6; } catch { return 6; } })();
 
 const STATUS_COLUMNS = [
   { key: "fait", label: "Fait", color: "var(--ok)" },
@@ -159,6 +164,22 @@ function dashboardHtml(data) {
       ? `<p class="espace-month-note">Chiffres de <b>${escapeHtml(monthTitle)}</b></p>`
       : `<p class="espace-month-note">Les premiers chiffres du mois arrivent bientôt.</p>`}
 
+    <div class="espace-range" role="group" aria-label="Période des graphiques">
+      <span>Évolution sur</span>
+      <button type="button" class="btn btn-sm ${chartRange === 6 ? "primary" : "ghost"}" data-range="6">6 mois</button>
+      <button type="button" class="btn btn-sm ${chartRange === 12 ? "primary" : "ghost"}" data-range="12">12 mois</button>
+    </div>
+    <div class="espace-charts">
+      <div class="card espace-card" style="padding:20px;">
+        <div class="panel-title">Note et avis</div>
+        <div id="espace-chart-reviews" class="espace-chart"></div>
+      </div>
+      <div class="card espace-card" style="padding:20px;">
+        <div class="panel-title">Appels et itinéraires</div>
+        <div id="espace-chart-calls" class="espace-chart"></div>
+      </div>
+    </div>
+
     <div class="card espace-card" style="padding:20px;margin-bottom:24px;">
       <div class="panel-title">Demander des avis</div>
       ${reviewRequestHtml(business)}
@@ -218,9 +239,37 @@ export async function renderEspace(root) {
     return;
   }
 
+  function drawCharts(data) {
+    renderReviewsChart(body.querySelector("#espace-chart-reviews"), reviewSeries(data.reviews, chartRange));
+    renderCallsChart(body.querySelector("#espace-chart-calls"), statSeries(data.stats, chartRange));
+  }
+
+  // Les graphiques se redessinent quand la largeur change (rotation du
+  // téléphone, fenêtre redimensionnée, page qui redevient visible).
+  let currentData = null;
+  let drawnWidth = 0;
+  new ResizeObserver(() => {
+    const box = body.querySelector("#espace-chart-reviews");
+    if (!currentData || !box) return;
+    const w = box.clientWidth;
+    if (w > 0 && Math.abs(w - drawnWidth) >= 24) { drawnWidth = w; drawCharts(currentData); }
+  }).observe(body);
+
   function draw(data) {
+    currentData = data;
     body.innerHTML = dashboardHtml(data);
     body.querySelectorAll("[data-count]").forEach((el) => countUp(el, Number(el.dataset.count), { decimals: Number(el.dataset.decimals || 0) }));
+    drawnWidth = body.querySelector("#espace-chart-reviews").clientWidth;
+    drawCharts(data);
+    body.querySelectorAll("[data-range]").forEach((btn) => btn.addEventListener("click", () => {
+      chartRange = Number(btn.dataset.range);
+      try { localStorage.setItem(RANGE_KEY, String(chartRange)); } catch { /* pas grave */ }
+      body.querySelectorAll("[data-range]").forEach((b) => {
+        b.classList.toggle("primary", b === btn);
+        b.classList.toggle("ghost", b !== btn);
+      });
+      drawCharts(data);
+    }));
     setupQr(body, data.business).catch((err) => console.error("[Espace] QR code :", err));
   }
 

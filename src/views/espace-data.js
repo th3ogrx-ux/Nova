@@ -66,3 +66,40 @@ export function summarize(data) {
   const toAnswer = reviews.filter((r) => !r.repondu);
   return { average, count: reviews.length, latest, previous, toAnswerCount: toAnswer.length };
 }
+
+// ---------- Séries pour les graphiques ----------
+const monthKeyOf = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-01";
+
+export function shortMonth(key) {
+  const label = monthDate(key).toLocaleDateString("fr-FR", { month: "short" }).replace(".", "");
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+// Les `count` derniers mois, du plus ancien au mois en cours.
+export function lastMonthKeys(count) {
+  const now = new Date();
+  const keys = [];
+  for (let i = count - 1; i >= 0; i--) keys.push(monthKeyOf(new Date(now.getFullYear(), now.getMonth() - i, 1)));
+  return keys;
+}
+
+// Avis reçus dans chaque mois + note moyenne CUMULÉE à la fin du mois
+// (celle que voit le public sur Google) ; null tant qu'il n'y a aucun avis.
+export function reviewSeries(reviews, count) {
+  return lastMonthKeys(count).map((mois) => {
+    const [y, m] = mois.split("-").map(Number);
+    const monthEnd = monthKeyOf(new Date(y, m, 1)); // 1er du mois suivant
+    const upTo = reviews.filter((r) => r.date < monthEnd);
+    const inMonth = reviews.filter((r) => r.date >= mois && r.date < monthEnd);
+    return {
+      mois,
+      count: inMonth.length,
+      average: upTo.length ? upTo.reduce((s, r) => s + r.note, 0) / upTo.length : null
+    };
+  });
+}
+
+// Chiffres mensuels saisis, du plus ancien au plus récent, limités aux `count` derniers.
+export function statSeries(stats, count) {
+  return stats.slice().sort((a, b) => a.mois.localeCompare(b.mois)).slice(-count);
+}
