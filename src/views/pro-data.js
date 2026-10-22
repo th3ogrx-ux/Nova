@@ -9,6 +9,10 @@ export const CANAUX = {
   linkedin:    { label: "LinkedIn", icon: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 10v7M8 7v.01M12 17v-7M12 13a3 3 0 0 1 6 0v4"/>' },
   terrain:     { label: "Terrain", icon: '<path d="M12 21s7-5.5 7-11a7 7 0 0 0-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>' },
   google_maps: { label: "Google Maps", icon: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/>' },
+  tiktok:      { label: "TikTok", icon: '<path d="M14 4v10.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 4c.4 2.4 1.9 4 4.5 4.2"/>' },
+  facebook:    { label: "Facebook", icon: '<path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8.5A.5.5 0 0 1 14 8z"/>' },
+  whatsapp:    { label: "WhatsApp", icon: '<path d="M4 20l1.3-4.2A8 8 0 1 1 8.3 18.8L4 20z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-.8.8a4 4 0 0 1-1.8-1.8l.8-.8-1-2z"/>' },
+  sms:         { label: "SMS", icon: '<rect x="3" y="4" width="18" height="13" rx="3"/><path d="M8 21l3-4"/><path d="M8 10h8M8 13h5"/>' },
   autre:       { label: "Autre", icon: '<circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/>' }
 };
 
@@ -37,6 +41,18 @@ export const reducedMotion = () => !!(window.matchMedia && window.matchMedia("(p
 export const fmtInt = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(n || 0));
 export const fmtEuro = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
 export const fmtPct = (n, d = 1) => (Number.isFinite(n) ? n.toFixed(d).replace(".", ",") : "0") + " %";
+
+// Canaux d'une stratégie : la liste « canaux », ou à défaut l'ancien canal unique.
+export const canauxOf = (s) => {
+  const list = (Array.isArray(s && s.canaux) ? s.canaux : []).filter((k) => CANAUX[k]);
+  return list.length ? list : [(s && CANAUX[s.canal] ? s.canal : "autre")];
+};
+export const canauxLabel = (s) => canauxOf(s).map((k) => CANAUX[k].label).join(", ");
+export const canauxIcons = (s, size = 14) => `<span class="pro-icons" title="${escapeHtml(canauxLabel(s))}">${canauxOf(s).map((k) => canalIcon(k, size)).join("")}</span>`;
+export function canauxChips(s, { max = 2 } = {}) {
+  const list = canauxOf(s), shown = list.slice(0, max), more = list.length - shown.length;
+  return shown.map((k) => `<span class="pro-chip">${canalIcon(k)} ${escapeHtml(CANAUX[k].label)}</span>`).join("") + (more > 0 ? `<span class="pro-chip" title="${escapeHtml(canauxLabel(s))}">+${more}</span>` : "");
+}
 
 export function canalIcon(key, size = 16) {
   const c = CANAUX[key] || CANAUX.autre;

@@ -1,5 +1,5 @@
 // Prospection > Scripts et offres : scripts en bulles de message, packs d'offre en cartes de tarifs comparables.
-import { CANAUX, sum, rate, saveOffer, deleteOffer, escapeHtml, fmtInt, fmtPct, fmtEuro, canalIcon, cleanPhases, phaseCost, phasesSummary, offerProgram, weeksOf, titlesOf, weeksCount } from "./pro-data.js";
+import { CANAUX, sum, rate, saveOffer, deleteOffer, escapeHtml, fmtInt, fmtPct, fmtEuro, canalIcon, canauxChips, cleanPhases, phaseCost, phasesSummary, offerProgram, weeksOf, titlesOf, weeksCount } from "./pro-data.js";
 import { draftGet, draftSet, draftClear, debounce } from "./pro-draft.js";
 import { emptyState, openModal, modalHeader, field, readForm, toast, friendlyError, copyText } from "./pro-ui.js";
 import { openScriptModal } from "./pro-strategies.js";
@@ -11,7 +11,7 @@ export function renderScripts(root, data, ctx) {
       <div class="pro-panel-head pro-seq" style="--i:0"><h2 class="panel-title">Scripts</h2></div>
       ${groups.length ? groups.map(({ s, scripts }, gi) => `
         <div class="pro-sgroup pro-seq" style="--i:${gi + 1}">
-          <div class="pro-sgroup-head"><button type="button" class="pro-link" data-open="${s.id}">${escapeHtml(s.titre)}</button><span class="pro-chip">${canalIcon(s.canal, 13)} ${escapeHtml(CANAUX[s.canal].label)}</span></div>
+          <div class="pro-sgroup-head"><button type="button" class="pro-link" data-open="${s.id}">${escapeHtml(s.titre)}</button>${canauxChips(s, { max: 3 })}</div>
           <div class="pro-bubbles">${scripts.map((sc) => {
             const t = sum(data.logs.filter((l) => l.script_id === sc.id));
             return `<div class="pro-msg">

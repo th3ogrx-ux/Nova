@@ -1,5 +1,5 @@
 // Prospection > Revue de la semaine : récapitulatif automatique, 3 questions courtes, leçons.
-import { sum, rate, inRange, dateKey, addDays, mondayOf, parseKey, weekLabel, strategyStats, escapeHtml, fmtInt, fmtPct, saveReview, canalIcon, CANAUX } from "./pro-data.js";
+import { sum, rate, inRange, dateKey, addDays, mondayOf, parseKey, weekLabel, strategyStats, escapeHtml, fmtInt, fmtPct, saveReview, canauxIcons, CANAUX } from "./pro-data.js";
 import { runCounters } from "./pro-charts.js";
 import { toast, friendlyError } from "./pro-ui.js";
 import { draftGet, draftSet, draftClear, debounce } from "./pro-draft.js";
@@ -39,7 +39,7 @@ export function renderReview(root, data, ctx) {
       <h2 class="panel-title">Le récap, calculé pour toi</h2>
       <div class="pro-recap">${tiles.map(([l, v, d, suf, delta]) => `<div class="pro-recap-tile"><span>${l}</span><b data-count="${v}" data-dec="${d}" data-suffix="${suf}">0</b>${delta}</div>`).join("")}</div>
       ${cur.envoyes === 0 ? `<p class="pro-muted pro-recap-note">Aucun message noté sur cette semaine. Utilise le bouton « + » pour compléter tes chiffres.</p>`
-        : best ? `<p class="pro-recap-best">Meilleure stratégie de la semaine : <button type="button" class="pro-link" data-open="${best.strategy.id}">${escapeHtml(best.strategy.titre)}</button> ${canalIcon(best.strategy.canal, 13)} avec <b>${fmtPct(best.taux)}</b> de réponses.</p>` : ""}
+        : best ? `<p class="pro-recap-best">Meilleure stratégie de la semaine : <button type="button" class="pro-link" data-open="${best.strategy.id}">${escapeHtml(best.strategy.titre)}</button> ${canauxIcons(best.strategy, 13)} avec <b>${fmtPct(best.taux)}</b> de réponses.</p>` : ""}
     </section>
 
     <section class="card pro-panel pro-review-form pro-seq" style="--i:2">

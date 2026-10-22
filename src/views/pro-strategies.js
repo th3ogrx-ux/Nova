@@ -1,7 +1,7 @@
 // Prospection > Stratégies : cartes riches, vue Kanban, page détail (scripts A/B, historique, notes).
 import {
   CANAUX, STATUTS, statutOf, strategyStats, weeklySeries, sum, rate, inRange, dateKey, parseKey, shortDay, mondayOf,
-  escapeHtml, fmtInt, fmtPct, canalIcon, offerPriceLabel, saveStrategy, deleteStrategy, saveScript, deleteScript, deleteLog
+  escapeHtml, fmtInt, fmtPct, canalIcon, canauxChips, canauxOf, offerPriceLabel, saveStrategy, deleteStrategy, saveScript, deleteScript, deleteLog
 } from "./pro-data.js";
 import { miniBars, lineChart, runCounters } from "./pro-charts.js";
 import { renderBoard, moveButtons } from "./pro-kanban.js";
@@ -16,7 +16,7 @@ const offerChip = (offer) => (offer ? `<span class="pro-chip offer" title="Offre
 
 function cardHtml(st, { board = false, offer = null } = {}) {
   const s = st.strategy;
-  return `<div class="pro-scard-top"><span class="pro-chip">${canalIcon(s.canal)} ${escapeHtml(CANAUX[s.canal].label)}</span>${board ? moveButtons(STATUTS.findIndex((x) => x.key === s.statut), STATUTS.length) : pill(s.statut)}</div>
+  return `<div class="pro-scard-top"><span class="pro-chips">${canauxChips(s, { max: board ? 1 : 2 })}</span>${board ? moveButtons(STATUTS.findIndex((x) => x.key === s.statut), STATUTS.length) : pill(s.statut)}</div>
     <h3 class="pro-scard-title">${escapeHtml(s.titre)}</h3>
     <p class="pro-scard-target">${s.cible ? "Cible : " + escapeHtml(s.cible) : "<span class='pro-muted'>Aucune cible précisée</span>"}</p>
     ${offer ? `<div class="pro-scard-offer">${offerChip(offer)}</div>` : ""}
@@ -71,14 +71,17 @@ export function renderStrategies(root, data, ctx) {
 
 // ---------- Fenêtre création / modification ----------
 export function openStrategyModal(strategy, ctx, data) {
-  const s = strategy || { canal: "instagram", statut: "a_tester" };
+  const s = strategy || { canal: "instagram", canaux: ["instagram"], statut: "a_tester" };
+  const chosen = canauxOf(s);
   const { overlay, close } = openModal(`${modalHeader(strategy ? "Modifier la stratégie" : "Nouvelle stratégie")}
     <form data-form>
       ${field("Titre *", `<input type="text" name="titre" maxlength="120" required value="${escapeHtml(s.titre || "")}" placeholder="Ex : DM Instagram aux coiffeurs sans site">`)}
       <div class="pro-form-row">
-        ${field("Canal", `<select name="canal">${options(canalOptions, s.canal)}</select>`)}
         ${field("Statut", `<select name="statut">${options(STATUTS, s.statut)}</select>`)}
       </div>
+      <fieldset class="pro-multi"><legend class="field-label">Canaux (un ou plusieurs)</legend>
+        ${canalOptions.map((c) => `<label class="pro-pick"><input type="checkbox" data-canal="${c.key}"${chosen.includes(c.key) ? " checked" : ""}><span>${canalIcon(c.key, 15)} ${escapeHtml(c.label)}</span></label>`).join("")}
+      </fieldset>
       ${field("Cible", `<input type="text" name="cible" maxlength="200" value="${escapeHtml(s.cible || "")}" placeholder="Ex : coiffeurs de Lyon, sans site web">`)}
       ${field("Offre que tu vends avec cette stratégie", `<select name="offer_id"><option value="">— Aucune offre choisie —</option>${(data.offers || []).map((o) => `<option value="${o.id}"${o.id === s.offer_id ? " selected" : ""}>${escapeHtml(o.nom)} · ${escapeHtml(offerPriceLabel(o))}</option>`).join("")}</select>${(data.offers || []).length ? "" : `<p class="pro-muted" style="margin:6px 0 0;">Tu n'as pas encore de pack : crée-en un dans « Scripts et offres ».</p>`}`)}
       <div class="error-msg" data-error></div>
@@ -90,6 +93,9 @@ export function openStrategyModal(strategy, ctx, data) {
     e.preventDefault();
     const v = readForm(form);
     if (!v.titre) { errorEl.textContent = "Donne un titre à la stratégie."; return; }
+    const canaux = [...form.querySelectorAll("[data-canal]:checked")].map((c) => c.dataset.canal);
+    if (!canaux.length) { errorEl.textContent = "Choisis au moins un canal."; return; }
+    v.canaux = canaux; v.canal = canaux[0]; // « canal » = canal principal
     try { const saved = await saveStrategy(v, strategy && strategy.id); close(); toast("Stratégie enregistrée ✓"); await ctx.reload(); if (!strategy) ctx.openStrategy(saved.id); }
     catch (err) { errorEl.textContent = friendlyError(err); }
   });
@@ -150,7 +156,7 @@ function renderDetail(root, data, ctx) {
   root.innerHTML = `
     <button type="button" class="btn ghost btn-sm pro-back" data-back>← Toutes les stratégies</button>
     <header class="pro-detail-head pro-seq" style="--i:0">
-      <div><div class="pro-detail-meta"><span class="pro-chip">${canalIcon(s.canal)} ${escapeHtml(CANAUX[s.canal].label)}</span>${pill(s.statut)}${offerChip(data.offers.find((o) => o.id === s.offer_id))}</div>
+      <div><div class="pro-detail-meta">${canauxChips(s, { max: 7 })}${pill(s.statut)}${offerChip(data.offers.find((o) => o.id === s.offer_id))}</div>
         <h2 class="pro-detail-title">${escapeHtml(s.titre)}</h2>
         <p class="pro-muted">${s.cible ? "Cible : " + escapeHtml(s.cible) : "Aucune cible précisée"}</p></div>
       <div class="pro-detail-actions"><button type="button" class="btn ghost btn-sm" data-edit>Modifier</button><button type="button" class="btn primary btn-sm" data-log>+ Noter des messages</button></div>

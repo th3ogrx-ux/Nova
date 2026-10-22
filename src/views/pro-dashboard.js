@@ -1,7 +1,7 @@
 // Prospection > Tableau de bord : chiffres clés, entonnoir, objectif, évolution, calendrier de chaleur, classement.
 import {
   CANAUX, sum, rate, weeklySeries, strategyStats, bestStrategy, dayTotals, inRange, variation, mondayOf, addDays, dateKey,
-  escapeHtml, fmtInt, fmtPct, canalIcon, shortDay, parseKey, saveObjectif
+  escapeHtml, fmtInt, fmtPct, canalIcon, canauxIcons, canauxLabel, shortDay, parseKey, saveObjectif
 } from "./pro-data.js";
 import { sparkline, funnel, ring, lineChart, heatmap, runCounters } from "./pro-charts.js";
 import { emptyState, openModal, modalHeader, toast, friendlyError } from "./pro-ui.js";
@@ -45,7 +45,7 @@ export function renderDashboard(root, data, ctx) {
   const daysLeft = 7 - ((new Date().getDay() + 6) % 7);
 
   const bestHtml = best
-    ? kpi(3, "Meilleure stratégie", `<span class="pro-kpi-text" title="${escapeHtml(best.strategy.titre)}">${escapeHtml(best.strategy.titre)}</span><small class="pro-kpi-sub">${canalIcon(best.strategy.canal, 14)} <b data-count="${best.tauxAll}" data-dec="1" data-suffix=" %">0</b> de réponses</small>`,
+    ? kpi(3, "Meilleure stratégie", `<span class="pro-kpi-text" title="${escapeHtml(best.strategy.titre)}">${escapeHtml(best.strategy.titre)}</span><small class="pro-kpi-sub">${canauxIcons(best.strategy, 14)} <b data-count="${best.tauxAll}" data-dec="1" data-suffix=" %">0</b> de réponses</small>`,
         `<span class="pro-delta">${fmtInt(best.all.envoyes)} messages</span>`, sparkline(best.weeks.map((w) => rate(w.reponses, w.envoyes)), { color: "var(--gold)" }))
     : kpi(3, "Meilleure stratégie", `<span class="pro-kpi-text muted">—</span><small class="pro-kpi-sub">Dès 10 messages sur une stratégie</small>`, "", "");
 
@@ -116,7 +116,7 @@ export function renderDashboard(root, data, ctx) {
       <div class="pro-rank-main">
         <div class="pro-rank-top"><button type="button" class="pro-link" data-open="${s.strategy.id}">${escapeHtml(s.strategy.titre)}</button><span class="pro-rank-rate">${fmtPct(s.taux)}</span></div>
         <div class="pro-rank-track"><div class="pro-rank-bar" style="--w:${Math.max(3, (s.taux / maxTaux) * 100)}%"></div></div>
-        <div class="pro-rank-foot"><span>${canalIcon(s.strategy.canal, 13)} ${escapeHtml(CANAUX[s.strategy.canal].label)} · ${fmtInt(s.envoyes)} envoyés</span>
+        <div class="pro-rank-foot"><span>${canauxIcons(s.strategy, 13)} ${escapeHtml(canauxLabel(s.strategy))} · ${fmtInt(s.envoyes)} envoyés</span>
           <span class="pro-trend ${s.trend}" title="Par rapport à la période précédente">${s.trend === "up" ? "▲ en hausse" : s.trend === "down" ? "▼ en baisse" : "● stable"}</span></div>
       </div>
     </li>`).join("")}</ol>`

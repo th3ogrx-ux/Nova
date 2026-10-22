@@ -7,7 +7,7 @@ create table if not exists public.pro_strategies (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
   titre      text not null check (char_length(titre) between 1 and 120),
-  canal      text not null default 'autre' check (canal in ('instagram','email','telephone','linkedin','terrain','google_maps','autre')),
+  canal      text not null default 'autre' check (canal in ('instagram','email','telephone','linkedin','tiktok','facebook','whatsapp','sms','terrain','google_maps','autre')),
   cible      text check (char_length(cible) <= 200),
   statut     text not null default 'a_tester' check (statut in ('a_tester','en_cours','validee','abandonnee')),
   notes      text check (char_length(notes) <= 4000),          -- apprentissages
@@ -46,7 +46,7 @@ create table if not exists public.pro_prospects (
   user_id     uuid not null default auth.uid() references auth.users(id) on delete cascade,
   nom         text not null check (char_length(nom) between 1 and 120),
   contact     text check (char_length(contact) <= 200),
-  canal       text check (canal in ('instagram','email','telephone','linkedin','terrain','google_maps','autre')),
+  canal       text check (canal in ('instagram','email','telephone','linkedin','tiktok','facebook','whatsapp','sms','terrain','google_maps','autre')),
   strategy_id uuid references public.pro_strategies(id) on delete set null,
   etape       text not null default 'contacte' check (etape in ('contacte','repondu','interesse','audit','signe')),
   valeur      numeric(10,2) check (valeur >= 0),
@@ -68,6 +68,18 @@ create table if not exists public.pro_offers (
   position    integer not null default 0,
   created_at  timestamptz not null default now()
 );
+
+-- Plusieurs canaux par stratégie (la colonne « canal » reste le canal principal : le premier de la liste).
+alter table public.pro_strategies add column if not exists canaux text[] not null default '{}';
+update public.pro_strategies set canaux = array[canal] where canaux = '{}';
+-- Liste des canaux autorisés (relancer ce fichier met la liste à jour).
+alter table public.pro_strategies drop constraint if exists pro_strategies_canal_check;
+alter table public.pro_strategies add constraint pro_strategies_canal_check check (canal in ('instagram','email','telephone','linkedin','tiktok','facebook','whatsapp','sms','terrain','google_maps','autre'));
+alter table public.pro_prospects drop constraint if exists pro_prospects_canal_check;
+alter table public.pro_prospects add constraint pro_prospects_canal_check check (canal is null or canal in ('instagram','email','telephone','linkedin','tiktok','facebook','whatsapp','sms','terrain','google_maps','autre'));
+alter table public.pro_strategies drop constraint if exists pro_strategies_canaux_ok;
+alter table public.pro_strategies add constraint pro_strategies_canaux_ok
+  check (canaux <@ array['instagram','email','telephone','linkedin','tiktok','facebook','whatsapp','sms','terrain','google_maps','autre']::text[] and cardinality(canaux) <= 11);
 
 -- Offre que vend une stratégie (facultatif).
 alter table public.pro_strategies add column if not exists offer_id uuid references public.pro_offers(id) on delete set null;

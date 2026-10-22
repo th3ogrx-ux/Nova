@@ -387,3 +387,16 @@ i.pro-cell.l1 { background: rgba(225, 29, 46, .28); } i.pro-cell.l2 { background
 .pro-chip.offer { color: var(--gold); border-color: rgba(201, 164, 92, .5); background: rgba(201, 164, 92, .08); max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .pro-scard-offer { margin: -2px 0 0; min-width: 0; }
 #app:not([data-theme="dark"]) .pro-chip.offer { color: #7d5f24; }
+
+/* ---------- Plusieurs canaux ---------- */
+.pro-chips { display: inline-flex; gap: 6px; flex-wrap: wrap; min-width: 0; }
+.pro-icons { display: inline-flex; gap: 4px; vertical-align: -2px; }
+.pro-multi { border: 0; padding: 0; margin: 0 0 16px; min-width: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.pro-multi legend { width: 100%; margin-bottom: 8px; padding: 0; }
+.pro-pick { position: relative; cursor: pointer; }
+.pro-pick input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.pro-pick span { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: var(--radius-pill); border: 1px solid var(--light-border); font-size: 13px; font-weight: 600; color: var(--light-text-dim); transition: background .15s, color .15s, border-color .15s; }
+.pro-pick:hover span { border-color: rgba(225, 29, 46, .5); color: var(--light-text); }
+.pro-pick input:checked + span { background: rgba(225, 29, 46, .18); border-color: rgba(225, 29, 46, .7); color: var(--light-text); }
+.pro-pick input:focus-visible + span { outline: 2px solid var(--warm-1); outline-offset: 2px; }
+.modal-box .pro-pick input { width: 100%; }
