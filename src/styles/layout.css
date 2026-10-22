@@ -192,6 +192,15 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; text-siz
   /* iOS zoome la page quand on touche un champ dont le texte fait moins de 16 px : c'est ce qui la décale. */
   input, select, textarea { font-size: 16px; }
   img, svg, video, canvas, iframe { max-width: 100%; }
+  /* Les champs date d'iPhone ont une largeur propre qui fait déborder la carte : on les force à la largeur de leur case. */
+  input, select, textarea, .field { min-width: 0; max-width: 100%; box-sizing: border-box; }
+  input[type="date"], input[type="time"], input[type="month"], input[type="datetime-local"] {
+    -webkit-appearance: none; appearance: none; display: block; width: 100%; min-width: 0; max-width: 100%; text-align: left; min-height: 44px;
+  }
+  input[type="date"]::-webkit-date-and-time-value { text-align: left; min-width: 0; }
+  .card { min-width: 0; }
+  /* Formulaire d'ajout d'une vente : chaque champ sur toute la largeur, boutons compris. */
+  #sale-form > .field, #sale-form > .btn { flex: 1 1 100% !important; min-width: 0 !important; }
 
   /* Tableau « Mois déjà saisis » : une carte par mois au lieu d'un tableau trop large. */
   .crm-stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
