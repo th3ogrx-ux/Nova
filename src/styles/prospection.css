@@ -380,3 +380,5 @@ i.pro-cell.l1 { background: rgba(225, 29, 46, .28); } i.pro-cell.l2 { background
   .pro-phase-row .pro-month-title { flex-direction: column; align-items: stretch; gap: 4px; }
   .modal-box .pro-wk textarea, .modal-box .pro-month-title input { width: 100%; flex: none; }
 }
+
+.pro-draft-note { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid rgba(201, 164, 92, .5); background: rgba(201, 164, 92, .1); font-size: 13px; color: var(--light-text); }

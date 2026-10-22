@@ -2,6 +2,7 @@
 import { sum, rate, inRange, dateKey, addDays, mondayOf, parseKey, weekLabel, strategyStats, escapeHtml, fmtInt, fmtPct, saveReview, canalIcon, CANAUX } from "./pro-data.js";
 import { runCounters } from "./pro-charts.js";
 import { toast, friendlyError } from "./pro-ui.js";
+import { draftGet, draftSet, draftClear, debounce } from "./pro-draft.js";
 
 const QUESTIONS = [
   { key: "q_bien", label: "Qu'est-ce qui a bien marché ?", hint: "Un message, un canal, une heure d'envoi qui a payé…" },
@@ -15,7 +16,9 @@ export function renderReview(root, data, ctx) {
   const elapsedDays = (state.reviewOffset || 0) === 0 ? ((new Date().getDay() + 6) % 7) + 1 : 7; // semaine en cours : mêmes jours qu'avant
   const pFrom = dateKey(addDays(monday, -7)), pTo = dateKey(addDays(monday, -8 + elapsedDays));
   const cur = sum(inRange(data.logs, from, to)), prev = sum(inRange(data.logs, pFrom, pTo));
-  const existing = data.reviews.find((r) => r.semaine === from) || {};
+  const saved0 = data.reviews.find((r) => r.semaine === from) || {};
+  const draftKey = "review:" + from, draft = draftGet(draftKey);
+  const existing = draft ? { ...saved0, ...draft } : saved0; // un brouillon non enregistré passe avant
   const best = strategyStats(data, from, to).filter((s) => s.envoyes >= 5).sort((a, b) => b.taux - a.taux)[0];
   const isCurrent = (state.reviewOffset || 0) === 0;
   const dl = (c, p, pts) => { const d = pts ? Math.round((c - p) * 10) / 10 : c - p; return d === 0 ? "" : `<em class="${d > 0 ? "up" : "down"}">${d > 0 ? "▲ +" : "▼ "}${String(d).replace(".", ",")}${pts ? " pts" : ""}</em>`; };
@@ -43,6 +46,7 @@ export function renderReview(root, data, ctx) {
       <h2 class="panel-title">Ta revue</h2>
       ${QUESTIONS.map((q) => `<div class="field"><label class="field-label" for="rv-${q.key}">${q.label}</label><textarea id="rv-${q.key}" name="${q.key}" rows="3" maxlength="2000" placeholder="${escapeHtml(q.hint)}">${escapeHtml(existing[q.key] || "")}</textarea></div>`).join("")}
       <div class="field"><label class="field-label" for="rv-lecons">Leçons à retenir</label><textarea id="rv-lecons" name="lecons" rows="4" maxlength="4000" placeholder="La phrase que tu veux relire dans 3 mois.">${escapeHtml(existing.lecons || "")}</textarea></div>
+      ${draft ? `<p class="pro-draft-note" role="status"><span>Brouillon retrouvé : ton texte non enregistré a été restauré. Pense à enregistrer.</span></p>` : ""}
       <div class="pro-review-actions"><button type="button" class="btn primary" data-save>Enregistrer la revue</button><span class="pro-saved" data-saved aria-live="polite">${existing.updated_at ? "Dernière sauvegarde : " + new Date(existing.updated_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : ""}</span></div>
     </section>
 
@@ -53,11 +57,13 @@ export function renderReview(root, data, ctx) {
   root.querySelectorAll("[data-goto]").forEach((b) => b.addEventListener("click", () => { state.reviewOffset = Math.round((parseKey(b.dataset.goto) - mondayOf()) / (7 * 86400000)); ctx.rerender({ animate: false }); window.scrollTo(0, 0); }));
   root.querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", () => ctx.openStrategy(b.dataset.open)));
   const saved = root.querySelector("[data-saved]");
+  const saveDraft = debounce(() => { const v = {}; root.querySelectorAll(".pro-review-form textarea").forEach((t) => { v[t.name] = t.value; }); draftSet(draftKey, v); }, 500);
+  root.querySelectorAll(".pro-review-form textarea").forEach((t) => t.addEventListener("input", saveDraft));
   root.querySelector("[data-save]").addEventListener("click", async (e) => {
     const values = {};
     root.querySelectorAll(".pro-review-form textarea").forEach((t) => { values[t.name] = t.value.trim() || null; });
     e.target.disabled = true;
-    try { const row = await saveReview(from, values); const i = data.reviews.findIndex((r) => r.semaine === from); if (i >= 0) data.reviews[i] = row; else data.reviews.unshift(row); saved.textContent = "Enregistré ✓"; toast("Revue enregistrée ✓"); }
+    try { const row = await saveReview(from, values); const i = data.reviews.findIndex((r) => r.semaine === from); if (i >= 0) data.reviews[i] = row; else data.reviews.unshift(row); saved.textContent = "Enregistré ✓"; draftClear(draftKey); toast("Revue enregistrée ✓"); }
     catch (err) { saved.textContent = friendlyError(err); }
     e.target.disabled = false;
   });

@@ -5,6 +5,7 @@ import {
 } from "./pro-data.js";
 import { miniBars, lineChart, runCounters } from "./pro-charts.js";
 import { renderBoard, moveButtons } from "./pro-kanban.js";
+import { draftGet, draftSet, draftClear, debounce } from "./pro-draft.js";
 import { emptyState, openModal, modalHeader, field, options, readForm, toast, friendlyError, copyText } from "./pro-ui.js";
 
 const canalOptions = Object.entries(CANAUX).map(([key, c]) => ({ key, label: c.label }));
@@ -96,25 +97,32 @@ export function openStrategyModal(strategy, ctx) {
 }
 
 export function openScriptModal(strategy, script, version, ctx) {
+  const draftKey = `script:${strategy.id}:${version}`;
+  const draft = draftGet(draftKey);
+  const startText = draft && typeof draft.texte === "string" ? draft.texte : script ? script.texte : "";
   const { overlay, close } = openModal(`${modalHeader((script ? "Modifier" : "Ajouter") + " la version " + version)}
     <form data-form>
-      ${field("Message", `<textarea name="texte" rows="8" maxlength="4000" required placeholder="Bonjour {prénom}, j'ai vu que…">${escapeHtml(script ? script.texte : "")}</textarea>`)}
+      ${field("Message", `<textarea name="texte" rows="8" maxlength="4000" required placeholder="Bonjour {prénom}, j'ai vu que…">${escapeHtml(startText)}</textarea>`)}
+      ${draft ? `<p class="pro-draft-note" role="status"><span>Brouillon retrouvé : ton texte non enregistré a été restauré.</span></p>` : ""}
       <div class="error-msg" data-error></div>
       <div class="modal-actions">${script ? `<button type="button" class="btn danger" data-delete style="margin-right:auto;">Supprimer</button>` : ""}<button type="button" class="btn ghost" data-close>Annuler</button><button type="submit" class="btn primary">Enregistrer</button></div>
-    </form>`, { maxWidth: 520 });
+    </form>`, { maxWidth: 520, lockOutside: true });
   const form = overlay.querySelector("[data-form]"), errorEl = overlay.querySelector("[data-error]");
   form.texte.focus();
+  const save = debounce(() => draftSet(draftKey, { texte: form.texte.value }), 400);
+  form.texte.addEventListener("input", save);
+  overlay.querySelector(".modal-actions [data-close]").addEventListener("click", () => draftClear(draftKey));
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const texte = form.texte.value.trim();
     if (!texte) { errorEl.textContent = "Écris le message."; return; }
-    try { await saveScript(strategy.id, version, texte, script && script.id); close(); toast("Script enregistré ✓"); ctx.reload(); } catch (err) { errorEl.textContent = friendlyError(err); }
+    try { await saveScript(strategy.id, version, texte, script && script.id); draftClear(draftKey); close(); toast("Script enregistré ✓"); ctx.reload(); } catch (err) { errorEl.textContent = friendlyError(err); }
   });
   const del = overlay.querySelector("[data-delete]");
   if (del) del.addEventListener("click", async () => {
     const ok = await window.confirmDialog(`Supprimer la version ${version} ? Les chiffres déjà saisis restent comptés pour la stratégie.`, { danger: true, confirmLabel: "Supprimer" });
     if (!ok) return;
-    try { await deleteScript(script.id); close(); ctx.reload(); } catch (err) { errorEl.textContent = friendlyError(err); }
+    try { await deleteScript(script.id); draftClear(draftKey); close(); ctx.reload(); } catch (err) { errorEl.textContent = friendlyError(err); }
   });
 }
 

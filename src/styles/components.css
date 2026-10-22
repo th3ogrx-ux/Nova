@@ -888,3 +888,6 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 
 /* Cases à cocher dans la zone principale : texte adapté au thème (clair ou sombre) ; la fenêtre modale reste sombre. */
 .main .crm-check { color: var(--light-text); }
+
+/* Téléphone / tactile : pas de flou derrière les fenêtres (il rend la saisie saccadée sur les longs formulaires). */
+@media (pointer: coarse) { .modal-overlay { backdrop-filter: none; background: #000c; } }

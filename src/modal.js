@@ -1,6 +1,6 @@
 // Fenêtre modale simple (fond sombre, Échap pour fermer, clic à côté pour fermer).
 // z-index sous celui de la confirmation (60), pour qu'elle passe devant.
-export function openModal(innerHtml, { maxWidth = 520 } = {}) {
+export function openModal(innerHtml, { maxWidth = 520, lockOutside = false } = {}) {
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay open";
   overlay.style.zIndex = "59";
@@ -17,7 +17,8 @@ export function openModal(innerHtml, { maxWidth = 520 } = {}) {
     listeners.forEach((fn) => fn());
   }
   document.addEventListener("keydown", onKey);
-  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+  // lockOutside : un clic à côté ne ferme pas la fenêtre (évite de perdre un long texte par un faux geste).
+  overlay.addEventListener("click", (e) => { if (e.target === overlay && !lockOutside) close(); });
   overlay.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", close));
   return { overlay, close, onClose: (fn) => listeners.push(fn) };
 }

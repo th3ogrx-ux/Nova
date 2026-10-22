@@ -1,5 +1,6 @@
 // Prospection > Scripts et offres : scripts en bulles de message, packs d'offre en cartes de tarifs comparables.
 import { CANAUX, sum, rate, saveOffer, deleteOffer, escapeHtml, fmtInt, fmtPct, fmtEuro, canalIcon, cleanPhases, phaseCost, phasesSummary, offerProgram, weeksOf, titlesOf, weeksCount } from "./pro-data.js";
+import { draftGet, draftSet, draftClear, debounce } from "./pro-draft.js";
 import { emptyState, openModal, modalHeader, field, readForm, toast, friendlyError, copyText } from "./pro-ui.js";
 import { openScriptModal } from "./pro-strategies.js";
 
@@ -126,9 +127,12 @@ function phaseRow(p = {}) {
 }
 
 function openOfferModal(offer, ctx) {
-  const o = offer || { periode: "unique" };
+  const draftKey = "offer:" + (offer ? offer.id : "new");
+  const draft = draftGet(draftKey);
+  const o = draft ? { ...(offer || { periode: "unique" }), ...draft } : offer || { periode: "unique" };
   const { overlay, close } = openModal(`${modalHeader(offer ? "Modifier le pack" : "Nouveau pack")}
     <form data-form>
+      ${draft ? `<div class="pro-draft-note" role="status"><span>Brouillon retrouvé : ton texte non enregistré a été restauré.</span><button type="button" class="btn ghost btn-sm" data-drop-draft>Repartir de zéro</button></div>` : ""}
       ${field("Nom *", `<input type="text" name="nom" maxlength="60" required value="${escapeHtml(o.nom || "")}" placeholder="Ex : Pack Pro">`)}
       <div class="pro-form-row">
         ${field("Prix (€) *", `<input type="number" name="prix" min="0" step="1" required value="${o.prix != null ? o.prix : ""}">`)}
@@ -146,9 +150,9 @@ function openOfferModal(offer, ctx) {
       <label class="crm-check"><input type="checkbox" name="populaire"${o.populaire ? " checked" : ""}> Mettre en avant (« le plus choisi »)</label>
       <div class="error-msg" data-error></div>
       <div class="modal-actions">${offer ? `<button type="button" class="btn danger" data-delete style="margin-right:auto;">Supprimer</button>` : ""}<button type="button" class="btn ghost" data-close>Annuler</button><button type="submit" class="btn primary">Enregistrer</button></div>
-    </form>`, { maxWidth: 500 });
+    </form>`, { maxWidth: 500, lockOutside: true });
   const form = overlay.querySelector("[data-form]"), errorEl = overlay.querySelector("[data-error]");
-  form.nom.focus();
+  if (!draft) form.nom.focus();
   const box = form.querySelector("[data-phases]"), totalEl = form.querySelector("[data-phases-total]");
   const readWeeks = (row) => ({ semaines: [...row.querySelectorAll("[data-w]")].map((t) => t.value), titres_mois: [...row.querySelectorAll("[data-mt]")].map((t) => t.value) });
   const readPhases = () => cleanPhases([...box.querySelectorAll("[data-phase]")].map((row) => ({
@@ -183,11 +187,29 @@ function openOfferModal(offer, ctx) {
     form.prix.value = Math.round(sm.total * 100) / 100;
     totalEl.textContent = `Total : ${fmtEuro(sm.total)} sur ${sm.mois} mois (${fmtEuro(sm.parMois)} par mois en moyenne)`;
   };
+  // Brouillon : tout le formulaire (y compris les étapes à moitié remplies) est gardé sur l'appareil.
+  const saveDraft = debounce(() => {
+    draftSet(draftKey, {
+      nom: form.nom.value, description: form.description.value, atouts: form.atouts.value, populaire: form.populaire.checked,
+      prix: form.prix.value === "" ? null : Number(form.prix.value), periode: form.periode.value,
+      phases: [...box.querySelectorAll("[data-phase]")].map((row) => ({
+        ...Object.fromEntries([...row.querySelectorAll("[data-f]")].map((i) => [i.dataset.f, i.value])), ...readWeeks(row)
+      }))
+    });
+  }, 500);
+  // La saisie reste fluide : les calculs (total, compteurs) sont regroupés et ne bloquent pas la frappe.
+  const refresh = debounce(() => { renumber(); syncPhases(); }, 200);
+  form.addEventListener("input", saveDraft);
+  form.addEventListener("change", saveDraft);
   box.addEventListener("input", (e) => {
     const row = e.target.closest("[data-phase]");
-    if (row) { if (e.target.matches('[data-f="mois"]')) syncWeeks(row, { trim: true }); else renumber(); }
-    syncPhases();
+    if (row && e.target.matches('[data-f="mois"]')) { syncWeeks(row, { trim: true }); syncPhases(); saveDraft(); return; }
+    if (e.target.matches("[data-w], [data-mt], [data-f=\"titre\"], [data-f=\"detail\"]")) { if (e.target.matches("[data-w]")) refresh(); return; }
+    refresh();
   });
+  overlay.querySelector(".modal-actions [data-close]").addEventListener("click", () => draftClear(draftKey)); // « Annuler » = jeter le brouillon
+  const dropDraft = form.querySelector("[data-drop-draft]");
+  if (dropDraft) dropDraft.addEventListener("click", () => { draftClear(draftKey); close(); openOfferModal(offer, ctx); });
   box.addEventListener("click", (e) => {
     const add = e.target.closest("[data-add-week]");
     if (!add) return;
@@ -214,12 +236,12 @@ function openOfferModal(offer, ctx) {
     if (phases.length) { v.prix = Math.round(phasesSummary(phases).total * 100) / 100; v.periode = "unique"; }
     v.phases = phases;
     if (!v.nom || v.prix == null || !(v.prix >= 0)) { syncPhases(); errorEl.textContent = "Indique un nom et un prix."; return; }
-    try { await saveOffer(v, offer && offer.id); close(); toast("Pack enregistré ✓"); ctx.reload(); } catch (err) { errorEl.textContent = friendlyError(err); }
+    try { await saveOffer(v, offer && offer.id); draftClear(draftKey); close(); toast("Pack enregistré ✓"); ctx.reload(); } catch (err) { errorEl.textContent = friendlyError(err); }
   });
   const del = overlay.querySelector("[data-delete]");
   if (del) del.addEventListener("click", async () => {
     const ok = await window.confirmDialog(`Supprimer le pack « ${offer.nom} » ?`, { danger: true, confirmLabel: "Supprimer" });
     if (!ok) return;
-    try { await deleteOffer(offer.id); close(); ctx.reload(); } catch (err) { errorEl.textContent = friendlyError(err); }
+    try { await deleteOffer(offer.id); draftClear(draftKey); close(); ctx.reload(); } catch (err) { errorEl.textContent = friendlyError(err); }
   });
 }
