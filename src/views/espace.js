@@ -225,6 +225,13 @@ export async function renderEspace(root) {
         <span>👁 Aperçu client — ce que voit le client, en lecture seule</span>
         <select id="espace-business" aria-label="Commerce affiché">${list.map((b) => `<option value="${b.id}"${b.id === businessId ? " selected" : ""}>${escapeHtml(b.nom)}</option>`).join("")}</select>
       </div>`;
+    // "Voir comme le client" depuis la fiche d'un client (page Clients).
+    const onPreview = (e) => {
+      if (!root.isConnected) { window.removeEventListener("zenoa:preview", onPreview); return; }
+      const select = picker.querySelector("#espace-business");
+      if (select && [...select.options].some((o) => o.value === e.detail.id)) { select.value = e.detail.id; select.dispatchEvent(new Event("change")); }
+    };
+    window.addEventListener("zenoa:preview", onPreview);
     picker.querySelector("#espace-business").addEventListener("change", (e) => {
       businessId = e.target.value;
       try { localStorage.setItem("zenoa-espace-apercu", businessId); } catch { /* pas grave */ }

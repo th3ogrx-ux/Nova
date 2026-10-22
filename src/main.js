@@ -7,6 +7,8 @@ import { renderRecherche } from "./views/recherche.js";
 import { renderRessources } from "./views/ressources.js";
 import { renderEspace } from "./views/espace.js";
 import { renderMessages } from "./views/messages.js";
+import { renderClients } from "./views/clients.js";
+import { needsPasswordChange, renderForcePassword } from "./force-password.js";
 import { startUnreadWatch, stopUnreadWatch, onUnread } from "./espace-unread.js";
 import { renderCrm } from "./views/crm.js";
 import { renderDemoPage } from "./views/demo.js";
@@ -40,6 +42,7 @@ const VIEWS = {
   recherche: { render: renderRecherche, title: "Zenoa Radar", roles: ["admin", "radar"] },
   crm: { render: renderCrm, title: "CRM", roles: ["admin", "radar"] },
   ressources: { render: renderRessources, title: "Ressources", roles: ["admin", "radar"] },
+  clients: { render: renderClients, title: "Clients", roles: ["admin"] },
   espace: { render: renderEspace, title: "Mon espace", roles: ["client", "admin"] },
   messages: { render: renderMessages, title: "Messages", roles: ["client", "admin"] },
   settings: { render: renderSettings, title: "Paramètres", roles: ["admin", "radar", "client"] },
@@ -154,6 +157,14 @@ function prepareOtherViews() {
   idle(next);
 }
 
+// L'admin a modifié des données de l'espace clients : les pages déjà préparées
+// (Aperçu client, Messages) se remettent à jour discrètement.
+let espaceRefreshTimer = null;
+window.addEventListener("zenoa:espace-changed", () => {
+  clearTimeout(espaceRefreshTimer);
+  espaceRefreshTimer = setTimeout(() => { refreshInBackground("espace"); refreshInBackground("messages"); }, 600);
+});
+
 function clearViews() {
   viewCache.forEach((e) => e.el.remove());
   viewCache.clear();
@@ -204,6 +215,13 @@ async function showApp(session) {
     showFatalError(role.message + ' <a href="#" id="retry-role" style="color:var(--warm-2);">Réessayer</a>');
     document.getElementById("retry-role").addEventListener("click", (e) => { e.preventDefault(); location.reload(); });
     return;
+  }
+
+  // Premier accès d'un client : mot de passe temporaire à remplacer avant tout.
+  if (getCurrentRole() === "client" && needsPasswordChange(session.user)) {
+    app.style.display = "none";
+    await new Promise((resolve) => renderForcePassword(screenAuth, resolve));
+    if (shownUserId !== session.user.id) return;
   }
 
   screenAuth.style.display = "none";
