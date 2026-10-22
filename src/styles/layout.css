@@ -142,3 +142,6 @@
   .sidebar-logo, .sidebar-brand-text, .nav-label, .sidebar-profile-info { display: none; }
   .nav-item { justify-content: center; padding-left: 0; padding-right: 0; gap: 0; }
 }
+
+/* Entrée de menu masquée selon le rôle (l'attribut hidden ne suffit pas face à display:flex). */
+.nav-item[hidden] { display: none; }

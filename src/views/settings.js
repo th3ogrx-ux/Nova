@@ -1,6 +1,6 @@
 // Paramètres — pseudo, photo de profil, apparence, déconnexion, suppression de compte.
 import { supabase } from "../supabase.js";
-import { getCurrentUser } from "../session.js";
+import { getCurrentUser, isClient } from "../session.js";
 import { signOut } from "../auth.js";
 import { getTheme, setTheme } from "../theme.js";
 
@@ -54,11 +54,21 @@ export async function renderSettings(root) {
     </div>
 
     <div class="card settings-section">
+      <div class="panel-title">Mot de passe</div>
+      <div class="field settings-field">
+        <label class="field-label">Nouveau mot de passe (8 caractères minimum)</label>
+        <input type="password" id="settings-new-password" autocomplete="new-password" minlength="8">
+      </div>
+      <div class="error-msg" id="settings-password-msg"></div>
+      <button type="button" class="btn primary btn-sm" id="settings-password-save">Changer le mot de passe</button>
+    </div>
+
+    <div class="card settings-section">
       <div class="panel-title">Session</div>
       <button type="button" class="btn ghost btn-sm" id="settings-logout">Se déconnecter</button>
     </div>
 
-    <div class="card settings-section" style="border-color:#d9534f4d;">
+    <div class="card settings-section" id="settings-danger" style="border-color:#d9534f4d;">
       <div class="panel-title" style="color:var(--danger);">Zone dangereuse</div>
       <p style="font-size:13px;color:var(--light-text-dim);margin-bottom:14px;max-width:460px;">
         Supprime définitivement ton compte et toutes tes données (prospects, maquettes, modèles de message). Cette action est irréversible.
@@ -143,6 +153,24 @@ export async function renderSettings(root) {
     setTheme(e.target.checked ? "dark" : "light");
   });
 
+  // Un client n'a pas la zone "Supprimer mon compte" : son compte est géré par Zenoa.
+  if (isClient()) root.querySelector("#settings-danger").remove();
+
+  root.querySelector("#settings-password-save").addEventListener("click", async () => {
+    const input = root.querySelector("#settings-new-password");
+    const msg = root.querySelector("#settings-password-msg");
+    const btn = root.querySelector("#settings-password-save");
+    msg.style.color = "";
+    if (input.value.length < 8) { msg.textContent = "8 caractères minimum."; return; }
+    btn.disabled = true;
+    const { error } = await supabase.auth.updateUser({ password: input.value });
+    btn.disabled = false;
+    if (error) { msg.textContent = "Impossible de changer le mot de passe : " + error.message; return; }
+    input.value = "";
+    msg.style.color = "var(--ok)";
+    msg.textContent = "Mot de passe changé ✓";
+  });
+
   root.querySelector("#settings-logout").addEventListener("click", async () => {
     const ok = await window.confirmDialog("Te déconnecter ?", { confirmLabel: "Se déconnecter" });
     if (ok) await signOut();
@@ -150,6 +178,7 @@ export async function renderSettings(root) {
 
   const deleteConfirmInput = root.querySelector("#settings-delete-confirm");
   const deleteBtn = root.querySelector("#settings-delete");
+  if (!deleteBtn) return;
   deleteConfirmInput.addEventListener("input", () => {
     deleteBtn.disabled = deleteConfirmInput.value.trim() !== "SUPPRIMER";
   });

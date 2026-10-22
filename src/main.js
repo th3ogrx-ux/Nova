@@ -5,11 +5,12 @@ import { supabase, supabaseConfigured } from "./supabase.js";
 import { renderDashboard } from "./views/dashboard.js";
 import { renderRecherche } from "./views/recherche.js";
 import { renderRessources } from "./views/ressources.js";
+import { renderEspace } from "./views/espace.js";
 import { renderCrm } from "./views/crm.js";
 import { renderDemoPage } from "./views/demo.js";
 import { renderSettings, setOnProfileUpdated, applyAvatarPreview } from "./views/settings.js";
 import { applyTheme } from "./theme.js";
-import { setCurrentUser } from "./session.js";
+import { setCurrentUser, getCurrentRole, loadRole } from "./session.js";
 import { readCache, writeCache, clearCache } from "./data-cache.js";
 
 // Applique le mode sombre/clair enregistré avant le premier rendu de
@@ -28,13 +29,29 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+// "roles" : qui peut ouvrir la page. Un client n'a accès qu'à son espace et à
+// ses paramètres ; le Radar, le CRM et les Ressources lui sont fermés (la base
+// de données le lui interdit aussi : ceci évite seulement de lui montrer des
+// pages vides ou de lancer des recherches à sa place).
 const VIEWS = {
-  dashboard: { render: renderDashboard, title: "Tableau de bord" },
-  recherche: { render: renderRecherche, title: "Zenoa Radar" },
-  crm: { render: renderCrm, title: "CRM" },
-  ressources: { render: renderRessources, title: "Ressources" },
-  settings: { render: renderSettings, title: "Paramètres" },
+  dashboard: { render: renderDashboard, title: "Tableau de bord", roles: ["admin", "radar"] },
+  recherche: { render: renderRecherche, title: "Zenoa Radar", roles: ["admin", "radar"] },
+  crm: { render: renderCrm, title: "CRM", roles: ["admin", "radar"] },
+  ressources: { render: renderRessources, title: "Ressources", roles: ["admin", "radar"] },
+  espace: { render: renderEspace, title: "Mon espace", roles: ["client"] },
+  settings: { render: renderSettings, title: "Paramètres", roles: ["admin", "radar", "client"] },
 };
+
+const canOpen = (name) => !!VIEWS[name] && VIEWS[name].roles.includes(getCurrentRole());
+const homeView = () => (getCurrentRole() === "client" ? "espace" : "dashboard");
+
+// Affiche dans le menu uniquement les pages permises au rôle courant.
+function applyRoleToNav() {
+  const role = getCurrentRole();
+  document.querySelectorAll(".nav-item[data-roles]").forEach((el) => {
+    el.hidden = !el.dataset.roles.split(" ").includes(role);
+  });
+}
 
 const screenAuth = document.getElementById("screen-auth");
 const app = document.getElementById("app");
@@ -99,7 +116,7 @@ function refreshInBackground(name) {
 }
 
 function switchView(name) {
-  if (!VIEWS[name]) name = "dashboard";
+  if (!canOpen(name)) name = homeView();
   const view = VIEWS[name];
   document.querySelectorAll(".nav-item").forEach((el) => {
     el.classList.toggle("active", el.dataset.view === name);
@@ -122,7 +139,7 @@ function switchView(name) {
 // Radar peut durer, elle ne doit pas retarder les pages suivantes.
 function prepareOtherViews() {
   const idle = window.requestIdleCallback || ((cb) => setTimeout(cb, 300));
-  const queue = Object.keys(VIEWS).filter((n) => !viewCache.has(n));
+  const queue = Object.keys(VIEWS).filter((n) => canOpen(n) && !viewCache.has(n));
   const next = () => {
     const name = queue.shift();
     if (!name || !shownUserId) return;
@@ -172,14 +189,28 @@ async function showApp(session) {
   clearViews();
   shownUserId = session.user.id;
   setCurrentUser(session.user);
+
+  // Le rôle est connu AVANT d'afficher quoi que ce soit : un client ne doit
+  // jamais voir (ni déclencher) les pages Radar, même un instant.
+  const role = await loadRole(session.user.id);
+  if (shownUserId !== session.user.id) return; // déconnecté pendant l'attente
+  if (!role.ok) {
+    shownUserId = null;
+    showFatalError(role.message + ' <a href="#" id="retry-role" style="color:var(--warm-2);">Réessayer</a>');
+    document.getElementById("retry-role").addEventListener("click", (e) => { e.preventDefault(); location.reload(); });
+    return;
+  }
+
   screenAuth.style.display = "none";
   app.style.display = "";
+  applyRoleToNav();
 
   setOnProfileUpdated(() => refreshSidebarProfile(session));
   refreshSidebarProfile(session); // sans attendre : n'empêche pas la page de s'afficher
 
-  switchView("dashboard");
-  viewCache.get("dashboard").ready.then(prepareOtherViews);
+  const home = homeView();
+  switchView(home);
+  viewCache.get(home).ready.then(prepareOtherViews);
 }
 
 function showAuth() {
