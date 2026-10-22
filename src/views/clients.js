@@ -4,7 +4,7 @@
 import { supabase } from "../supabase.js";
 import { openModal } from "../modal.js";
 import { callAdmin, notifyEspaceChanged } from "./espace-admin-api.js";
-import { escapeHtml, formatDate, formatRating, monthLabel, currentMonthKey } from "./espace-data.js";
+import { escapeHtml, formatDate, formatRating, monthLabel, currentMonthKey, METRICS, enabledMetrics } from "./espace-data.js";
 
 const TABS = [
   { id: "chiffres", label: "Chiffres du mois" },
@@ -35,6 +35,14 @@ const field = (label, inner, { span = false } = {}) => `<div class="field${span 
 const numField = (name, label, value = "") => field(label, `<input type="number" name="${name}" min="0" max="100000000" step="1" inputmode="numeric" required value="${escapeHtml(value)}">`);
 const stars = (n) => `<span class="espace-stars" role="img" aria-label="${n} sur 5">${"★".repeat(n)}<span class="espace-stars-off">${"★".repeat(5 - n)}</span></span>`;
 
+// Cases "chiffres à suivre" (création et fiche d'un client).
+function metricChecks(selected) {
+  return `<div class="metric-checks" role="group" aria-label="Chiffres à suivre">${METRICS.map((m) => `
+    <label class="crm-check"><input type="checkbox" name="metrique" value="${m.key}"${selected.includes(m.key) ? " checked" : ""}> ${m.label}</label>`).join("")}</div>`;
+}
+const readMetrics = (form) => [...form.querySelectorAll('input[name="metrique"]:checked')].map((i) => i.value);
+const sameMetrics = (a, b) => a.length === b.length && a.every((k) => b.includes(k));
+
 function setMsg(el, text, ok = false) {
   el.textContent = text;
   el.style.color = ok ? "var(--ok)" : "";
@@ -50,7 +58,7 @@ function safeHttpUrl(value) {
 }
 
 // ---------- Fenêtre "identifiants à transmettre" ----------
-function showCredentials({ title, email, tempPassword, onClose }) {
+function showCredentials({ title, email, tempPassword, note, onClose }) {
   const message = `Bonjour,\n\nVoici votre accès à Zenoa Espace, pour suivre la visibilité Google de votre commerce :\n${location.origin}\n\nEmail : ${email}\nMot de passe temporaire : ${tempPassword}\n\nVous choisirez votre propre mot de passe à la première connexion.`;
   const { overlay, close, onClose: whenClosed } = openModal(`
     <h2 style="font-size:16px;font-weight:700;letter-spacing:normal;text-transform:none;margin:0 0 6px;">${escapeHtml(title)}</h2>
@@ -60,6 +68,7 @@ function showCredentials({ title, email, tempPassword, onClose }) {
     </p>
     <div class="field"><label class="field-label">Email</label><input type="text" readonly value="${escapeHtml(email)}"></div>
     <div class="field"><label class="field-label">Mot de passe temporaire</label><input type="text" readonly id="cred-pw" value="${escapeHtml(tempPassword)}" style="font-family:var(--font-mono);font-size:16px;letter-spacing:.04em;"></div>
+    ${note ? `<p style="font-size:12.5px;color:var(--warning);line-height:1.5;margin:0 0 8px;">${escapeHtml(note)}</p>` : ""}
     <div id="cred-msg" style="font-size:12.5px;color:var(--ok);min-height:18px;"></div>
     <div class="modal-actions" style="margin-top:8px;">
       <button type="button" class="btn ghost" data-close>Fermer</button>
@@ -86,7 +95,7 @@ export async function renderClients(root) {
     selected = null;
     app.innerHTML = `<h1 class="page-title">Clients</h1><p style="color:var(--light-text-dim);font-size:14px;">Chargement…</p>`;
     const [biz, reviews, unread, stats] = await Promise.all([
-      supabase.from("espace_businesses").select("id, nom, secteur, ville, lien_avis_google, is_example, created_at").order("nom"),
+      supabase.from("espace_businesses").select("*").order("nom"), // "*" : fonctionne aussi avant l'ajout de la colonne "metriques"
       supabase.from("espace_reviews").select("business_id, note, repondu").limit(5000),
       supabase.from("espace_messages").select("business_id").eq("lu", false).eq("auteur", "client").limit(5000),
       supabase.from("espace_monthly_stats").select("business_id, updated_at").order("updated_at", { ascending: false }).limit(5000)
@@ -148,6 +157,8 @@ export async function renderClients(root) {
           ${field("Ville", `<input type="text" name="ville" maxlength="80" autocomplete="off">`)}
         </div>
         ${field("Email du contact *", `<input type="email" name="email" maxlength="200" required autocomplete="off" placeholder="contact@commerce.fr">`)}
+        <div class="field"><label class="field-label" id="metrics-label">Chiffres à suivre pour ce client</label>${metricChecks(METRICS.map((m) => m.key))}
+          <p style="font-size:12px;color:var(--text-dim);margin:4px 0 0;">Décoche ceux qui n'ont pas de sens pour ce commerce (ex. « Itinéraires » pour un électricien).</p></div>
         <p style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:6px;">
           Un compte est créé avec un mot de passe temporaire, que tu transmets au client. Il devra en choisir un à lui à sa première connexion.
         </p>
@@ -160,18 +171,27 @@ export async function renderClients(root) {
       const errorEl = overlay.querySelector("#create-error");
       const btn = overlay.querySelector("#create-submit");
       errorEl.textContent = "";
+      const metrics = readMetrics(f);
+      if (!metrics.length) { errorEl.textContent = "Garde au moins un chiffre à suivre."; return; }
       btn.disabled = true;
       btn.textContent = "Création…";
       try {
         const res = await callAdmin("create_client", { nom: f.nom.value, secteur: f.secteur.value, ville: f.ville.value, email: f.email.value });
+        // Chiffres choisis pour ce client (tous cochés = réglage par défaut, rien à enregistrer).
+        let note = null;
+        if (!sameMetrics(metrics, METRICS.map((m) => m.key))) {
+          const { error: metricsError } = await supabase.from("espace_businesses").update({ metriques: metrics }).eq("id", res.business_id);
+          if (metricsError) note = "Le client est créé, mais le choix des chiffres n'a pas pu être enregistré : colle d'abord espace-metriques.sql dans Supabase, puis règle-le dans sa fiche (onglet « Infos & accès »).";
+        }
         close();
         showCredentials({
           title: "Client créé ✓",
           email: res.email,
           tempPassword: res.temp_password,
+          note,
           onClose: async () => {
             notifyEspaceChanged();
-            const { data } = await supabase.from("espace_businesses").select("id, nom, secteur, ville, lien_avis_google, is_example, created_at").eq("id", res.business_id).maybeSingle();
+            const { data } = await supabase.from("espace_businesses").select("*").eq("id", res.business_id).maybeSingle();
             if (data) showSheet(data); else showList();
           }
         });
@@ -225,6 +245,7 @@ export async function renderClients(root) {
     const stats = data || [];
     const byMonth = Object.fromEntries(stats.map((s) => [s.mois, s]));
     const start = previousMonthKey();
+    const shown = METRICS.filter((m) => enabledMetrics(biz).includes(m.key)); // chiffres suivis pour ce client
 
     box.innerHTML = `
       <div class="card admin-card">
@@ -232,10 +253,7 @@ export async function renderClients(root) {
         <form id="stats-form">
           <div class="crm-form-grid">
             ${field("Mois", `<select name="mois">${monthOptions(start)}</select>`, { span: true })}
-            ${numField("appels", "Appels")}
-            ${numField("itineraires", "Itinéraires")}
-            ${numField("vues_fiche", "Vues de la fiche")}
-            ${numField("visites_site", "Visites du site")}
+            ${shown.map((m) => numField(m.key, m.label)).join("")}
           </div>
           <div id="stats-hint" class="admin-hint"></div>
           <div id="stats-msg" class="error-msg" style="min-height:18px;"></div>
@@ -245,8 +263,8 @@ export async function renderClients(root) {
       <div class="card admin-card">
         <div class="panel-title">Mois déjà saisis</div>
         ${stats.length ? `<div class="crm-table-wrap" style="border:0;"><table class="crm-table">
-          <thead><tr><th>Mois</th><th>Appels</th><th>Itinéraires</th><th>Vues</th><th>Site</th><th><span class="sr-only">Actions</span></th></tr></thead>
-          <tbody>${stats.map((s) => `<tr data-mois="${s.mois}"><td style="font-weight:700;">${escapeHtml(monthLabel(s.mois))}</td><td>${s.appels}</td><td>${s.itineraires}</td><td>${s.vues_fiche}</td><td>${s.visites_site}</td>
+          <thead><tr><th>Mois</th>${shown.map((m) => `<th>${escapeHtml(m.label)}</th>`).join("")}<th><span class="sr-only">Actions</span></th></tr></thead>
+          <tbody>${stats.map((s) => `<tr data-mois="${s.mois}"><td style="font-weight:700;">${escapeHtml(monthLabel(s.mois))}</td>${shown.map((m) => `<td>${s[m.key]}</td>`).join("")}
             <td style="text-align:right;white-space:nowrap;"><button type="button" class="btn btn-sm ghost" data-edit>Modifier</button> <button type="button" class="icon-btn" data-del title="Supprimer" style="display:inline-flex;">✕</button></td></tr>`).join("")}</tbody></table></div>`
           : `<p style="color:var(--light-text-dim);font-size:13.5px;">Aucun chiffre saisi pour l'instant.</p>`}
       </div>`;
@@ -256,7 +274,7 @@ export async function renderClients(root) {
     const msg = box.querySelector("#stats-msg");
     const fill = () => {
       const existing = byMonth[form.mois.value];
-      ["appels", "itineraires", "vues_fiche", "visites_site"].forEach((k) => { form[k].value = existing ? existing[k] : ""; });
+      shown.forEach((m) => { form[m.key].value = existing ? existing[m.key] : ""; });
       hint.textContent = existing ? "Ce mois est déjà saisi : l'enregistrement va le modifier." : "";
     };
     form.mois.addEventListener("change", fill);
@@ -266,8 +284,8 @@ export async function renderClients(root) {
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       setMsg(msg, "");
-      const num = (k) => Number(form[k].value);
-      const values = { appels: num("appels"), itineraires: num("itineraires"), vues_fiche: num("vues_fiche"), visites_site: num("visites_site") };
+      // Seuls les chiffres suivis sont envoyés : les autres gardent leur valeur actuelle.
+      const values = Object.fromEntries(shown.map((m) => [m.key, Number(form[m.key].value)]));
       if (Object.values(values).some((v) => !Number.isInteger(v) || v < 0)) { setMsg(msg, "Indique des nombres entiers positifs."); return; }
       const btn = box.querySelector("#stats-save");
       btn.disabled = true;
@@ -469,6 +487,8 @@ export async function renderClients(root) {
             ${field("Lien d'avis Google", `<input type="url" name="lien" maxlength="500" placeholder="https://search.google.com/local/writereview?placeid=…" value="${escapeHtml(biz.lien_avis_google || "")}">`, { span: true })}
           </div>
           <div class="admin-hint">Ce lien sert au QR code « Demander des avis » que voit le client.</div>
+          <div class="field" style="margin-top:10px;"><label class="field-label">Chiffres à suivre pour ce client</label>${metricChecks(enabledMetrics(biz))}
+            <div class="admin-hint">Seuls les chiffres cochés sont affichés au client et à saisir chaque mois. Les autres ne sont pas supprimés : tu peux les ré-afficher quand tu veux.</div></div>
           <div id="info-msg" class="error-msg" style="min-height:18px;"></div>
           <button type="submit" class="btn primary" id="info-save">Enregistrer</button>
         </form>
@@ -493,11 +513,19 @@ export async function renderClients(root) {
       if (!nom) { setMsg(msg, "Le nom du commerce est obligatoire."); return; }
       if (lien && !safeHttpUrl(lien)) { setMsg(msg, "Le lien doit commencer par https://"); return; }
       const btn = box.querySelector("#info-save");
-      btn.disabled = true;
+      const metrics = readMetrics(f);
+      if (!metrics.length) { setMsg(msg, "Garde au moins un chiffre à suivre."); return; }
       const patch = { nom, secteur: f.secteur.value.trim() || null, ville: f.ville.value.trim() || null, lien_avis_google: lien || null };
-      const { data: saved, error: saveError } = await supabase.from("espace_businesses").update(patch).eq("id", biz.id).select("id, nom, secteur, ville, lien_avis_google, is_example, created_at").single();
+      if (!sameMetrics(metrics, enabledMetrics(biz))) patch.metriques = metrics; // seulement si modifié
+      btn.disabled = true;
+      const { data: saved, error: saveError } = await supabase.from("espace_businesses").update(patch).eq("id", biz.id).select("*").single();
       btn.disabled = false;
-      if (saveError) { setMsg(msg, "Enregistrement impossible : " + saveError.message); return; }
+      if (saveError) {
+        setMsg(msg, /metriques/i.test(saveError.message || "")
+          ? "Le choix des chiffres n'est pas encore installé : colle espace-metriques.sql dans Supabase (SQL Editor), puis réessaie."
+          : "Enregistrement impossible : " + saveError.message);
+        return;
+      }
       selected = saved;
       Object.assign(biz, saved);
       app.querySelector("#sheet-title").textContent = saved.nom;

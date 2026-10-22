@@ -122,25 +122,25 @@ export function renderReviewsChart(container, series) {
   ]));
 }
 
-// Graphique 2 : appels et itinéraires, mois par mois.
-export function renderCallsChart(container, stats) {
+// Graphique 2 : un ou plusieurs chiffres mensuels, mois par mois.
+// `series` : [{ key, label, color }] (les chiffres choisis pour ce client).
+export const SERIES_COLORS = { appels: "var(--warm-1)", itineraires: GOLD, vues_fiche: "#e8b4a0", visites_site: "#9fb4c7" };
+
+export function renderCallsChart(container, stats, series) {
   size(container);
   if (!stats.length) {
     container.innerHTML = `<p class="espace-empty">Les premiers chiffres mensuels arrivent bientôt.</p>`;
     return;
   }
   const months = stats.map((s) => s.mois);
-  const { svg, xCenter, baseline, innerH } = frame("Évolution des appels et des itinéraires par mois", months);
-  const scale = niceScale(Math.max(...stats.map((s) => Math.max(s.appels, s.itineraires))), 4);
+  const label = series.map((s) => s.label.toLowerCase()).join(" et ");
+  const { svg, xCenter, baseline, innerH } = frame(`Évolution : ${label}, par mois`, months);
+  const scale = niceScale(Math.max(...stats.map((s) => Math.max(...series.map((serie) => s[serie.key] || 0)))), 4);
   const y = (v) => baseline - (v / scale.max) * innerH;
   scale.ticks.forEach((v) => gridLine(svg, y(v), formatNumber(v), "left"));
 
-  const series = [
-    { key: "appels", label: "Appels", color: "var(--warm-1)" },
-    { key: "itineraires", label: "Itinéraires", color: GOLD }
-  ];
   series.forEach((serie, si) => {
-    const pts = stats.map((s, i) => ({ x: xCenter(i), y: y(s[serie.key]), v: s[serie.key], mois: s.mois }));
+    const pts = stats.map((s, i) => ({ x: xCenter(i), y: y(s[serie.key] || 0), v: s[serie.key] || 0, mois: s.mois }));
     el("polyline", {
       points: pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" "),
       fill: "none", stroke: serie.color, "stroke-width": 2.5, "stroke-linecap": "round", "stroke-linejoin": "round", class: "espace-line", pathLength: 1
@@ -158,5 +158,5 @@ export function renderCallsChart(container, stats) {
 
   container.innerHTML = "";
   container.appendChild(svg);
-  container.insertAdjacentHTML("beforeend", legend(series.map((s) => ({ label: s.label, color: s.color, round: true }))));
+  if (series.length > 1) container.insertAdjacentHTML("beforeend", legend(series.map((s) => ({ label: s.label, color: s.color, round: true }))));
 }

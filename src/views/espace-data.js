@@ -3,6 +3,21 @@
 // un client ne reçoit que SON commerce, quoi que demande ce code.
 import { supabase } from "../supabase.js";
 
+// Chiffres que l'admin peut choisir d'afficher pour un client (ex. un électricien
+// n'a pas besoin des "Itinéraires"). Par défaut : tous.
+export const METRICS = [
+  { key: "appels", label: "Appels" },
+  { key: "itineraires", label: "Itinéraires" },
+  { key: "vues_fiche", label: "Vues de la fiche" },
+  { key: "visites_site", label: "Visites du site" }
+];
+
+export function enabledMetrics(business) {
+  const all = METRICS.map((m) => m.key);
+  const chosen = business && Array.isArray(business.metriques) ? business.metriques.filter((k) => all.includes(k)) : [];
+  return chosen.length ? chosen : all;
+}
+
 export function escapeHtml(str) {
   const div = document.createElement("div");
   div.textContent = str == null ? "" : String(str);
@@ -42,7 +57,7 @@ export function variation(current, previous) {
 // Charge tout ce qu'il faut pour afficher le tableau de bord d'un commerce.
 export async function loadEspaceData(businessId) {
   const [business, stats, reviews, tasks] = await Promise.all([
-    supabase.from("espace_businesses").select("id, nom, secteur, ville, lien_avis_google").eq("id", businessId).maybeSingle(),
+    supabase.from("espace_businesses").select("*").eq("id", businessId).maybeSingle(), // "*" : fonctionne aussi avant l'ajout de la colonne "metriques"
     supabase.from("espace_monthly_stats").select("mois, appels, itineraires, vues_fiche, visites_site").eq("business_id", businessId).order("mois", { ascending: false }).limit(12),
     supabase.from("espace_reviews").select("id, auteur, note, texte, date, repondu, reponse").eq("business_id", businessId).order("date", { ascending: false }),
     supabase.from("espace_tasks").select("id, titre, statut, mois").eq("business_id", businessId).gte("mois", currentMonthKey())

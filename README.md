@@ -116,7 +116,8 @@ Mise en place (Supabase) :
 2. `espace-demo.sql` (facultatif) : 2 commerces d'exemple (barbier, plombier). Suppression : `delete from public.espace_businesses where is_example;`
 3. Fonction Edge `espace-admin` (`supabase/functions/espace-admin/index.ts`) : création des comptes clients. À coller dans
    Supabase > Edge Functions > Via Editor, nom exact `espace-admin`.
-4. Facultatif : la ligne `alter publication supabase_realtime ...` en bas de `espace.sql` pour des messages instantanés.
+4. `espace-metriques.sql` : choix des chiffres à suivre par client (ex. pas d'« Itinéraires » pour un électricien).
+5. Facultatif : la ligne `alter publication supabase_realtime ...` en bas de `espace.sql` pour des messages instantanés.
 
 Rôles : `admin` (toi : Clients, Aperçu client, Messages + Radar/CRM/Ressources), `client` (Mon espace, Messages),
 `radar` (utilisateur Radar sans profil : l'appli comme avant). Les droits sont dans la base, pas dans le navigateur.

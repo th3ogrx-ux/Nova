@@ -6,9 +6,9 @@ import { supabase } from "../supabase.js";
 import { getCurrentRole, getCurrentBusinessId } from "../session.js";
 import { readCache, writeCache, sameData } from "../data-cache.js";
 import {
-  escapeHtml, loadEspaceData, summarize, monthLabel, formatDate, formatNumber, formatRating, variation, reviewSeries, statSeries
+  escapeHtml, loadEspaceData, summarize, monthLabel, formatDate, formatNumber, formatRating, variation, reviewSeries, statSeries, METRICS, enabledMetrics
 } from "./espace-data.js";
-import { renderReviewsChart, renderCallsChart } from "./espace-charts.js";
+import { renderReviewsChart, renderCallsChart, SERIES_COLORS } from "./espace-charts.js";
 
 // Période des graphiques (6 ou 12 mois), gardée d'une visite à l'autre.
 const RANGE_KEY = "zenoa-espace-periode";
@@ -140,11 +140,21 @@ async function setupQr(root, business) {
   });
 }
 
+// Courbes du 2e graphique : appels / itinéraires si choisis, sinon vues / visites.
+function chartSeries(business) {
+  const enabled = enabledMetrics(business);
+  let keys = ["appels", "itineraires"].filter((k) => enabled.includes(k));
+  if (!keys.length) keys = ["vues_fiche", "visites_site"].filter((k) => enabled.includes(k));
+  return keys.map((k) => ({ key: k, label: METRICS.find((m) => m.key === k).label, color: SERIES_COLORS[k] }));
+}
+
 function dashboardHtml(data) {
   const { business, reviews, tasks } = data;
   const s = summarize(data);
   const latest = s.latest;
   const subtitle = [business.secteur, business.ville].filter(Boolean).join(" · ");
+  const enabled = enabledMetrics(business);
+  const callSeries = chartSeries(business);
   const monthTitle = latest ? monthLabel(latest.mois) : null;
   const prev = s.previous;
 
@@ -156,9 +166,8 @@ function dashboardHtml(data) {
       ${statTile("Note moyenne",
         s.average === null ? "—" : `<span data-count="${s.average}" data-decimals="1">${formatRating(s.average)}</span><span class="espace-star-big"> ★</span>`,
         `<span class="espace-delta">${s.count} avis${s.toAnswerCount ? ` · <b style="color:var(--warning);">${s.toAnswerCount} à répondre</b>` : ""}</span>`)}
-      ${latest ? statTile("Appels", `<span data-count="${latest.appels}">${formatNumber(latest.appels)}</span>`, deltaHtml(latest.appels, prev && prev.appels)) : ""}
-      ${latest ? statTile("Itinéraires", `<span data-count="${latest.itineraires}">${formatNumber(latest.itineraires)}</span>`, deltaHtml(latest.itineraires, prev && prev.itineraires)) : ""}
-      ${latest ? statTile("Vues de la fiche", `<span data-count="${latest.vues_fiche}">${formatNumber(latest.vues_fiche)}</span>`, deltaHtml(latest.vues_fiche, prev && prev.vues_fiche)) : ""}
+      ${latest ? METRICS.filter((m) => enabled.includes(m.key)).map((m) =>
+        statTile(m.label, `<span data-count="${latest[m.key]}">${formatNumber(latest[m.key])}</span>`, deltaHtml(latest[m.key], prev && prev[m.key]))).join("") : ""}
     </div>
     ${latest
       ? `<p class="espace-month-note">Chiffres de <b>${escapeHtml(monthTitle)}</b></p>`
@@ -169,13 +178,13 @@ function dashboardHtml(data) {
       <button type="button" class="btn btn-sm ${chartRange === 6 ? "primary" : "ghost"}" data-range="6">6 mois</button>
       <button type="button" class="btn btn-sm ${chartRange === 12 ? "primary" : "ghost"}" data-range="12">12 mois</button>
     </div>
-    <div class="espace-charts">
+    <div class="espace-charts${callSeries.length ? "" : " single"}">
       <div class="card espace-card" style="padding:20px;">
         <div class="panel-title">Note et avis</div>
         <div id="espace-chart-reviews" class="espace-chart"></div>
       </div>
       <div class="card espace-card" style="padding:20px;">
-        <div class="panel-title">Appels et itinéraires</div>
+        <div class="panel-title" id="espace-chart-calls-title">${escapeHtml(callSeries.map((s) => s.label).join(" et ") || "Chiffres")}</div>
         <div id="espace-chart-calls" class="espace-chart"></div>
       </div>
     </div>
@@ -248,7 +257,10 @@ export async function renderEspace(root) {
 
   function drawCharts(data) {
     renderReviewsChart(body.querySelector("#espace-chart-reviews"), reviewSeries(data.reviews, chartRange));
-    renderCallsChart(body.querySelector("#espace-chart-calls"), statSeries(data.stats, chartRange));
+    const series = chartSeries(data.business);
+    const callsCard = body.querySelector("#espace-chart-calls").closest(".card");
+    callsCard.hidden = !series.length;
+    if (series.length) renderCallsChart(body.querySelector("#espace-chart-calls"), statSeries(data.stats, chartRange), series);
   }
 
   // Les graphiques se redessinent quand la largeur change (rotation du

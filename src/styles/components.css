@@ -863,3 +863,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 @media (pointer: coarse) {
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select { min-height: 44px; }
 }
+
+.espace-charts.single { grid-template-columns: 1fr; }
+.metric-checks { display: flex; flex-wrap: wrap; gap: 10px 22px; margin: 4px 0 6px; }
+.metric-checks .crm-check { margin: 0; min-height: 36px; }
