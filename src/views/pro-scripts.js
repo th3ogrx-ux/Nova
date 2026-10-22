@@ -90,7 +90,7 @@ function openProgramModal(offer) {
         ${months.map((m) => `<div class="pro-program-month"><h4><span>Mois ${m.n}</span>${m.titre ? escapeHtml(m.titre) : ""}</h4>
           <ol class="pro-weeks">${m.weeks.map((w) => `<li class="${w.task ? "" : "empty"}"><span class="pro-week-n">S${w.n}</span><span>${w.task ? escapeHtml(w.task).replace(/\n/g, "<br>") : "À définir"}</span></li>`).join("")}</ol></div>`).join("")}
       </section>`).join("")}</div>
-    <div class="modal-actions"><button type="button" class="btn ghost" data-close>Fermer</button><button type="button" class="btn primary" data-copy-program>Copier le programme</button></div>`, { maxWidth: 620 });
+    <div class="modal-actions"><button type="button" class="btn ghost" data-close>Fermer</button><button type="button" class="btn primary" data-copy-program>Copier le programme</button></div>`, { maxWidth: 620, lockOutside: false });
   overlay.querySelector("[data-copy-program]").addEventListener("click", async () => toast((await copyText(programText(offer))) ? "Programme copié ✓" : "Copie impossible"));
 }
 

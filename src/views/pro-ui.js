@@ -1,8 +1,10 @@
 // Module Prospection : petits éléments d'interface partagés (états vides, squelettes, toast, formulaires).
-import { openModal } from "../modal.js";
+import { openModal as baseOpenModal } from "../modal.js";
 import { escapeHtml } from "./pro-data.js";
 
-export { openModal };
+// Fenêtres de la prospection : un clic ou un tap à côté ne les ferme pas (un « clic fantôme » au moment où le clavier
+// s'ouvre sur téléphone les fermait en plein milieu d'une saisie). On les ferme avec ✕ ou « Annuler ».
+export const openModal = (html, opts = {}) => baseOpenModal(html, { lockOutside: true, ...opts });
 
 // Illustration de l'état vide : l'étoile de la marque, en trait fin.
 const STAR = `<svg viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M32 4c2 14 6 24 28 28-22 4-26 14-28 28-2-14-6-24-28-28C26 28 30 18 32 4z"/><circle cx="32" cy="32" r="3.5" fill="currentColor" stroke="none"/></svg>`;

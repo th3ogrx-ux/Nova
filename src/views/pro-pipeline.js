@@ -1,6 +1,7 @@
 // Prospection > Pipeline : une colonne par étape, cartes glissables, compteur par colonne.
 import { CANAUX, ETAPES, saveProspect, deleteProspect, escapeHtml, fmtEuro, canalIcon } from "./pro-data.js";
 import { renderBoard, moveButtons } from "./pro-kanban.js";
+import { bindFormDraft } from "./pro-draft.js";
 import { emptyState, openModal, modalHeader, field, options, readForm, toast, friendlyError } from "./pro-ui.js";
 
 const canalOptions = [{ key: "", label: "—" }, ...Object.entries(CANAUX).map(([key, c]) => ({ key, label: c.label }))];
@@ -63,16 +64,18 @@ export function openProspectModal(prospect, data, ctx) {
     </form>`, { maxWidth: 520 });
   const form = overlay.querySelector("[data-form]"), errorEl = overlay.querySelector("[data-error]");
   form.nom.focus();
+  const draft = bindFormDraft(form, "prospect:" + (prospect ? prospect.id : "new"), { onReset: () => { close(); openProspectModal(prospect, data, ctx); } });
+  overlay.querySelector(".modal-actions [data-close]").addEventListener("click", () => draft.clear());
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const v = readForm(form);
     if (!v.nom) { errorEl.textContent = "Indique le nom du prospect."; return; }
-    try { await saveProspect(v, prospect && prospect.id); close(); toast("Prospect enregistré ✓"); ctx.reload(); } catch (err) { errorEl.textContent = friendlyError(err); }
+    try { await saveProspect(v, prospect && prospect.id); draft.clear(); close(); toast("Prospect enregistré ✓"); ctx.reload(); } catch (err) { errorEl.textContent = friendlyError(err); }
   });
   const del = overlay.querySelector("[data-delete]");
   if (del) del.addEventListener("click", async () => {
     const ok = await window.confirmDialog(`Supprimer « ${prospect.nom} » ?`, { danger: true, confirmLabel: "Supprimer" });
     if (!ok) return;
-    try { await deleteProspect(prospect.id); close(); ctx.reload(); } catch (err) { errorEl.textContent = friendlyError(err); }
+    try { await deleteProspect(prospect.id); draft.clear(); close(); ctx.reload(); } catch (err) { errorEl.textContent = friendlyError(err); }
   });
 }

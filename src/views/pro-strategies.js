@@ -5,7 +5,7 @@ import {
 } from "./pro-data.js";
 import { miniBars, lineChart, runCounters } from "./pro-charts.js";
 import { renderBoard, moveButtons } from "./pro-kanban.js";
-import { draftGet, draftSet, draftClear, debounce } from "./pro-draft.js";
+import { draftGet, draftSet, draftClear, debounce, bindFormDraft } from "./pro-draft.js";
 import { emptyState, openModal, modalHeader, field, options, readForm, toast, friendlyError, copyText } from "./pro-ui.js";
 
 const canalOptions = Object.entries(CANAUX).map(([key, c]) => ({ key, label: c.label }));
@@ -89,6 +89,8 @@ export function openStrategyModal(strategy, ctx, data) {
     </form>`, { maxWidth: 480 });
   const form = overlay.querySelector("[data-form]"), errorEl = overlay.querySelector("[data-error]");
   form.titre.focus();
+  const draft = bindFormDraft(form, "strategy:" + (strategy ? strategy.id : "new"), { onReset: () => { close(); openStrategyModal(strategy, ctx, data); } });
+  overlay.querySelector(".modal-actions [data-close]").addEventListener("click", () => draft.clear());
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const v = readForm(form);
@@ -96,14 +98,14 @@ export function openStrategyModal(strategy, ctx, data) {
     const canaux = [...form.querySelectorAll("[data-canal]:checked")].map((c) => c.dataset.canal);
     if (!canaux.length) { errorEl.textContent = "Choisis au moins un canal."; return; }
     v.canaux = canaux; v.canal = canaux[0]; // « canal » = canal principal
-    try { const saved = await saveStrategy(v, strategy && strategy.id); close(); toast("Stratégie enregistrée ✓"); await ctx.reload(); if (!strategy) ctx.openStrategy(saved.id); }
+    try { const saved = await saveStrategy(v, strategy && strategy.id); draft.clear(); close(); toast("Stratégie enregistrée ✓"); await ctx.reload(); if (!strategy) ctx.openStrategy(saved.id); }
     catch (err) { errorEl.textContent = friendlyError(err); }
   });
   const del = overlay.querySelector("[data-delete]");
   if (del) del.addEventListener("click", async () => {
     const ok = await window.confirmDialog(`Supprimer « ${strategy.titre} » ? Ses scripts sont supprimés ; ses saisies restent comptées dans le tableau de bord sans stratégie.`, { danger: true, confirmLabel: "Supprimer" });
     if (!ok) return;
-    try { await deleteStrategy(strategy.id); close(); ctx.state.detailId = null; toast("Stratégie supprimée"); ctx.reload(); } catch (err) { errorEl.textContent = friendlyError(err); }
+    try { await deleteStrategy(strategy.id); draft.clear(); close(); ctx.state.detailId = null; toast("Stratégie supprimée"); ctx.reload(); } catch (err) { errorEl.textContent = friendlyError(err); }
   });
 }
 
