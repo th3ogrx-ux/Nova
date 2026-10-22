@@ -204,3 +204,11 @@ begin
 end $$;
 
 notify pgrst, 'reload schema';
+
+-- ============================================================
+-- FACULTATIF — messages en direct (sans attendre l'actualisation de 30 s)
+-- À coller séparément dans le SQL Editor si tu le souhaites. Sans lui, la
+-- messagerie fonctionne quand même : elle se met à jour toutes les 30 s et
+-- à chaque retour sur l'onglet.
+-- ============================================================
+-- alter publication supabase_realtime add table public.espace_messages;

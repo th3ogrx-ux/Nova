@@ -6,6 +6,8 @@ import { renderDashboard } from "./views/dashboard.js";
 import { renderRecherche } from "./views/recherche.js";
 import { renderRessources } from "./views/ressources.js";
 import { renderEspace } from "./views/espace.js";
+import { renderMessages } from "./views/messages.js";
+import { startUnreadWatch, stopUnreadWatch, onUnread } from "./espace-unread.js";
 import { renderCrm } from "./views/crm.js";
 import { renderDemoPage } from "./views/demo.js";
 import { renderSettings, setOnProfileUpdated, applyAvatarPreview } from "./views/settings.js";
@@ -39,6 +41,7 @@ const VIEWS = {
   crm: { render: renderCrm, title: "CRM", roles: ["admin", "radar"] },
   ressources: { render: renderRessources, title: "Ressources", roles: ["admin", "radar"] },
   espace: { render: renderEspace, title: "Mon espace", roles: ["client", "admin"] },
+  messages: { render: renderMessages, title: "Messages", roles: ["client", "admin"] },
   settings: { render: renderSettings, title: "Paramètres", roles: ["admin", "radar", "client"] },
 };
 
@@ -206,6 +209,8 @@ async function showApp(session) {
   screenAuth.style.display = "none";
   app.style.display = "";
   applyRoleToNav();
+  // Badge de messages non lus (client et admin uniquement).
+  if (role_isMessaging()) startUnreadWatch(getCurrentRole());
 
   setOnProfileUpdated(() => refreshSidebarProfile(session));
   refreshSidebarProfile(session); // sans attendre : n'empêche pas la page de s'afficher
@@ -215,7 +220,19 @@ async function showApp(session) {
   viewCache.get(home).ready.then(prepareOtherViews);
 }
 
+const role_isMessaging = () => getCurrentRole() === "client" || getCurrentRole() === "admin";
+
+// Pastille du menu "Messages" : nombre de messages non lus.
+onUnread((count) => {
+  const badge = document.getElementById("messages-badge");
+  if (!badge) return;
+  badge.hidden = !count;
+  badge.textContent = count > 99 ? "99+" : String(count);
+  badge.setAttribute("aria-label", count + " message" + (count > 1 ? "s" : "") + " non lu" + (count > 1 ? "s" : ""));
+});
+
 function showAuth() {
+  stopUnreadWatch();
   // Déconnexion : on oublie l'utilisateur et ses données gardées en mémoire.
   if (shownUserId) clearCache();
   shownUserId = null;
