@@ -20,8 +20,12 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+// Domaine autorisé à appeler la fonction : secret ALLOWED_ORIGINS (ex. "https://mon-site.vercel.app"),
+// un seul domaine. Sans ce secret, tous les domaines sont acceptés ("*").
+const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") || "").split(",").map((o) => o.trim()).filter(Boolean);
 const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": ALLOWED_ORIGINS[0] || "*",
+  "Vary": "Origin",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
@@ -51,6 +55,16 @@ const CATEGORIES = new Set([
   "auto_ecole", "salle_sport", "garage", "gite", "pme_industrielle"
 ]);
 const OSM_ID_RE = /^(node|way|relation)\/\d{1,15}$/;
+
+// Niveau d'authentification inscrit dans le jeton (déjà vérifié par auth.getUser).
+function jwtAal(token: string): string {
+  try {
+    const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(payload)).aal || "";
+  } catch {
+    return "";
+  }
+}
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -207,6 +221,11 @@ Deno.serve(async (req) => {
     if (userError || !userData || !userData.user) return jsonResponse({ error: "Non authentifié." }, 401);
     const userId = userData.user.id;
 
+    // Réservé à l'administrateur, avec la double authentification validée (aal2).
+    const { data: profile } = await supabase.from("espace_profiles").select("role").eq("id", userId).maybeSingle();
+    if (!profile || profile.role !== "admin") return jsonResponse({ error: "Action réservée à l'administrateur." }, 403);
+    if (jwtAal(token) !== "aal2") return jsonResponse({ error: "Double authentification requise." }, 403);
+
     // ---------- Fiches envoyées par le navigateur ----------
     const body = await req.json().catch(() => ({}));
     const rawCandidates = Array.isArray(body.candidates) ? body.candidates.slice(0, MAX_CANDIDATES) : [];
@@ -218,7 +237,7 @@ Deno.serve(async (req) => {
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .gte("created_at", startOfTodayParis().toISOString());
-    if (countError) return jsonResponse({ error: countError.message }, 500);
+    if (countError) { console.error("[radar-daily]", countError); return jsonResponse({ error: "Erreur du serveur." }, 500); }
     const allowed = LEADS_PER_DAY - (todayCount || 0);
     if (allowed <= 0) return jsonResponse({ inserted: 0, message: "Les prospects du jour ont déjà été générés." });
 
@@ -227,7 +246,7 @@ Deno.serve(async (req) => {
       .from("radar_leads")
       .select("osm_id")
       .eq("user_id", userId);
-    if (existingError) return jsonResponse({ error: existingError.message }, 500);
+    if (existingError) { console.error("[radar-daily]", existingError); return jsonResponse({ error: "Erreur du serveur." }, 500); }
     const seen = new Set((existing || []).map((r: any) => r.osm_id));
 
     const fresh: any[] = [];
@@ -242,7 +261,7 @@ Deno.serve(async (req) => {
     const { error: insertError } = await supabase
       .from("radar_leads")
       .insert(fresh.map((c) => ({ ...c, user_id: userId, status: "en_attente" })));
-    if (insertError) return jsonResponse({ error: insertError.message }, 500);
+    if (insertError) { console.error("[radar-daily]", insertError); return jsonResponse({ error: "Erreur du serveur." }, 500); }
     console.log("[radar-daily]", userId, ":", fresh.length, "prospects ajoutés");
 
     // ---------- Emails, en arrière-plan ----------

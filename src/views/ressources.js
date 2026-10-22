@@ -386,7 +386,8 @@ export async function renderRessources(root) {
     }
     // La plupart des sites interdisent l'affichage dans une autre page :
     // un lien s'ouvre donc dans un nouvel onglet.
-    window.open(item.url, "_blank", "noopener");
+    const safe = safeHttpUrl(item.url);
+    if (safe) window.open(safe, "_blank", "noopener,noreferrer");
   }
 
   async function deleteItem(item) {

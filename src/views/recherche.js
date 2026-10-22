@@ -189,7 +189,7 @@ function leadCardHtml(lead, tab) {
         <div style="font-size:12.5px;color:var(--light-text-dim);margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;">
           ${lead.phone ? `<span style="color:var(--ok);font-weight:600;">📞 ${escapeHtml(lead.phone)}</span>` : ""}
           ${lead.email ? `<span style="color:var(--accent-blue-2);font-weight:600;">✉️ ${escapeHtml(lead.email)}</span>` : ""}
-          ${lead.website ? `<a href="${escapeHtml(lead.website)}" target="_blank" rel="noopener" style="color:var(--accent-blue-1);">🔗 Site web</a>` : ""}
+          ${lead.website && safeHttpUrl(lead.website) ? `<a href="${escapeHtml(safeHttpUrl(lead.website))}" target="_blank" rel="noopener" style="color:var(--accent-blue-1);">🔗 Site web</a>` : ""}
         </div>
         ${lead.address ? `<div style="font-size:11px;color:var(--light-text-dim);margin-top:5px;opacity:.8;">📍 ${escapeHtml(lead.address)}</div>` : ""}
       </div>
@@ -232,6 +232,17 @@ async function setLeadStatus(btn, leadId, status, onChanged) {
     return;
   }
   onChanged();
+}
+
+// Le site vient d'OpenStreetMap (donnée externe) : on n'accepte que http(s),
+// jamais "javascript:" ou "data:".
+function safeHttpUrl(value) {
+  try {
+    const url = new URL(/^https?:\/\//i.test(value) ? value : "https://" + value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 function escapeHtml(str) {

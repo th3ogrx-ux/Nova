@@ -1,8 +1,10 @@
 // Premier accès d'un client : il a reçu un mot de passe TEMPORAIRE de la part de
 // l'admin et doit en choisir un à lui avant de continuer. (Indication d'affichage :
 // la vraie protection des données est dans la base, pas dans cet écran.)
+import { passwordError } from "./password-policy.js";
 import { supabase } from "./supabase.js";
 import { signOut } from "./auth.js";
+import { logEvent } from "./security-log.js";
 
 export function needsPasswordChange(user) {
   return !!(user && user.user_metadata && user.user_metadata.must_change_password);
@@ -20,12 +22,12 @@ export function renderForcePassword(container, onDone) {
         </p>
         <form id="force-form">
           <div class="field">
-            <label class="field-label" for="force-pw">Nouveau mot de passe (8 caractères minimum)</label>
-            <input type="password" id="force-pw" autocomplete="new-password" minlength="8" required>
+            <label class="field-label" for="force-pw">Nouveau mot de passe (12 caractères minimum)</label>
+            <input type="password" id="force-pw" autocomplete="new-password" minlength="12" required>
           </div>
           <div class="field">
             <label class="field-label" for="force-pw2">Confirme le mot de passe</label>
-            <input type="password" id="force-pw2" autocomplete="new-password" minlength="8" required>
+            <input type="password" id="force-pw2" autocomplete="new-password" minlength="12" required>
           </div>
           <div class="error-msg" id="force-error"></div>
           <button type="submit" class="btn primary" id="force-submit" style="width:100%;margin-top:4px;">Enregistrer et continuer</button>
@@ -42,9 +44,10 @@ export function renderForcePassword(container, onDone) {
     const errorEl = container.querySelector("#force-error");
     const btn = container.querySelector("#force-submit");
     errorEl.textContent = "";
-    if (pw.length < 8) { errorEl.textContent = "8 caractères minimum."; return; }
     if (pw !== pw2) { errorEl.textContent = "Les deux mots de passe ne sont pas identiques."; return; }
     btn.disabled = true;
+    const problem = await passwordError(pw);
+    if (problem) { btn.disabled = false; errorEl.textContent = problem; return; }
     const { error } = await supabase.auth.updateUser({ password: pw, data: { must_change_password: false } });
     if (error) {
       btn.disabled = false;
@@ -53,6 +56,7 @@ export function renderForcePassword(container, onDone) {
         : "Impossible de changer le mot de passe : " + error.message;
       return;
     }
+    logEvent("password_changed");
     container.innerHTML = "";
     onDone();
   });

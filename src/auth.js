@@ -1,4 +1,5 @@
 // Inscription / connexion par email + mot de passe (Supabase Auth).
+import { emailHash, isLoginLocked, logLoginFailure, logEvent } from "./security-log.js";
 import { supabase } from "./supabase.js";
 
 // Renvoie la session active, ou null si personne n'est connecté.
@@ -37,7 +38,7 @@ export function renderAuthScreen(container, onSignedIn) {
             </div>
             <div class="field">
               <label class="field-label">Mot de passe</label>
-              <input type="password" id="auth-password" required minlength="6"
+              <input type="password" id="auth-password" required
                 autocomplete="${mode === "login" ? "current-password" : "new-password"}"
                 placeholder="8 caractères minimum">
             </div>
@@ -50,6 +51,9 @@ export function renderAuthScreen(container, onSignedIn) {
             ${mode === "login" ? "Pas encore de compte ?" : "Déjà un compte ?"}
             <a href="#" id="auth-switch-link">${mode === "login" ? "Créer un compte" : "Se connecter"}</a>
           </p>` : `<p class="auth-switch" style="color:var(--text-dim);">Pas de compte ? Ton accès t'est envoyé par ton contact Zenoa.</p>`}
+          <p class="auth-switch" style="margin-top:10px;font-size:12px;">
+            <a href="/legal/mentions-legales.html">Mentions légales</a> · <a href="/legal/confidentialite.html">Confidentialité</a> · <a href="/legal/cgu.html">Conditions</a>
+          </p>
         </div>
       </div>
     `;
@@ -70,15 +74,24 @@ export function renderAuthScreen(container, onSignedIn) {
       errorEl.textContent = "";
       submitBtn.disabled = true;
 
+      const hash = await emailHash(email);
+      if (mode === "login" && await isLoginLocked(hash)) {
+        submitBtn.disabled = false;
+        errorEl.textContent = "Trop de tentatives. Réessaie dans 15 minutes.";
+        return;
+      }
+
       const { error } = mode === "login"
         ? await supabase.auth.signInWithPassword({ email, password })
         : await supabase.auth.signUp({ email, password });
 
       submitBtn.disabled = false;
       if (error) {
+        if (mode === "login") logLoginFailure(hash);
         errorEl.textContent = translateAuthError(error.message);
         return;
       }
+      if (mode === "login") logEvent("login_success", hash);
 
       const session = await getSession();
       if (session) {
@@ -96,6 +109,9 @@ export function renderAuthScreen(container, onSignedIn) {
 function translateAuthError(message) {
   if (/already registered/i.test(message)) return "Un compte existe déjà avec cet email.";
   if (/invalid login credentials/i.test(message)) return "Email ou mot de passe incorrect.";
-  if (/password should be at least/i.test(message)) return "Le mot de passe doit faire au moins 6 caractères.";
-  return message;
+  if (/password should be at least/i.test(message)) return "Le mot de passe doit faire au moins 12 caractères.";
+  if (/rate limit|too many/i.test(message)) return "Trop de tentatives. Réessaie dans quelques minutes.";
+  // Message volontairement vague : le détail technique ne regarde pas l'utilisateur.
+  console.error("[auth]", message);
+  return "Connexion impossible pour le moment. Réessaie.";
 }

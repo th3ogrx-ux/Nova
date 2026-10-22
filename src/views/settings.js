@@ -1,8 +1,12 @@
 // Paramètres — pseudo, photo de profil, apparence, déconnexion, suppression de compte.
+import { passwordError } from "../password-policy.js";
 import { supabase } from "../supabase.js";
 import { getCurrentUser, isClient } from "../session.js";
 import { signOut } from "../auth.js";
 import { getTheme, setTheme } from "../theme.js";
+import { verifiedFactors, renderMfaEnroll } from "../mfa.js";
+import { logEvent, loadRecentEvents, loadSecurityAlerts, EVENT_LABELS } from "../security-log.js";
+import { getCurrentRole } from "../session.js";
 
 const AVATAR_BUCKET = "avatars";
 const MAX_AVATAR_BYTES = 3 * 1024 * 1024; // 3 Mo
@@ -56,11 +60,29 @@ export async function renderSettings(root) {
     <div class="card settings-section">
       <div class="panel-title">Mot de passe</div>
       <div class="field settings-field">
-        <label class="field-label">Nouveau mot de passe (8 caractères minimum)</label>
-        <input type="password" id="settings-new-password" autocomplete="new-password" minlength="8">
+        <label class="field-label">Nouveau mot de passe (12 caractères minimum)</label>
+        <input type="password" id="settings-new-password" autocomplete="new-password" minlength="12">
       </div>
       <div class="error-msg" id="settings-password-msg"></div>
       <button type="button" class="btn primary btn-sm" id="settings-password-save">Changer le mot de passe</button>
+    </div>
+
+    <div class="card settings-section">
+      <div class="panel-title">Double authentification</div>
+      <p style="font-size:13px;color:var(--light-text-dim);margin-bottom:12px;max-width:460px;" id="settings-mfa-text">Chargement…</p>
+      <div class="error-msg" id="settings-mfa-msg"></div>
+      <button type="button" class="btn primary btn-sm" id="settings-mfa-btn" hidden></button>
+    </div>
+
+    <div class="card settings-section" id="settings-security" hidden>
+      <div class="panel-title">Journal de sécurité</div>
+      <div id="settings-security-alerts"></div>
+      <ul id="settings-security-list" style="list-style:none;padding:0;margin:0;font-size:13px;"></ul>
+    </div>
+
+    <div class="card settings-section">
+      <div class="panel-title">Informations légales</div>
+      <p style="font-size:13px;"><a href="/legal/mentions-legales.html" target="_blank" rel="noopener">Mentions légales</a> · <a href="/legal/confidentialite.html" target="_blank" rel="noopener">Politique de confidentialité</a> · <a href="/legal/cgu.html" target="_blank" rel="noopener">Conditions d'utilisation</a></p>
     </div>
 
     <div class="card settings-section">
@@ -161,15 +183,20 @@ export async function renderSettings(root) {
     const msg = root.querySelector("#settings-password-msg");
     const btn = root.querySelector("#settings-password-save");
     msg.style.color = "";
-    if (input.value.length < 8) { msg.textContent = "8 caractères minimum."; return; }
     btn.disabled = true;
+    const problem = await passwordError(input.value);
+    if (problem) { btn.disabled = false; msg.textContent = problem; return; }
     const { error } = await supabase.auth.updateUser({ password: input.value });
     btn.disabled = false;
     if (error) { msg.textContent = "Impossible de changer le mot de passe : " + error.message; return; }
     input.value = "";
+    logEvent("password_changed");
     msg.style.color = "var(--ok)";
     msg.textContent = "Mot de passe changé ✓";
   });
+
+  setupMfaCard(root);
+  if (getCurrentRole() === "admin") setupSecurityCard(root);
 
   root.querySelector("#settings-logout").addEventListener("click", async () => {
     const ok = await window.confirmDialog("Te déconnecter ?", { confirmLabel: "Se déconnecter" });
@@ -214,4 +241,62 @@ export function applyAvatarPreview(root, selector, avatarUrl, email) {
     initial.style.display = "";
     initial.textContent = (email || "?").charAt(0).toUpperCase();
   }
+}
+
+
+// Double authentification : obligatoire pour l'admin (pas de bouton pour la retirer), facultative pour un client.
+async function setupMfaCard(root) {
+  const text = root.querySelector("#settings-mfa-text");
+  const btn = root.querySelector("#settings-mfa-btn");
+  const msg = root.querySelector("#settings-mfa-msg");
+  const mandatory = getCurrentRole() === "admin";
+  let factors = [];
+  try { factors = await verifiedFactors(); } catch { text.textContent = "Impossible de lire l'état de la double authentification."; return; }
+
+  const screenAuth = document.getElementById("screen-auth");
+  const appEl = document.getElementById("app");
+  const back = () => { screenAuth.innerHTML = ""; screenAuth.style.display = "none"; appEl.style.display = ""; setupMfaCard(root); };
+
+  btn.hidden = false;
+  btn.onclick = null;
+  if (factors.length === 0) {
+    text.textContent = "Désactivée. Un code à 6 chiffres, généré par une appli sur ton téléphone, sera demandé à chaque connexion : un mot de passe volé ne suffit alors plus.";
+    btn.textContent = "Activer";
+    btn.onclick = () => { appEl.style.display = "none"; renderMfaEnroll(screenAuth, { mandatory: false, onDone: back, onCancel: back }); };
+  } else if (mandatory) {
+    text.textContent = "Activée ✓ — obligatoire pour le compte administrateur.";
+    btn.hidden = true;
+  } else {
+    text.textContent = "Activée ✓";
+    btn.textContent = "Désactiver";
+    btn.onclick = async () => {
+      const ok = await window.confirmDialog("Désactiver la double authentification ?", { danger: true, confirmLabel: "Désactiver" });
+      if (!ok) return;
+      for (const f of factors) {
+        const { error } = await supabase.auth.mfa.unenroll({ factorId: f.id });
+        if (error) { msg.textContent = "Impossible de la désactiver : " + error.message; return; }
+      }
+      logEvent("mfa_removed");
+      setupMfaCard(root);
+    };
+  }
+}
+
+// Réservé à l'admin : alertes et derniers événements de sécurité.
+async function setupSecurityCard(root) {
+  const card = root.querySelector("#settings-security");
+  const list = root.querySelector("#settings-security-list");
+  const alertsEl = root.querySelector("#settings-security-alerts");
+  const [events, alerts] = await Promise.all([loadRecentEvents(), loadSecurityAlerts()]);
+  card.hidden = false;
+  alertsEl.innerHTML = alerts.map((a) => `<p class="error-msg" style="margin-bottom:10px;">⚠️ ${escapeText(a)}</p>`).join("");
+  list.innerHTML = events.length
+    ? events.map((e) => `<li style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--border, #2a2a2a);"><span>${escapeText(EVENT_LABELS[e.type] || e.type)}</span><span style="color:var(--light-text-dim);">${new Date(e.created_at).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}</span></li>`).join("")
+    : `<li style="color:var(--light-text-dim);">Aucun événement pour l'instant.</li>`;
+}
+
+function escapeText(str) {
+  const div = document.createElement("div");
+  div.textContent = str == null ? "" : String(str);
+  return div.innerHTML;
 }

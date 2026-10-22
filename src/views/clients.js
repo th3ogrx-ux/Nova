@@ -579,6 +579,12 @@ export async function renderClients(root) {
         <div class="panel-title">Accès du client</div>
         <div id="account-box"><p style="color:var(--light-text-dim);font-size:13.5px;">Chargement…</p></div>
       </div>
+      <div class="card admin-card">
+        <div class="panel-title">Données personnelles (RGPD)</div>
+        <p style="font-size:13px;color:var(--light-text-dim);margin-bottom:12px;max-width:520px;">Si ce client (ou une personne citée dans ses avis) demande une copie de ses données, télécharge-la ici (fichier JSON). Pour un droit à l'effacement, utilise « Supprimer ce client » ci-dessous.</p>
+        <div id="export-msg" class="error-msg" style="min-height:18px;"></div>
+        <button type="button" class="btn ghost btn-sm" id="client-export">Exporter les données du client</button>
+      </div>
       <div class="card admin-card" style="border-color:#d9534f4d;">
         <div class="panel-title" style="color:var(--danger);">Zone dangereuse</div>
         <p style="font-size:13px;color:var(--light-text-dim);margin-bottom:12px;max-width:520px;">Supprime ce client, son compte, ses chiffres, ses avis, ses tâches et ses messages. Cette action est irréversible.</p>
@@ -643,6 +649,20 @@ export async function renderClients(root) {
       });
     }).catch((err) => {
       accountBox.innerHTML = `<p class="error-msg">${escapeHtml(err.message)}</p>`;
+    });
+
+    box.querySelector("#client-export").addEventListener("click", async () => {
+      const exportMsg = box.querySelector("#export-msg");
+      setMsg(exportMsg, "");
+      const { data, error } = await supabase.rpc("espace_export_business", { p_business_id: biz.id });
+      if (error) { setMsg(exportMsg, "Export impossible (la mise à jour securite.sql est-elle installée ?)."); return; }
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "export-" + biz.nom.replace(/[^a-z0-9]+/gi, "-").toLowerCase() + "-" + new Date().toISOString().slice(0, 10) + ".json";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      setMsg(exportMsg, "Export téléchargé ✓", true);
     });
 
     box.querySelector("#client-delete").addEventListener("click", async () => {

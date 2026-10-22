@@ -1,3 +1,8 @@
+// Polices hébergées avec le site (aucune requête vers Google : pas de transfert d'adresse IP à un tiers).
+import "@fontsource/orbitron/latin-700.css";
+import "@fontsource/orbitron/latin-900.css";
+import "@fontsource/playfair-display/latin-600.css";
+import "@fontsource/playfair-display/latin-700.css";
 import "./style.css";
 import { confirmDialog } from "./confirm-dialog.js";
 import { getSession, onAuthChange, renderAuthScreen, signOut } from "./auth.js";
@@ -10,6 +15,8 @@ import { renderMessages } from "./views/messages.js";
 import { renderClients } from "./views/clients.js";
 import { needsPasswordChange, renderForcePassword } from "./force-password.js";
 import { startUnreadWatch, stopUnreadWatch, onUnread } from "./espace-unread.js";
+import { mfaState, renderMfaChallenge, renderMfaEnroll } from "./mfa.js";
+import { logEvent, loadSecurityAlerts } from "./security-log.js";
 import { renderCrm } from "./views/crm.js";
 import { renderDemoPage } from "./views/demo.js";
 import { renderSettings, setOnProfileUpdated, applyAvatarPreview } from "./views/settings.js";
@@ -125,7 +132,10 @@ function refreshInBackground(name) {
 }
 
 function switchView(name) {
-  if (!canOpen(name)) name = homeView();
+  if (!canOpen(name)) {
+    if (VIEWS[name]) logEvent("access_denied", "page " + name); // page existante mais interdite à ce rôle
+    name = homeView();
+  }
   const view = VIEWS[name];
   document.querySelectorAll(".nav-item").forEach((el) => {
     el.classList.toggle("active", el.dataset.view === name);
@@ -223,8 +233,28 @@ async function showApp(session) {
 
   // Compte sans profil (ex. client supprimé dont la session était encore ouverte) : aucun accès.
   if (getCurrentRole() === "none") {
+    logEvent("access_denied", "compte sans profil");
     showNoAccess();
     return;
+  }
+
+  // Double authentification : code demandé si elle est activée ; obligatoire (activation
+  // imposée) pour l'administrateur. La base refuse tout à l'admin tant qu'elle n'est pas validée.
+  let mfa;
+  try { mfa = await mfaState(); } catch (err) {
+    console.error("[mfa]", err);
+    shownUserId = null;
+    showFatalError("Impossible de vérifier la double authentification. Réessaie dans un instant.");
+    return;
+  }
+  const mustEnroll = getCurrentRole() === "admin" && !mfa.enrolled;
+  if (mfa.needsCode || mustEnroll) {
+    app.style.display = "none";
+    await new Promise((resolve) => {
+      if (mfa.needsCode) renderMfaChallenge(screenAuth, mfa.factors[0].id, resolve);
+      else renderMfaEnroll(screenAuth, { mandatory: true, onDone: resolve });
+    });
+    if (shownUserId !== session.user.id) return;
   }
 
   // Premier accès d'un client : mot de passe temporaire à remplacer avant tout.
@@ -242,6 +272,8 @@ async function showApp(session) {
 
   setOnProfileUpdated(() => refreshSidebarProfile(session));
   refreshSidebarProfile(session); // sans attendre : n'empêche pas la page de s'afficher
+
+  if (getCurrentRole() === "admin") showSecurityAlerts();
 
   const home = homeView();
   switchView(home);
@@ -268,6 +300,19 @@ window.addEventListener("zenoa:due-count", (e) => {
   badge.textContent = String(count);
   badge.setAttribute("aria-label", count + " client" + (count > 1 ? "s" : "") + " à mettre à jour bientôt");
 });
+
+// Alerte visible de l'admin quand l'activité est anormale (nombreux échecs de connexion, accès refusés).
+async function showSecurityAlerts() {
+  const alerts = await loadSecurityAlerts();
+  document.getElementById("security-banner")?.remove();
+  if (!alerts.length) return;
+  const banner = document.createElement("div");
+  banner.id = "security-banner";
+  banner.setAttribute("role", "alert");
+  banner.style.cssText = "background:var(--danger);color:#fff;padding:10px 16px;font-size:13px;line-height:1.5;";
+  banner.textContent = "⚠️ " + alerts.join(" ") + " Détails : Paramètres > Journal de sécurité.";
+  mainEl.parentNode.insertBefore(banner, mainEl);
+}
 
 function showNoAccess() {
   app.style.display = "none";

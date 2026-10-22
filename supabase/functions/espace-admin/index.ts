@@ -14,8 +14,12 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+// Domaine autorisé à appeler la fonction : secret ALLOWED_ORIGINS (ex. "https://mon-site.vercel.app"),
+// un seul domaine. Sans ce secret, tous les domaines sont acceptés ("*").
+const ALLOWED_ORIGIN = (Deno.env.get("ALLOWED_ORIGINS") || "").split(",")[0].trim();
 const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": ALLOWED_ORIGIN || "*",
+  "Vary": "Origin",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
@@ -44,7 +48,22 @@ export function generateTempPassword(): string {
 
 const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
-// Vérifie que l'appelant est connecté ET administrateur (rôle lu dans la base).
+// Niveau d'authentification inscrit dans le jeton (déjà vérifié par auth.getUser).
+function jwtAal(token: string): string {
+  try {
+    const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(payload)).aal || "";
+  } catch {
+    return "";
+  }
+}
+
+// Journal de sécurité (jamais de mot de passe ni d'e-mail). N'empêche jamais l'action en cas d'erreur.
+async function audit(db: any, type: string, actor: string, businessId: string | null = null) {
+  try { await db.from("audit_log").insert({ type, actor, business_id: businessId }); } catch (e) { console.error("[espace-admin] audit", e); }
+}
+
+// Vérifie que l'appelant est connecté ET administrateur avec la double authentification validée.
 async function requireAdmin(req: Request, db: any) {
   const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
   if (!token) return { error: json({ error: "Non authentifié." }, 401) };
@@ -52,6 +71,7 @@ async function requireAdmin(req: Request, db: any) {
   if (error || !data || !data.user) return { error: json({ error: "Non authentifié." }, 401) };
   const { data: profile } = await db.from("espace_profiles").select("role").eq("id", data.user.id).maybeSingle();
   if (!profile || profile.role !== "admin") return { error: json({ error: "Action réservée à l'administrateur." }, 403) };
+  if (jwtAal(token) !== "aal2") return { error: json({ error: "Double authentification requise." }, 403) };
   return { user: data.user };
 }
 
@@ -60,7 +80,7 @@ async function clientProfile(db: any, businessId: string) {
   return data && data[0] ? data[0] : null;
 }
 
-async function createClientAccount(db: any, body: any) {
+async function createClientAccount(db: any, body: any, actor: string) {
   const nom = text(body.nom, 150);
   const secteur = text(body.secteur, 80);
   const ville = text(body.ville, 80);
@@ -88,16 +108,18 @@ async function createClientAccount(db: any, body: any) {
     await db.from("espace_businesses").delete().eq("id", business.id);
     return json({ error: "Création du profil impossible." }, 500);
   }
+  await audit(db, "client_created", actor, business.id);
   return json({ business_id: business.id, email, temp_password: password });
 }
 
-async function resetPassword(db: any, body: any) {
+async function resetPassword(db: any, body: any, actor: string) {
   if (!UUID_RE.test(String(body.business_id || ""))) return json({ error: "Commerce invalide." }, 400);
   const profile = await clientProfile(db, body.business_id);
   if (!profile) return json({ error: "Ce commerce n'a pas de compte client." }, 404);
   const password = generateTempPassword();
   const { data, error } = await db.auth.admin.updateUserById(profile.id, { password, user_metadata: { must_change_password: true } });
   if (error || !data || !data.user) return json({ error: "Réinitialisation impossible." }, 500);
+  await audit(db, "client_password_reset", actor, body.business_id);
   return json({ email: data.user.email, temp_password: password });
 }
 
@@ -114,13 +136,14 @@ async function getAccount(db: any, body: any) {
   });
 }
 
-async function deleteClient(db: any, body: any) {
+async function deleteClient(db: any, body: any, actor: string) {
   if (!UUID_RE.test(String(body.business_id || ""))) return json({ error: "Commerce invalide." }, 400);
   // Seulement des comptes "client" : jamais un administrateur.
   const { data: profiles } = await db.from("espace_profiles").select("id").eq("business_id", body.business_id).eq("role", "client");
   for (const p of profiles || []) await db.auth.admin.deleteUser(p.id);
   const { error } = await db.from("espace_businesses").delete().eq("id", body.business_id); // supprime en cascade chiffres, avis, tâches, messages
   if (error) return json({ error: "Suppression impossible." }, 500);
+  await audit(db, "client_deleted", actor, body.business_id);
   return json({ ok: true });
 }
 
@@ -132,10 +155,10 @@ export async function handle(req: Request, db: any): Promise<Response> {
     if (auth.error) return auth.error;
     const body = await req.json().catch(() => ({}));
     switch (body.action) {
-      case "create_client": return await createClientAccount(db, body);
-      case "reset_password": return await resetPassword(db, body);
+      case "create_client": return await createClientAccount(db, body, auth.user.id);
+      case "reset_password": return await resetPassword(db, body, auth.user.id);
       case "get_account": return await getAccount(db, body);
-      case "delete_client": return await deleteClient(db, body);
+      case "delete_client": return await deleteClient(db, body, auth.user.id);
       default: return json({ error: "Action inconnue." }, 400);
     }
   } catch (err) {
