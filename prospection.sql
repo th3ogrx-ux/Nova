@@ -69,6 +69,13 @@ create table if not exists public.pro_offers (
   created_at  timestamptz not null default now()
 );
 
+-- Offres à long terme : liste d'étapes [{titre, mois, prix, mode: 'mois'|'total', detail}], ex. 3 mois à 180 € puis 3 mois de réseaux sociaux.
+alter table public.pro_offers add column if not exists phases jsonb not null default '[]'::jsonb;
+do $$ begin
+  alter table public.pro_offers add constraint pro_offers_phases_ok
+    check (jsonb_typeof(phases) = 'array' and jsonb_array_length(phases) <= 12 and char_length(phases::text) <= 6000);
+exception when duplicate_object then null; end $$;
+
 create table if not exists public.pro_reviews (
   id        uuid primary key default gen_random_uuid(),
   user_id   uuid not null default auth.uid() references auth.users(id) on delete cascade,

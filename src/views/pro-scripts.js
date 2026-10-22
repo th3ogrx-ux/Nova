@@ -1,5 +1,5 @@
 // Prospection > Scripts et offres : scripts en bulles de message, packs d'offre en cartes de tarifs comparables.
-import { CANAUX, sum, rate, saveOffer, deleteOffer, escapeHtml, fmtInt, fmtPct, fmtEuro, canalIcon } from "./pro-data.js";
+import { CANAUX, sum, rate, saveOffer, deleteOffer, escapeHtml, fmtInt, fmtPct, fmtEuro, canalIcon, cleanPhases, phaseCost, phasesSummary } from "./pro-data.js";
 import { emptyState, openModal, modalHeader, field, readForm, toast, friendlyError, copyText } from "./pro-ui.js";
 import { openScriptModal } from "./pro-strategies.js";
 
@@ -31,8 +31,9 @@ export function renderScripts(root, data, ctx) {
         <article class="card pro-price${o.populaire ? " pop" : ""} pro-seq" style="--i:${i + 4}">
           ${o.populaire ? `<span class="pro-ribbon">Le plus choisi</span>` : ""}
           <h3>${escapeHtml(o.nom)}</h3>
-          <div class="pro-price-amount"><b>${fmtEuro(o.prix)}</b><span>${o.periode === "mois" ? "/ mois" : "une fois"}</span></div>
+          ${(o.phases || []).length ? phasedHeader(o) : `<div class="pro-price-amount"><b>${fmtEuro(o.prix)}</b><span>${o.periode === "mois" ? "/ mois" : "une fois"}</span></div>`}
           ${o.description ? `<p class="pro-muted">${escapeHtml(o.description)}</p>` : ""}
+          ${(o.phases || []).length ? phaseTimeline(o.phases) : ""}
           <ul>${(o.atouts || "").split("\n").map((a) => a.trim()).filter(Boolean).map((a) => `<li><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>${escapeHtml(a)}</span></li>`).join("")}</ul>
           <button type="button" class="btn ghost btn-sm" data-edit-offer="${o.id}">Modifier</button>
         </article>`).join("")}</div>`
@@ -49,6 +50,36 @@ export function renderScripts(root, data, ctx) {
   root.querySelectorAll("[data-edit-offer]").forEach((b) => b.addEventListener("click", () => openOfferModal(data.offers.find((o) => o.id === b.dataset.editOffer), ctx)));
 }
 
+const monthsLabel = (start, n) => (n === 1 ? `Mois ${start}` : `Mois ${start} à ${start + n - 1}`);
+const costText = (p) => (p.mode === "mois" ? `${fmtEuro(p.prix)} / mois${p.mois > 1 ? ` · ${fmtEuro(p.prix * p.mois)} au total` : ""}` : `${fmtEuro(p.prix)} au total`);
+
+function phasedHeader(o) {
+  const sm = phasesSummary(o.phases);
+  return `<div class="pro-price-amount"><b>${fmtEuro(sm.total)}</b><span>sur ${sm.mois} mois</span></div>
+    <p class="pro-price-avg">Soit ${fmtEuro(sm.parMois)} par mois en moyenne</p>`;
+}
+function phaseTimeline(phases) {
+  let start = 1;
+  return `<ol class="pro-phases">${phases.map((p) => {
+    const li = `<li><span class="pro-phase-dot"></span><div><div class="pro-phase-when">${monthsLabel(start, p.mois)}</div><div class="pro-phase-title">${escapeHtml(p.titre)}</div>
+      <div class="pro-phase-cost">${costText(p)}</div>${p.detail ? `<div class="pro-muted pro-phase-detail">${escapeHtml(p.detail)}</div>` : ""}</div></li>`;
+    start += p.mois;
+    return li;
+  }).join("")}</ol>`;
+}
+
+function phaseRow(p = {}) {
+  return `<div class="pro-phase-row" data-phase>
+    <div class="pro-phase-row-top"><input type="text" data-f="titre" maxlength="80" placeholder="Ex : Fiche Google et visibilité locale" value="${escapeHtml(p.titre || "")}" aria-label="Nom de l'étape"><button type="button" class="icon-btn" data-rm aria-label="Retirer cette étape">✕</button></div>
+    <div class="pro-phase-row-grid">
+      <label>Durée<span class="pro-phase-unit"><input type="number" data-f="mois" min="1" max="60" step="1" value="${p.mois || 3}"> mois</span></label>
+      <label>Prix<span class="pro-phase-unit"><input type="number" data-f="prix" min="0" step="1" value="${p.prix != null ? p.prix : ""}"> €</span></label>
+      <label>Ce prix est<select data-f="mode"><option value="total"${p.mode === "total" ? " selected" : ""}>au total</option><option value="mois"${p.mode !== "total" ? " selected" : ""}>par mois</option></select></label>
+    </div>
+    <input type="text" data-f="detail" maxlength="200" placeholder="Ce que tu fais pendant cette étape (facultatif)" value="${escapeHtml(p.detail || "")}" aria-label="Détail de l'étape">
+  </div>`;
+}
+
 function openOfferModal(offer, ctx) {
   const o = offer || { periode: "unique" };
   const { overlay, close } = openModal(`${modalHeader(offer ? "Modifier le pack" : "Nouveau pack")}
@@ -60,16 +91,47 @@ function openOfferModal(offer, ctx) {
       </div>
       ${field("Description", `<input type="text" name="description" maxlength="200" value="${escapeHtml(o.description || "")}" placeholder="Une phrase pour résumer le pack">`)}
       ${field("Ce qui est inclus (un point par ligne)", `<textarea name="atouts" rows="5" maxlength="1000" placeholder="Site vitrine 5 pages&#10;Fiche Google optimisée">${escapeHtml(o.atouts || "")}</textarea>`)}
+      <div class="pro-phases-edit">
+        <div class="pro-phases-edit-head"><span class="field-label" style="margin:0;">Étapes dans le temps (offre long terme)</span></div>
+        <p class="pro-muted" style="margin:0 0 10px;">Pour une offre qui s'étale sur plusieurs mois : ex. 3 mois à 180 € pour la fiche Google, puis 3 mois de réseaux sociaux. Laisse vide pour une offre simple.</p>
+        <div data-phases>${(o.phases || []).map(phaseRow).join("")}</div>
+        <div class="pro-phases-total" data-phases-total aria-live="polite"></div>
+        <button type="button" class="btn ghost btn-sm" data-add-phase>+ Ajouter une étape</button>
+      </div>
       <label class="crm-check"><input type="checkbox" name="populaire"${o.populaire ? " checked" : ""}> Mettre en avant (« le plus choisi »)</label>
       <div class="error-msg" data-error></div>
       <div class="modal-actions">${offer ? `<button type="button" class="btn danger" data-delete style="margin-right:auto;">Supprimer</button>` : ""}<button type="button" class="btn ghost" data-close>Annuler</button><button type="submit" class="btn primary">Enregistrer</button></div>
     </form>`, { maxWidth: 500 });
   const form = overlay.querySelector("[data-form]"), errorEl = overlay.querySelector("[data-error]");
   form.nom.focus();
+  const box = form.querySelector("[data-phases]"), totalEl = form.querySelector("[data-phases-total]");
+  const readPhases = () => cleanPhases([...box.querySelectorAll("[data-phase]")].map((row) => Object.fromEntries([...row.querySelectorAll("[data-f]")].map((i) => [i.dataset.f, i.value]))));
+  const syncPhases = () => {
+    const phases = readPhases();
+    form.prix.disabled = phases.length > 0;
+    form.periode.disabled = phases.length > 0;
+    if (!phases.length) { totalEl.textContent = ""; return; }
+    const sm = phasesSummary(phases);
+    form.prix.value = Math.round(sm.total * 100) / 100;
+    totalEl.textContent = `Total : ${fmtEuro(sm.total)} sur ${sm.mois} mois (${fmtEuro(sm.parMois)} par mois en moyenne)`;
+  };
+  box.addEventListener("input", syncPhases);
+  box.addEventListener("click", (e) => { const rm = e.target.closest("[data-rm]"); if (rm) { rm.closest("[data-phase]").remove(); syncPhases(); } });
+  form.querySelector("[data-add-phase]").addEventListener("click", () => {
+    if (box.querySelectorAll("[data-phase]").length >= 12) return;
+    box.insertAdjacentHTML("beforeend", phaseRow());
+    box.lastElementChild.querySelector('[data-f="titre"]').focus();
+    syncPhases();
+  });
+  syncPhases();
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    form.prix.disabled = false; form.periode.disabled = false; // champs figés seulement pour l'affichage
     const v = readForm(form);
-    if (!v.nom || v.prix == null || !(v.prix >= 0)) { errorEl.textContent = "Indique un nom et un prix."; return; }
+    const phases = readPhases();
+    if (phases.length) { v.prix = Math.round(phasesSummary(phases).total * 100) / 100; v.periode = "unique"; }
+    v.phases = phases;
+    if (!v.nom || v.prix == null || !(v.prix >= 0)) { syncPhases(); errorEl.textContent = "Indique un nom et un prix."; return; }
     try { await saveOffer(v, offer && offer.id); close(); toast("Pack enregistré ✓"); ctx.reload(); } catch (err) { errorEl.textContent = friendlyError(err); }
   });
   const del = overlay.querySelector("[data-delete]");

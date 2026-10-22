@@ -177,3 +177,20 @@ export async function saveReview(semaine, values) {
 export async function saveObjectif(n) {
   return run(supabase.from("pro_settings").upsert({ user_id: await uid(), objectif_hebdo: n }, { onConflict: "user_id" }));
 }
+
+// ---------- Offres à étapes (long terme) ----------
+export function cleanPhases(list) {
+  return (Array.isArray(list) ? list : []).map((p) => ({
+    titre: String((p && p.titre) || "").trim().slice(0, 80),
+    mois: Math.min(60, Math.max(1, Math.floor(Number(p && p.mois) || 1))),
+    prix: Math.max(0, Number(p && p.prix) || 0),
+    mode: p && p.mode === "total" ? "total" : "mois",
+    detail: String((p && p.detail) || "").trim().slice(0, 200)
+  })).filter((p) => p.titre);
+}
+export const phaseCost = (p) => (p.mode === "mois" ? p.prix * p.mois : p.prix);
+// { total, mois, parMois } pour l'ensemble des étapes
+export function phasesSummary(phases) {
+  const total = phases.reduce((a, p) => a + phaseCost(p), 0), mois = phases.reduce((a, p) => a + p.mois, 0);
+  return { total, mois, parMois: mois ? total / mois : 0 };
+}

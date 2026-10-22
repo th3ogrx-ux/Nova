@@ -316,3 +316,27 @@ i.pro-cell.l1 { background: rgba(225, 29, 46, .28); } i.pro-cell.l2 { background
 #app:not([data-theme="dark"]) .pro-delta.down, #app:not([data-theme="dark"]) .pro-recap-tile em.down, #app:not([data-theme="dark"]) .pro-trend.down { color: #b3261e; }
 #app:not([data-theme="dark"]) .pro-kpi-sub b, #app:not([data-theme="dark"]) .pro-win { color: #7d5f24; }
 #app:not([data-theme="dark"]) .pro-vstats dd.big, #app:not([data-theme="dark"]) .pro-link:hover { color: #b3121f; }
+
+/* ---------- Offres à étapes (long terme) ---------- */
+.pro-price-avg { margin: -6px 0 0; font-size: 12.5px; color: var(--light-text-dim); }
+.pro-phases { list-style: none; padding: 0 0 0 4px; display: flex; flex-direction: column; gap: 0; position: relative; }
+.pro-phases li { display: flex; gap: 14px; padding-bottom: 16px; position: relative; }
+.pro-phases li:last-child { padding-bottom: 4px; }
+.pro-phases li:not(:last-child)::before { content: ""; position: absolute; left: 5px; top: 16px; bottom: 0; width: 2px; background: linear-gradient(var(--warm-1), rgba(225, 29, 46, .15)); }
+.pro-phase-dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; background: var(--warm-1); box-shadow: 0 0 0 4px rgba(225, 29, 46, .2); }
+.pro-phase-when { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--light-text-dim); }
+.pro-phase-title { font-weight: 700; font-size: 14.5px; margin-top: 2px; }
+.pro-phase-cost { font-family: var(--font-heading); font-size: 15px; color: var(--warm-2); margin-top: 2px; }
+.pro-phase-detail { margin-top: 3px; font-size: 12.5px; }
+.pro-phases-edit { border: 1px solid var(--light-border); border-radius: var(--radius-md); padding: 14px; margin: 4px 0 14px; }
+.pro-phases-edit-head { margin-bottom: 6px; }
+.pro-phase-row { border: 1px solid var(--light-border); border-radius: var(--radius-md); padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+.pro-phase-row-top { display: flex; gap: 8px; align-items: center; }
+.pro-phase-row-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.pro-phase-row label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--light-text-dim); min-width: 0; }
+.pro-phase-unit { display: flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: normal; font-size: 13px; color: var(--light-text); }
+.pro-phases-total { min-height: 20px; margin: 0 0 8px; font-weight: 700; font-size: 13.5px; color: var(--warm-2); }
+#app:not([data-theme="dark"]) .pro-phase-cost, #app:not([data-theme="dark"]) .pro-phases-total { color: #b3121f; }
+@media (max-width: 640px) { .pro-phase-row-grid { grid-template-columns: minmax(0, 1fr); } }
+.modal-box .pro-phase-unit input { flex: 1 1 0; width: auto; min-width: 0; }
+.pro-phase-unit { white-space: nowrap; }
