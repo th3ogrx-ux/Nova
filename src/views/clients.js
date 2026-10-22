@@ -5,6 +5,7 @@ import { supabase } from "../supabase.js";
 import { openModal } from "../modal.js";
 import { callAdmin, notifyEspaceChanged } from "./espace-admin-api.js";
 import { escapeHtml, formatDate, formatRating, monthLabel, currentMonthKey, METRICS, enabledMetrics } from "./espace-data.js";
+import { dueInfo, addOneMonth, daysUntil, dateKeyOf } from "./due.js";
 
 const TABS = [
   { id: "chiffres", label: "Chiffres du mois" },
@@ -42,6 +43,25 @@ function metricChecks(selected) {
 }
 const readMetrics = (form) => [...form.querySelectorAll('input[name="metrique"]:checked')].map((i) => i.value);
 const sameMetrics = (a, b) => a.length === b.length && a.every((k) => b.includes(k));
+
+// Texte du rappel "prochaine mise à jour des chiffres".
+function dueLabel(info, key) {
+  if (info.state === "none") return "Pas de date";
+  if (info.state === "late") return `En retard de ${-info.days} j`;
+  if (info.state === "today") return "Aujourd'hui";
+  if (info.state === "soon") return `Dans ${info.days} j`;
+  return formatDate(key);
+}
+
+// Pastille du menu "Clients" : nombre de clients à mettre à jour bientôt (en retard, aujourd'hui, dans 3 jours).
+function publishDueCount(dates) {
+  const count = dates.filter((k) => dueInfo(k).urgent).length;
+  window.dispatchEvent(new CustomEvent("zenoa:due-count", { detail: { count } }));
+}
+async function refreshDueBadge() {
+  const { data, error } = await supabase.from("espace_businesses").select("prochaine_maj");
+  publishDueCount(error ? [] : (data || []).map((b) => b.prochaine_maj).filter(Boolean));
+}
 
 function setMsg(el, text, ok = false) {
   el.textContent = text;
@@ -114,17 +134,24 @@ export async function renderClients(root) {
         avg: rs.length ? rs.reduce((sum, r) => sum + r.note, 0) / rs.length : null,
         toAnswer: rs.filter((r) => !r.repondu).length,
         unread: (unread.data || []).filter((m) => m.business_id === b.id).length,
-        updated: lastStat ? lastStat.updated_at.slice(0, 10) : null
+        updated: lastStat ? lastStat.updated_at.slice(0, 10) : null,
+        due: dueInfo(b.prochaine_maj || null)
       };
     });
+    // Les plus urgents d'abord (dates les plus proches), puis ceux sans date, par nom.
+    rows.sort((x, y) => {
+      const dx = x.b.prochaine_maj || "9999-99-99", dy = y.b.prochaine_maj || "9999-99-99";
+      return dx.localeCompare(dy) || x.b.nom.localeCompare(y.b.nom);
+    });
+    publishDueCount(rows.map((r) => r.b.prochaine_maj).filter(Boolean));
 
     app.innerHTML = `
       <div class="clients-head">
         <div><h1 class="page-title">Clients</h1><p class="clients-sub">${rows.length} commerce${rows.length > 1 ? "s" : ""}</p></div>
         <button type="button" class="btn primary" id="client-new" style="margin:0;">+ Nouveau client</button>
       </div>
-      ${rows.length ? `<div class="clients-list">${rows.map(({ b, count, avg, toAnswer, unread: nu, updated }) => `
-        <button type="button" class="card client-row" data-id="${b.id}">
+      ${rows.length ? `<div class="clients-list">${rows.map(({ b, count, avg, toAnswer, unread: nu, updated, due }) => `
+        <button type="button" class="card client-row${due.urgent ? " due-urgent" : ""}${due.state === "late" ? " due-late" : ""}" data-id="${b.id}">
           <div class="client-main">
             <strong>${escapeHtml(b.nom)}${b.is_example ? ` <span class="status-pill neutral" style="margin-left:6px;">Exemple</span>` : ""}</strong>
             <span>${escapeHtml([b.secteur, b.ville].filter(Boolean).join(" · ") || "—")}</span>
@@ -132,6 +159,7 @@ export async function renderClients(root) {
           <div class="client-metric"><em>Note moyenne</em>${avg === null ? "—" : `<b>${formatRating(avg)} <span style="color:#f4b740;">★</span></b><small>${count} avis</small>`}</div>
           <div class="client-metric"><em>Avis à répondre</em><b class="${toAnswer ? "warn" : ""}">${toAnswer}</b></div>
           <div class="client-metric"><em>Messages non lus</em><b class="${nu ? "alert" : ""}">${nu}</b></div>
+          <div class="client-metric"><em>Prochaine saisie des chiffres</em><span class="due-pill ${due.state}">${escapeHtml(dueLabel(due, b.prochaine_maj))}</span></div>
           <div class="client-metric"><em>Dernière mise à jour</em><b style="font-size:13px;">${updated ? formatDate(updated) : "Jamais"}</b></div>
         </button>`).join("")}</div>`
         : `<div class="card" style="padding:20px;"><p style="color:var(--light-text-dim);font-size:14px;">Aucun client pour l'instant. Clique sur « + Nouveau client » pour créer le premier.</p></div>`}
@@ -157,6 +185,7 @@ export async function renderClients(root) {
           ${field("Ville", `<input type="text" name="ville" maxlength="80" autocomplete="off">`)}
         </div>
         ${field("Email du contact *", `<input type="email" name="email" maxlength="200" required autocomplete="off" placeholder="contact@commerce.fr">`)}
+        ${field("Prochaine saisie de ses chiffres (rappel)", `<input type="date" name="prochaine_maj" min="${dateKeyOf(new Date())}">`)}
         <div class="field"><label class="field-label" id="metrics-label">Chiffres à suivre pour ce client</label>${metricChecks(METRICS.map((m) => m.key))}
           <p style="font-size:12px;color:var(--text-dim);margin:4px 0 0;">Décoche ceux qui n'ont pas de sens pour ce commerce (ex. « Itinéraires » pour un électricien).</p></div>
         <p style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:6px;">
@@ -179,9 +208,13 @@ export async function renderClients(root) {
         const res = await callAdmin("create_client", { nom: f.nom.value, secteur: f.secteur.value, ville: f.ville.value, email: f.email.value });
         // Chiffres choisis pour ce client (tous cochés = réglage par défaut, rien à enregistrer).
         let note = null;
-        if (!sameMetrics(metrics, METRICS.map((m) => m.key))) {
-          const { error: metricsError } = await supabase.from("espace_businesses").update({ metriques: metrics }).eq("id", res.business_id);
-          if (metricsError) note = "Le client est créé, mais le choix des chiffres n'a pas pu être enregistré : colle d'abord espace-metriques.sql dans Supabase, puis règle-le dans sa fiche (onglet « Infos & accès »).";
+        const patch = {};
+        if (!sameMetrics(metrics, METRICS.map((m) => m.key))) patch.metriques = metrics;
+        if (f.prochaine_maj.value) patch.prochaine_maj = f.prochaine_maj.value;
+        if (Object.keys(patch).length) {
+          const { error: patchError } = await supabase.from("espace_businesses").update(patch).eq("id", res.business_id);
+          if (patchError) note = "Le client est créé, mais le choix des chiffres ou la date de rappel n'ont pas pu être enregistrés : colle espace-metriques.sql et espace-rappels.sql dans Supabase, puis règle-les dans sa fiche.";
+          else refreshDueBadge();
         }
         close();
         showCredentials({
@@ -212,6 +245,14 @@ export async function renderClients(root) {
         <div><h1 class="page-title" id="sheet-title">${escapeHtml(business.nom)}</h1><p class="clients-sub">${escapeHtml([business.secteur, business.ville].filter(Boolean).join(" · "))}</p></div>
         <button type="button" class="btn ghost btn-sm" id="preview" style="margin:0;">👁 Voir comme le client</button>
       </div>
+      <div class="due-box" id="due-box">
+        <label for="due-date">Prochaine saisie des chiffres</label>
+        <input type="date" id="due-date" value="${escapeHtml(business.prochaine_maj || "")}">
+        <span id="due-pill" class="due-pill none"></span>
+        <button type="button" class="btn ghost btn-sm" id="due-next" title="Décale la date d'un mois, une fois les chiffres saisis">Fait → +1 mois</button>
+        <button type="button" class="btn ghost btn-sm" id="due-clear">Effacer</button>
+        <span id="due-msg" role="status"></span>
+      </div>
       <div class="crm-tabs" role="tablist">${TABS.map((t) => `<button type="button" role="tab" class="btn btn-sm ${t.id === tab ? "primary" : "ghost"}" data-tab="${t.id}">${t.label}</button>`).join("")}</div>
       <div id="tab-body"></div>`;
     app.querySelector("#back").addEventListener("click", showList);
@@ -220,6 +261,47 @@ export async function renderClients(root) {
       window.dispatchEvent(new CustomEvent("zenoa:preview", { detail: { id: business.id } }));
       document.querySelector('.nav-item[data-view="espace"]').click();
     });
+    // Rappel : se remplit directement ici, s'enregistre tout seul.
+    const dueInput = app.querySelector("#due-date");
+    const duePill = app.querySelector("#due-pill");
+    const dueMsg = app.querySelector("#due-msg");
+    const paintDue = () => {
+      const info = dueInfo(business.prochaine_maj || null);
+      duePill.className = "due-pill " + info.state;
+      duePill.textContent = dueLabel(info, business.prochaine_maj);
+      app.querySelector("#due-box").classList.toggle("urgent", info.urgent);
+      app.querySelector("#due-box").classList.toggle("late", info.state === "late");
+    };
+    async function saveDue(value) {
+      dueMsg.textContent = "";
+      dueMsg.className = "";
+      const { error } = await supabase.from("espace_businesses").update({ prochaine_maj: value || null }).eq("id", business.id);
+      if (error) {
+        dueMsg.className = "err";
+        dueMsg.textContent = /prochaine_maj/i.test(error.message || "")
+          ? "Le rappel n'est pas encore installé : colle espace-rappels.sql dans Supabase (SQL Editor), puis réessaie."
+          : "Date non enregistrée : " + error.message;
+        dueInput.value = business.prochaine_maj || "";
+        return;
+      }
+      business.prochaine_maj = value || null;
+      paintDue();
+      refreshDueBadge();
+      dueMsg.className = "ok";
+      dueMsg.textContent = "Enregistré ✓";
+      setTimeout(() => { if (dueMsg.className === "ok") dueMsg.textContent = ""; }, 2500);
+    }
+    paintDue();
+    dueInput.addEventListener("change", () => saveDue(dueInput.value));
+    app.querySelector("#due-next").addEventListener("click", () => {
+      // +1 mois à partir de la date prévue ; si elle est déjà dépassée de plus d'un mois, on avance jusqu'à une date à venir.
+      let next = addOneMonth(business.prochaine_maj || dateKeyOf(new Date()));
+      while (daysUntil(next) < 0) next = addOneMonth(next);
+      dueInput.value = next;
+      saveDue(next);
+    });
+    app.querySelector("#due-clear").addEventListener("click", () => { dueInput.value = ""; saveDue(""); });
+
     app.querySelectorAll("[data-tab]").forEach((btn) => btn.addEventListener("click", () => {
       tab = btn.dataset.tab;
       app.querySelectorAll("[data-tab]").forEach((b) => { b.classList.toggle("primary", b === btn); b.classList.toggle("ghost", b !== btn); });
@@ -576,5 +658,6 @@ export async function renderClients(root) {
     });
   }
 
+  refreshDueBadge();
   await showList();
 }

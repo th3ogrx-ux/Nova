@@ -117,7 +117,8 @@ Mise en place (Supabase) :
 3. Fonction Edge `espace-admin` (`supabase/functions/espace-admin/index.ts`) : création des comptes clients. À coller dans
    Supabase > Edge Functions > Via Editor, nom exact `espace-admin`.
 4. `espace-metriques.sql` : choix des chiffres à suivre par client (ex. pas d'« Itinéraires » pour un électricien).
-5. Facultatif : la ligne `alter publication supabase_realtime ...` en bas de `espace.sql` pour des messages instantanés.
+5. `espace-rappels.sql` : date de la prochaine saisie des chiffres par client (rappel en couleur vive à 3 jours ou moins).
+6. Facultatif : la ligne `alter publication supabase_realtime ...` en bas de `espace.sql` pour des messages instantanés.
 
 Rôles : `admin` (toi : Clients, Aperçu client, Messages + Radar/CRM/Ressources), `client` (Mon espace, Messages),
 `radar` (utilisateur Radar sans profil : l'appli comme avant). Les droits sont dans la base, pas dans le navigateur.

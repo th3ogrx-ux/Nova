@@ -253,6 +253,16 @@ onUnread((count) => {
   badge.setAttribute("aria-label", count + " message" + (count > 1 ? "s" : "") + " non lu" + (count > 1 ? "s" : ""));
 });
 
+// Pastille du menu "Clients" : clients dont la saisie des chiffres est à faire sous 3 jours (ou en retard).
+window.addEventListener("zenoa:due-count", (e) => {
+  const badge = document.getElementById("clients-badge");
+  if (!badge) return;
+  const count = e.detail.count;
+  badge.hidden = !count;
+  badge.textContent = String(count);
+  badge.setAttribute("aria-label", count + " client" + (count > 1 ? "s" : "") + " à mettre à jour bientôt");
+});
+
 function showAuth() {
   stopUnreadWatch();
   // Déconnexion : on oublie l'utilisateur et ses données gardées en mémoire.
