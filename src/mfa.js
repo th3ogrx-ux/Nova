@@ -75,9 +75,13 @@ export async function renderMfaEnroll(container, { mandatory = true, onDone, onC
   }
   const factorId = data.id;
   screen(container, mandatory ? "Active la double authentification" : "Double authentification",
-    "1. Installe une application d'authentification (Google Authenticator, Authy, 1Password…).<br>2. Scanne ce QR code.<br>3. Saisis le code à 6 chiffres qu'elle affiche.",
+    "Sur téléphone : appuie sur « Ouvrir dans mon application » (Mots de passe d'Apple, Google Authenticator…), valide l'ajout, puis recopie le code à 6 chiffres.<br>Sur ordinateur : scanne le QR code avec ton téléphone.",
     `<div style="text-align:center;margin-bottom:14px;"><img id="mfa-qr" alt="QR code à scanner avec l'application d'authentification" width="180" height="180" style="background:#fff;padding:8px;border-radius:10px;"></div>
-     <p style="font-size:12px;color:var(--text-dim);text-align:center;margin-bottom:14px;word-break:break-all;">Pas de caméra ? Saisis cette clé : <strong>${esc(data.totp.secret)}</strong></p>
+     <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px;">
+       <a class="btn primary btn-sm" id="mfa-open" href="#" style="text-decoration:none;">Ouvrir dans mon application</a>
+       <button type="button" class="btn ghost btn-sm" id="mfa-copy">Copier la clé</button>
+     </div>
+     <p style="font-size:12px;color:var(--text-dim);text-align:center;margin-bottom:14px;word-break:break-all;">Clé : <strong>${esc(data.totp.secret)}</strong></p>
      <form id="mfa-form">${codeField}<button type="submit" class="btn primary" id="mfa-submit" style="width:100%;margin-top:4px;">Activer</button></form>
      ${mandatory ? "" : `<p class="auth-switch"><a href="#" id="mfa-cancel">Annuler</a></p>`}`);
   // Le QR code est un SVG brut (avec des guillemets) : on l'encode, au lieu de le coller dans l'attribut HTML.
@@ -86,6 +90,14 @@ export async function renderMfaEnroll(container, { mandatory = true, onDone, onC
   container.querySelector("#mfa-qr").src = svg.trimStart().startsWith("<svg")
     ? "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg)
     : (/^data:image\/(png|svg\+xml)/.test(qr) ? qr : "");
+  // Lien direct vers l'appli d'authentification du téléphone (uniquement un lien otpauth://).
+  const uri = String(data.totp.uri || "");
+  const openLink = container.querySelector("#mfa-open");
+  if (/^otpauth:\/\/totp\//.test(uri)) openLink.href = uri; else openLink.remove();
+  const copyBtn = container.querySelector("#mfa-copy");
+  copyBtn.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(data.totp.secret); copyBtn.textContent = "Clé copiée ✓"; } catch { copyBtn.textContent = "Copie impossible : recopie la clé à la main"; }
+  });
   const errorEl = container.querySelector("#mfa-error");
   const input = container.querySelector("#mfa-code");
   const cancel = container.querySelector("#mfa-cancel");
