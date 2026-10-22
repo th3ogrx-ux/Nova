@@ -166,10 +166,11 @@
   }
   #app.sidebar-collapsed .sidebar { width: 100%; }
   .sidebar-logo, .sidebar-brand-text, .sidebar-toggle, .sidebar-profile { display: none; }
-  .nav-list { display: flex; flex: 1; align-items: stretch; gap: 2px; padding: 6px 2px; overflow-x: auto; overflow-y: hidden; }
-  .nav-item { flex: 1 0 64px; flex-direction: column; justify-content: center; gap: 3px; margin: 0; padding: 4px 2px; min-height: 48px; text-align: center; }
+  /* Toutes les entrées tiennent dans la largeur : pas de défilement latéral de la barre. */
+  .nav-list { display: flex; flex: 1; min-width: 0; align-items: stretch; gap: 2px; padding: 6px 2px; overflow: hidden; }
+  .nav-item { flex: 1 1 0; min-width: 0; flex-direction: column; justify-content: center; gap: 3px; margin: 0; padding: 4px 2px; min-height: 48px; text-align: center; }
   .nav-item .nav-icon { width: 21px; height: 21px; }
-  .nav-label, #app.sidebar-collapsed .nav-label { display: block; font-size: 10px; line-height: 1.15; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .nav-label, #app.sidebar-collapsed .nav-label { display: block; font-size: 9.5px; line-height: 1.15; max-width: 100%; overflow: hidden; overflow-wrap: anywhere; white-space: normal; text-align: center; }
   .nav-item.active { box-shadow: 0 0 0 1px rgba(255, 110, 100, .4) inset; }
 
   .main, #app.sidebar-collapsed .main {
@@ -181,3 +182,24 @@
 
 /* Entrée de menu masquée selon le rôle (l'attribut hidden ne suffit pas face à display:flex). */
 .nav-item[hidden] { display: none; }
+
+/* ---------- Téléphone : plus de glissement dans tous les sens ---------- */
+html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+@media (max-width: 640px) {
+  html, body { touch-action: manipulation; }
+  .main { overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y; }
+  .crm-table-wrap, .mobile-scroll-x { touch-action: pan-x pan-y; }
+  /* iOS zoome la page quand on touche un champ dont le texte fait moins de 16 px : c'est ce qui la décale. */
+  input, select, textarea { font-size: 16px; }
+  img, svg, video, canvas, iframe { max-width: 100%; }
+
+  /* Tableau « Mois déjà saisis » : une carte par mois au lieu d'un tableau trop large. */
+  .crm-stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .crm-stack, .crm-stack tbody { display: block; }
+  .crm-stack tr { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; padding: 12px 4px; border-bottom: 1px solid var(--light-border); }
+  .crm-stack tbody tr:last-child { border-bottom: 0; }
+  .crm-stack td { display: block; padding: 0; border: 0; white-space: normal; }
+  .crm-stack td:first-child, .crm-stack td:last-child { grid-column: 1 / -1; }
+  .crm-stack td[data-label]::before { content: attr(data-label); display: block; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--light-text-dim); font-weight: 600; margin-bottom: 2px; }
+  .crm-stack td:last-child { text-align: left !important; }
+}

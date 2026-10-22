@@ -120,7 +120,7 @@ Mise en place (Supabase) :
 5. `espace-rappels.sql` : date de la prochaine saisie des chiffres par client (rappel en couleur vive à 3 jours ou moins).
 6. Facultatif : la ligne `alter publication supabase_realtime ...` en bas de `espace.sql` pour des messages instantanés.
 
-Rôles : `admin` (toi : Clients, Aperçu client, Messages + Radar/CRM/Ressources), `client` (Mon espace, Messages),
+Rôles : `admin` (toi : Clients, Aperçu client, Messages + Radar/Ressources), `client` (Mon espace, Messages),
 `radar` (utilisateur Radar sans profil : l'appli comme avant). Les droits sont dans la base, pas dans le navigateur.
 
 Logo : remplace `public/sidebar-logo.png` (carré, fond noir) et `public/zenoa-icon.png` (fond transparent).

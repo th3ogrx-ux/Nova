@@ -17,7 +17,6 @@ import { needsPasswordChange, renderForcePassword } from "./force-password.js";
 import { startUnreadWatch, stopUnreadWatch, onUnread } from "./espace-unread.js";
 import { mfaState, renderMfaChallenge } from "./mfa.js";
 import { logEvent, loadSecurityAlerts } from "./security-log.js";
-import { renderCrm } from "./views/crm.js";
 import { renderDemoPage } from "./views/demo.js";
 import { renderSettings, setOnProfileUpdated, applyAvatarPreview } from "./views/settings.js";
 import { applyTheme } from "./theme.js";
@@ -42,13 +41,12 @@ if ("serviceWorker" in navigator) {
 }
 
 // "roles" : qui peut ouvrir la page. Un client n'a accès qu'à son espace et à
-// ses paramètres ; le Radar, le CRM et les Ressources lui sont fermés (la base
+// ses paramètres ; le Radar et les Ressources lui sont fermés (la base
 // de données le lui interdit aussi : ceci évite seulement de lui montrer des
 // pages vides ou de lancer des recherches à sa place).
 const VIEWS = {
   dashboard: { render: renderDashboard, title: "Tableau de bord", roles: ["admin", "radar"] },
   recherche: { render: renderRecherche, title: "Zenoa Radar", roles: ["admin", "radar"] },
-  crm: { render: renderCrm, title: "CRM", roles: ["admin", "radar"] },
   ressources: { render: renderRessources, title: "Ressources", roles: ["admin", "radar"] },
   clients: { render: renderClients, title: "Clients", roles: ["admin"] },
   espace: { render: renderEspace, title: "Mon espace", roles: ["client", "admin"] },

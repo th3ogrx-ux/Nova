@@ -17,7 +17,7 @@
 
 | Traitement | Finalité | Personnes | Données | Base légale | Durée | Notes |
 |---|---|---|---|---|---|---|
-| Prospection B2B (Radar / CRM) | Trouver et suivre des entreprises à démarcher | Dirigeants/entreprises prospectés | Nom du commerce, adresse, téléphone et e-mail professionnels, site, notes | Intérêt légitime (prospection B2B, art. L34-5 CPCE : information + droit d'opposition) | [3 ans après le dernier contact] | Données issues de sources publiques (OpenStreetMap, sites web). Prévoir une mention d'information dans les premiers contacts. |
+| Prospection B2B (Radar) | Trouver et suivre des entreprises à démarcher | Dirigeants/entreprises prospectés | Nom du commerce, adresse, téléphone et e-mail professionnels, site, notes | Intérêt légitime (prospection B2B, art. L34-5 CPCE : information + droit d'opposition) | [3 ans après le dernier contact] | Données issues de sources publiques (OpenStreetMap, sites web). Prévoir une mention d'information dans les premiers contacts. |
 | Journal de sécurité | Détecter les abus | Utilisateurs | Type d'événement, date, identifiant de compte | Intérêt légitime | 12 mois (échecs : 30 jours) | Pas d'IP ni d'e-mail (empreinte SHA-256 pour les échecs) |
 | Facturation / ventes | Gestion commerciale | Clients | Montants, noms | Obligation légale | 10 ans (obligation comptable) | |
 
