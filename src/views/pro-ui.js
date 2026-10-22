@@ -53,7 +53,12 @@ export function readForm(form) {
   });
   return out;
 }
+// Message d'erreur utile pour l'admin (cette page ne sert qu'à lui) ; le détail technique reste dans la console.
 export function friendlyError(err) {
   console.error("[Prospection]", err);
-  return "Enregistrement impossible. Réessaie dans un instant.";
+  const m = String((err && err.message) || "");
+  if (/pro_offers_phases_ok|violates check constraint|phases|titres_mois/i.test(m)) return "Ce pack est trop long pour la version actuelle de la base de données. Recolle prospection.sql dans Supabase (SQL Editor > Run), puis réessaie. Ton texte est gardé.";
+  if (/JWT|expired|not authenticated|401/i.test(m)) return "Ta session a expiré : reconnecte-toi, puis réessaie. Ton texte est gardé.";
+  if (/Failed to fetch|NetworkError|network/i.test(m)) return "Pas de connexion pour le moment. Réessaie dans un instant. Ton texte est gardé.";
+  return "Enregistrement impossible" + (m ? " (" + m.slice(0, 110) + ")" : "") + ". Ton texte est gardé : réessaie dans un instant.";
 }
