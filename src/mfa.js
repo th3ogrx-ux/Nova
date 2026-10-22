@@ -76,10 +76,16 @@ export async function renderMfaEnroll(container, { mandatory = true, onDone, onC
   const factorId = data.id;
   screen(container, mandatory ? "Active la double authentification" : "Double authentification",
     "1. Installe une application d'authentification (Google Authenticator, Authy, 1Password…).<br>2. Scanne ce QR code.<br>3. Saisis le code à 6 chiffres qu'elle affiche.",
-    `<div style="text-align:center;margin-bottom:14px;"><img src="${esc(data.totp.qr_code)}" alt="QR code à scanner avec l'application d'authentification" width="180" height="180" style="background:#fff;padding:8px;border-radius:10px;"></div>
+    `<div style="text-align:center;margin-bottom:14px;"><img id="mfa-qr" alt="QR code à scanner avec l'application d'authentification" width="180" height="180" style="background:#fff;padding:8px;border-radius:10px;"></div>
      <p style="font-size:12px;color:var(--text-dim);text-align:center;margin-bottom:14px;word-break:break-all;">Pas de caméra ? Saisis cette clé : <strong>${esc(data.totp.secret)}</strong></p>
      <form id="mfa-form">${codeField}<button type="submit" class="btn primary" id="mfa-submit" style="width:100%;margin-top:4px;">Activer</button></form>
      ${mandatory ? "" : `<p class="auth-switch"><a href="#" id="mfa-cancel">Annuler</a></p>`}`);
+  // Le QR code est un SVG brut (avec des guillemets) : on l'encode, au lieu de le coller dans l'attribut HTML.
+  const qr = String(data.totp.qr_code || "");
+  const svg = qr.replace(/^data:image\/svg\+xml;(charset=)?utf-8,/i, "");
+  container.querySelector("#mfa-qr").src = svg.trimStart().startsWith("<svg")
+    ? "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg)
+    : (/^data:image\/(png|svg\+xml)/.test(qr) ? qr : "");
   const errorEl = container.querySelector("#mfa-error");
   const input = container.querySelector("#mfa-code");
   const cancel = container.querySelector("#mfa-cancel");
