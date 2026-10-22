@@ -195,9 +195,11 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; text-siz
   /* Les champs date d'iPhone ont une largeur propre qui fait déborder la carte : on les force à la largeur de leur case. */
   input, select, textarea, .field { min-width: 0; max-width: 100%; box-sizing: border-box; }
   input[type="date"], input[type="time"], input[type="month"], input[type="datetime-local"] {
-    -webkit-appearance: none; appearance: none; display: block; width: 100%; min-width: 0; max-width: 100%; text-align: left; min-height: 44px;
+    -webkit-appearance: none; appearance: none; display: flex; align-items: center; width: 100%; min-width: 0; max-width: 100%; text-align: left; min-height: 44px;
   }
-  input[type="date"]::-webkit-date-and-time-value { text-align: left; min-width: 0; }
+  /* iOS colle le texte en haut du champ : on le recentre verticalement. */
+  input[type="date"]::-webkit-date-and-time-value, input[type="time"]::-webkit-date-and-time-value, input[type="month"]::-webkit-date-and-time-value { text-align: left; min-width: 0; margin: 0; padding: 0; min-height: 1.4em; line-height: 1.4; }
+  input[type="date"], input[type="time"], input[type="month"] { padding-top: 0; padding-bottom: 0; }
   .card { min-width: 0; }
   /* Formulaire d'ajout d'une vente : chaque champ sur toute la largeur, boutons compris. */
   #sale-form > .field, #sale-form > .btn { flex: 1 1 100% !important; min-width: 0 !important; }
