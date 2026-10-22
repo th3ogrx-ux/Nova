@@ -167,7 +167,7 @@ export async function renderMessages(root) {
     app.innerHTML = `
       <div class="card msg-card">
         <div class="msg-head"><strong>Conversation avec Zenoa</strong><span>On te répond rapidement.</span></div>
-        <div id="msg-thread" class="msg-thread" aria-live="polite"></div>
+        <div id="msg-thread" class="msg-thread" role="log" tabindex="0" aria-label="Conversation"></div>
         ${composerHtml()}
       </div>`;
     wireComposer();
@@ -208,7 +208,7 @@ export async function renderMessages(root) {
         <button type="button" class="icon-btn msg-back" id="msg-back" aria-label="Retour aux conversations">‹</button>
         <strong>${escapeHtml(b ? b.nom : "Conversation")}</strong>
       </div>
-      <div id="msg-thread" class="msg-thread" aria-live="polite"></div>
+      <div id="msg-thread" class="msg-thread" role="log" tabindex="0" aria-label="Conversation"></div>
       ${composerHtml()}`;
     app.querySelector("#msg-back").addEventListener("click", () => app.querySelector(".msg-admin").classList.remove("show-thread"));
     wireComposer();

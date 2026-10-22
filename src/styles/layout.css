@@ -137,10 +137,46 @@
 }
 #app.sidebar-collapsed .main { left: calc(var(--sb-w-collapsed) + var(--app-gap) * 2); }
 
+/* Barre du haut : visible seulement sur téléphone. */
+.mobile-topbar { display: none; }
+
+/* ---------- Téléphone : navigation en barre en bas, logo en haut ---------- */
 @media (max-width: 640px) {
-  :root { --sb-w: 72px; }
-  .sidebar-logo, .sidebar-brand-text, .nav-label, .sidebar-profile-info { display: none; }
-  .nav-item { justify-content: center; padding-left: 0; padding-right: 0; gap: 0; }
+  :root { --bar-h: 64px; --top-h: 54px; }
+
+  .mobile-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 42;
+    height: calc(var(--top-h) + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 12px 0 14px;
+    background: #000;
+  }
+  .mobile-brand { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-brand); font-weight: 900; font-size: 17px; letter-spacing: .08em;
+    background: linear-gradient(180deg, #f6efec 0%, #e11d2e 55%, #6e0a14 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .mobile-brand img { width: 32px; height: 32px; object-fit: contain; }
+  .mobile-topbar .icon-btn { width: 44px; height: 44px; color: #fff; border-color: rgba(246, 239, 236, .18); }
+
+  .sidebar {
+    top: auto; left: 0; right: 0; bottom: 0; width: 100%;
+    height: calc(var(--bar-h) + env(safe-area-inset-bottom));
+    flex-direction: row; padding: 0 4px env(safe-area-inset-bottom);
+    border-top: 1px solid rgba(225, 29, 46, .28);
+    background: #050203;
+    z-index: 45;
+  }
+  #app.sidebar-collapsed .sidebar { width: 100%; }
+  .sidebar-logo, .sidebar-brand-text, .sidebar-toggle, .sidebar-profile { display: none; }
+  .nav-list { display: flex; flex: 1; align-items: stretch; gap: 2px; padding: 6px 2px; overflow-x: auto; overflow-y: hidden; }
+  .nav-item { flex: 1 0 64px; flex-direction: column; justify-content: center; gap: 3px; margin: 0; padding: 4px 2px; min-height: 48px; text-align: center; }
+  .nav-item .nav-icon { width: 21px; height: 21px; }
+  .nav-label, #app.sidebar-collapsed .nav-label { display: block; font-size: 10px; line-height: 1.15; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .nav-item.active { box-shadow: 0 0 0 1px rgba(255, 110, 100, .4) inset; }
+
+  .main, #app.sidebar-collapsed .main {
+    top: calc(var(--top-h) + env(safe-area-inset-top)); left: var(--app-gap); right: var(--app-gap);
+    bottom: calc(var(--bar-h) + env(safe-area-inset-bottom) + var(--app-gap));
+    padding: 16px;
+  }
 }
 
 /* Entrée de menu masquée selon le rôle (l'attribut hidden ne suffit pas face à display:flex). */

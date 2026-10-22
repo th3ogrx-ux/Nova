@@ -15,6 +15,7 @@ import { renderDemoPage } from "./views/demo.js";
 import { renderSettings, setOnProfileUpdated, applyAvatarPreview } from "./views/settings.js";
 import { applyTheme } from "./theme.js";
 import { setCurrentUser, getCurrentRole, loadRole } from "./session.js";
+import { initA11y, markActiveNav } from "./a11y.js";
 import { readCache, writeCache, clearCache } from "./data-cache.js";
 
 // Applique le mode sombre/clair enregistré avant le premier rendu de
@@ -129,6 +130,7 @@ function switchView(name) {
   document.querySelectorAll(".nav-item").forEach((el) => {
     el.classList.toggle("active", el.dataset.view === name);
   });
+  markActiveNav(name);
   document.title = (name === "espace" && getCurrentRole() === "admin" ? "Aperçu client" : view.title) + " — Zenoa Radar";
 
   const previous = currentView && viewCache.get(currentView);
@@ -179,6 +181,8 @@ function wireNav() {
     app.classList.toggle("sidebar-collapsed");
   });
   document.getElementById("settings-btn").addEventListener("click", () => switchView("settings"));
+  document.getElementById("settings-btn-mobile").addEventListener("click", () => switchView("settings"));
+  initA11y();
 }
 
 // Nom et photo de la barre latérale : les derniers connus s'affichent tout

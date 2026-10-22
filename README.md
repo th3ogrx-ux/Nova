@@ -105,3 +105,21 @@ jamais les données).
 - [x] Étape 4 — Premier contact (mailto + copier message)
 - [x] Étape 5 — Maquettes de sites vitrine
 - [x] Étape 6 — Tableau de bord
+
+## Espace clients (suivi de visibilité Google)
+
+Espace pour les clients de l'agence : chaque commerce voit sa note, ses avis, ses chiffres Google, ses tâches
+et écrit à l'admin ; l'admin saisit les données depuis la page « Clients ». Même site, même connexion que Radar.
+
+Mise en place (Supabase) :
+1. `espace.sql` : tables `espace_*` + règles de sécurité (RLS) + désignation de l'admin (remplacer l'email dans le fichier).
+2. `espace-demo.sql` (facultatif) : 2 commerces d'exemple (barbier, plombier). Suppression : `delete from public.espace_businesses where is_example;`
+3. Fonction Edge `espace-admin` (`supabase/functions/espace-admin/index.ts`) : création des comptes clients. À coller dans
+   Supabase > Edge Functions > Via Editor, nom exact `espace-admin`.
+4. Facultatif : la ligne `alter publication supabase_realtime ...` en bas de `espace.sql` pour des messages instantanés.
+
+Rôles : `admin` (toi : Clients, Aperçu client, Messages + Radar/CRM/Ressources), `client` (Mon espace, Messages),
+`radar` (utilisateur Radar sans profil : l'appli comme avant). Les droits sont dans la base, pas dans le navigateur.
+
+Logo : remplace `public/sidebar-logo.png` (carré, fond noir) et `public/zenoa-icon.png` (fond transparent).
+Couleurs et thème : `src/styles/tokens.css`.

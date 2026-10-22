@@ -358,7 +358,7 @@ export async function renderCrm(root) {
     body.innerHTML = `
       <div class="card crm-table-wrap">
         <table class="crm-table">
-          <thead><tr><th>Client</th><th>Statut</th><th>Livraison prévue</th><th>Lien du site</th><th>Hébergeur / domaine</th><th>Acompte</th><th>Solde</th><th></th></tr></thead>
+          <thead><tr><th>Client</th><th>Statut</th><th>Livraison prévue</th><th>Lien du site</th><th>Hébergeur / domaine</th><th>Acompte</th><th>Solde</th><th><span class="sr-only">Actions</span></th></tr></thead>
           <tbody>
             ${projets.map((pr) => {
               const client = byId[pr.prospect_id];

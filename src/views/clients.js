@@ -245,7 +245,7 @@ export async function renderClients(root) {
       <div class="card admin-card">
         <div class="panel-title">Mois déjà saisis</div>
         ${stats.length ? `<div class="crm-table-wrap" style="border:0;"><table class="crm-table">
-          <thead><tr><th>Mois</th><th>Appels</th><th>Itinéraires</th><th>Vues</th><th>Site</th><th></th></tr></thead>
+          <thead><tr><th>Mois</th><th>Appels</th><th>Itinéraires</th><th>Vues</th><th>Site</th><th><span class="sr-only">Actions</span></th></tr></thead>
           <tbody>${stats.map((s) => `<tr data-mois="${s.mois}"><td style="font-weight:700;">${escapeHtml(monthLabel(s.mois))}</td><td>${s.appels}</td><td>${s.itineraires}</td><td>${s.vues_fiche}</td><td>${s.visites_site}</td>
             <td style="text-align:right;white-space:nowrap;"><button type="button" class="btn btn-sm ghost" data-edit>Modifier</button> <button type="button" class="icon-btn" data-del title="Supprimer" style="display:inline-flex;">✕</button></td></tr>`).join("")}</tbody></table></div>`
           : `<p style="color:var(--light-text-dim);font-size:13.5px;">Aucun chiffre saisi pour l'instant.</p>`}
