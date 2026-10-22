@@ -186,7 +186,13 @@ export function weeksOf(p) {
   while (weeks.length && !weeks[weeks.length - 1]) weeks.pop(); // les semaines vides à la fin ne comptent pas
   return weeks;
 }
-export const weeksCount = (mois) => Math.max(1, Math.round(mois * 4.33));
+// Un mois = 4 semaines : une case par semaine, un titre possible par mois.
+export const weeksCount = (mois) => Math.max(1, Math.round(mois * 4));
+export function titlesOf(p) {
+  const t = (Array.isArray(p && p.titres_mois) ? p.titres_mois : []).slice(0, 60).map((x) => String(x == null ? "" : x).trim().slice(0, 80));
+  while (t.length && !t[t.length - 1]) t.pop();
+  return t;
+}
 
 export function cleanPhases(list) {
   return (Array.isArray(list) ? list : []).map((p) => ({
@@ -195,7 +201,8 @@ export function cleanPhases(list) {
     prix: Math.max(0, Number(p && p.prix) || 0),
     mode: p && p.mode === "total" ? "total" : "mois",
     detail: String((p && p.detail) || "").trim().slice(0, 200),
-    semaines: weeksOf(p)
+    semaines: weeksOf(p),
+    titres_mois: titlesOf(p)
   })).filter((p) => p.titre);
 }
 export const phaseCost = (p) => (p.mode === "mois" ? p.prix * p.mois : p.prix);
@@ -205,14 +212,15 @@ export function phasesSummary(phases) {
   return { total, mois, parMois: mois ? total / mois : 0 };
 }
 
-// Programme complet d'une offre : semaine par semaine, étape après étape (une ligne de « taches » = une semaine).
+// Programme complet d'une offre : étape après étape, mois après mois (4 semaines), semaine après semaine.
 export function offerProgram(phases) {
   let week = 1, month = 1;
   return phases.map((p) => {
-    const lines = weeksOf(p);
+    const lines = weeksOf(p), titles = titlesOf(p);
     const count = Math.max(lines.length, weeksCount(p.mois));
     const weeks = Array.from({ length: count }, (_, i) => ({ n: week + i, task: (lines[i] || "").trim() }));
-    const out = { phase: p, fromMonth: month, weeks, planned: lines.filter(Boolean).length };
+    const months = Array.from({ length: Math.ceil(count / 4) }, (_, m) => ({ n: month + m, titre: titles[m] || "", weeks: weeks.slice(m * 4, m * 4 + 4) }));
+    const out = { phase: p, fromMonth: month, weeks, months, planned: lines.filter(Boolean).length };
     week += count; month += p.mois;
     return out;
   });

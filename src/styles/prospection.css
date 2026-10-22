@@ -363,3 +363,20 @@ i.pro-cell.l1 { background: rgba(225, 29, 46, .28); } i.pro-cell.l2 { background
 
 /* Les fenêtres sont toujours sombres (hors de #app) : on leur donne les teintes claires du thème sombre. */
 .modal-box { --light-text: var(--metal-2); --light-text-dim: var(--text-dim); --light-border: rgba(246, 239, 236, .14); --light-card-bg: #140708; }
+
+/* ---------- Titres de mois ---------- */
+.pro-month { display: flex; flex-direction: column; gap: 8px; padding: 10px 10px 12px; border: 1px solid var(--light-border); border-radius: var(--radius-md); background: rgba(127, 127, 127, .05); }
+.pro-month-title { display: flex; align-items: center; gap: 10px; text-transform: none !important; letter-spacing: normal !important; }
+.pro-month-n { flex-shrink: 0; min-width: 64px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--warm-2); }
+.modal-box .pro-month-title input { flex: 1 1 0; width: auto; min-width: 0; font-weight: 700; }
+.pro-program-month { margin-bottom: 14px; }
+.pro-program-month h4 { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; font-family: var(--font-heading); font-size: 15px; margin: 0 0 8px; }
+.pro-program-month h4 span { font-family: var(--font-body); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--warm-2); }
+#app:not([data-theme="dark"]) .pro-month-n { color: #b3121f; }
+.pro-phase-row .pro-month-title { flex-direction: row; align-items: center; }
+.pro-phase-row .pro-month-title .pro-month-n { font-size: 12px; }
+@media (max-width: 640px) {
+  .pro-wk { flex-direction: column; gap: 4px; } .pro-wk label { margin-top: 0; }
+  .pro-phase-row .pro-month-title { flex-direction: column; align-items: stretch; gap: 4px; }
+  .modal-box .pro-wk textarea, .modal-box .pro-month-title input { width: 100%; flex: none; }
+}
