@@ -1,6 +1,6 @@
 import "./style.css";
 import { confirmDialog } from "./confirm-dialog.js";
-import { getSession, onAuthChange, renderAuthScreen } from "./auth.js";
+import { getSession, onAuthChange, renderAuthScreen, signOut } from "./auth.js";
 import { supabase, supabaseConfigured } from "./supabase.js";
 import { renderDashboard } from "./views/dashboard.js";
 import { renderRecherche } from "./views/recherche.js";
@@ -221,6 +221,12 @@ async function showApp(session) {
     return;
   }
 
+  // Compte sans profil (ex. client supprimé dont la session était encore ouverte) : aucun accès.
+  if (getCurrentRole() === "none") {
+    showNoAccess();
+    return;
+  }
+
   // Premier accès d'un client : mot de passe temporaire à remplacer avant tout.
   if (getCurrentRole() === "client" && needsPasswordChange(session.user)) {
     app.style.display = "none";
@@ -262,6 +268,23 @@ window.addEventListener("zenoa:due-count", (e) => {
   badge.textContent = String(count);
   badge.setAttribute("aria-label", count + " client" + (count > 1 ? "s" : "") + " à mettre à jour bientôt");
 });
+
+function showNoAccess() {
+  app.style.display = "none";
+  screenAuth.style.display = "";
+  screenAuth.innerHTML = `
+    <div class="auth-screen">
+      <div class="card auth-card">
+        <span class="metal-title auth-logo">ZENOA</span>
+        <h1 class="auth-title">Accès non autorisé</h1>
+        <p style="font-size:13.5px;color:var(--text-dim);text-align:center;line-height:1.6;margin-bottom:18px;">
+          Ce compte n'est rattaché à aucun espace (il a peut-être été supprimé). Si tu penses que c'est une erreur, contacte Zenoa.
+        </p>
+        <button type="button" class="btn primary" id="noaccess-logout" style="width:100%;">Se déconnecter</button>
+      </div>
+    </div>`;
+  screenAuth.querySelector("#noaccess-logout").addEventListener("click", () => signOut());
+}
 
 function showAuth() {
   stopUnreadWatch();

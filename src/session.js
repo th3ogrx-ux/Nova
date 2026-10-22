@@ -4,7 +4,8 @@
 // Rôles :
 //   "admin"  : toi (désigné dans espace.sql) — Radar, CRM, Ressources + gestion des clients
 //   "client" : un client de l'espace — uniquement son espace (voir src/views/espace.js)
-//   "radar"  : tout autre utilisateur Radar, sans profil "espace" — l'appli comme avant
+//   "none"   : compte SANS profil (client supprimé, inscription inconnue...) — aucun accès
+//   "radar"  : uniquement tant que l'espace clients n'est pas installé (espace.sql pas encore collé) : l'appli comme avant
 import { supabase } from "./supabase.js";
 import { readCache, writeCache } from "./data-cache.js";
 
@@ -44,7 +45,7 @@ export async function loadRole(userId) {
   const cacheKey = "role:" + userId;
   const { data, error } = await supabase.from("espace_profiles").select("role, business_id").eq("id", userId).maybeSingle();
   if (!error) {
-    const role = data ? data.role : "radar";
+    const role = data ? data.role : "none"; // pas de profil = pas d'accès (jamais l'appli Radar par défaut)
     applyRole(role, data && data.business_id);
     writeCache(cacheKey, { role, businessId: data && data.business_id });
     return { ok: true };

@@ -19,6 +19,9 @@ export async function signOut() {
 // Affiche l'écran de connexion/inscription dans `container`.
 // Appelle `onSignedIn()` une fois la session établie.
 export function renderAuthScreen(container, onSignedIn) {
+  // Pas d'inscription libre : les comptes sont créés par l'administrateur (espace clients).
+  // Remettre à true pour rouvrir l'inscription (et la réactiver aussi dans Supabase).
+  const SIGNUP_ENABLED = false;
   let mode = "login"; // "login" | "signup"
 
   function render() {
@@ -43,15 +46,16 @@ export function renderAuthScreen(container, onSignedIn) {
               ${mode === "login" ? "Se connecter" : "Créer mon compte"}
             </button>
           </form>
-          <p class="auth-switch">
+          ${SIGNUP_ENABLED ? `<p class="auth-switch">
             ${mode === "login" ? "Pas encore de compte ?" : "Déjà un compte ?"}
             <a href="#" id="auth-switch-link">${mode === "login" ? "Créer un compte" : "Se connecter"}</a>
-          </p>
+          </p>` : `<p class="auth-switch" style="color:var(--text-dim);">Pas de compte ? Ton accès t'est envoyé par ton contact Zenoa.</p>`}
         </div>
       </div>
     `;
 
-    container.querySelector("#auth-switch-link").addEventListener("click", (e) => {
+    const switchLink = container.querySelector("#auth-switch-link");
+    if (switchLink) switchLink.addEventListener("click", (e) => {
       e.preventDefault();
       mode = mode === "login" ? "signup" : "login";
       render();
