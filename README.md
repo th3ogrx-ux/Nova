@@ -133,3 +133,9 @@ Voir [`docs/SECURITE.md`](docs/SECURITE.md) (protections, réglages Supabase/Ver
 - `docs/RGPD-registre-traitements.md`, `docs/RGPD-sous-traitants.md`, `docs/PROCEDURE-violation-donnees.md`, `docs/SAUVEGARDES.md` ;
 - pages légales à compléter : `public/legal/*.html` ;
 - tests : `npm test` (règles de mot de passe, fonction `espace-admin`, isolation des données sur PostgreSQL local).
+
+## Module Prospection
+
+Page **Prospection** (admin uniquement) : tableau de bord (chiffres clés, entonnoir, objectif, évolution, calendrier de chaleur, classement), stratégies (cartes, Kanban, détail avec scripts A/B), pipeline des prospects, scripts et packs d'offre, revue de la semaine, et bouton « + » de saisie rapide.
+
+Installation : coller **`prospection.sql`** dans Supabase (SQL Editor > Run) **après** `espace.sql` et `securite.sql`. Les données sont rattachées à ton compte et réservées à l'admin (voir `tests/sql/isolation.sql`).

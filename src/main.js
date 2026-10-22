@@ -10,6 +10,7 @@ import { supabase, supabaseConfigured } from "./supabase.js";
 import { renderDashboard } from "./views/dashboard.js";
 import { renderRecherche } from "./views/recherche.js";
 import { renderRessources } from "./views/ressources.js";
+import { renderProspection } from "./views/prospection.js";
 import { renderEspace } from "./views/espace.js";
 import { renderMessages } from "./views/messages.js";
 import { renderClients } from "./views/clients.js";
@@ -47,6 +48,7 @@ if ("serviceWorker" in navigator) {
 const VIEWS = {
   dashboard: { render: renderDashboard, title: "Tableau de bord", roles: ["admin", "radar"] },
   recherche: { render: renderRecherche, title: "Radar", roles: ["admin", "radar"] },
+  prospection: { render: renderProspection, title: "Prospection", roles: ["admin"] },
   ressources: { render: renderRessources, title: "Ressources", roles: ["admin", "radar"] },
   clients: { render: renderClients, title: "Clients", roles: ["admin"] },
   espace: { render: renderEspace, title: "Mon espace", roles: ["client", "admin"] },
@@ -64,7 +66,9 @@ function applyRoleToNav() {
     el.hidden = !el.dataset.roles.split(" ").includes(role);
   });
   // Pour toi (admin), cette page est un aperçu de ce que voient tes clients.
-  document.getElementById("espace-nav-label").textContent = role === "admin" ? "Aperçu client" : "Mon espace";
+  const espaceLabel = document.getElementById("espace-nav-label");
+  espaceLabel.textContent = role === "admin" ? "Aperçu client" : "Mon espace";
+  if (role === "admin") espaceLabel.dataset.short = "Aperçu"; else delete espaceLabel.dataset.short; // nom court dans la barre du téléphone
 }
 
 const screenAuth = document.getElementById("screen-auth");

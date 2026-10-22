@@ -110,6 +110,32 @@ reset role;
 select tst.eq('seul le type autorisé est journalisé', (select count(*) from public.audit_log where actor = :'ca'), 1);
 rollback;
 
+-- ---------- Module Prospection (tables pro_*) : admin seulement, chacun chez soi ----------
+insert into public.pro_strategies (id, user_id, titre) values ('20000000-0000-0000-0000-000000000001', :'adm', 'Stratégie admin');
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'adm', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('admin voit sa stratégie', (select count(*) from public.pro_strategies), 1);
+insert into public.pro_logs (strategy_id, envoyes, reponses) values ('20000000-0000-0000-0000-000000000001', 12, 3);
+select tst.eq('admin saisit un log', (select count(*) from public.pro_logs), 1);
+select tst.denied('admin : taux de réponse > 100000 refusé', $$insert into public.pro_logs (envoyes) values (100001)$$);
+select tst.denied('admin : canal inconnu refusé', $$insert into public.pro_strategies (titre, canal) values ('x', 'pigeon')$$);
+select tst.denied('admin : écrire pour un autre compte refusé', $$insert into public.pro_strategies (user_id, titre) values ('00000000-0000-0000-0000-0000000000a1', 'intrus')$$);
+rollback;
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'ca', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('client : 0 stratégie visible', (select count(*) from public.pro_strategies), 0);
+select tst.denied('client : écrit une stratégie', $$insert into public.pro_strategies (titre) values ('x')$$);
+select tst.denied('client : écrit un log', $$insert into public.pro_logs (envoyes) values (1)$$);
+select tst.denied('client : écrit un prospect', $$insert into public.pro_prospects (nom) values ('x')$$);
+rollback;
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'nobody', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.denied('compte inconnu : écrit une stratégie', $$insert into public.pro_strategies (titre) values ('x')$$);
+rollback;
+begin; set local role anon;
+select tst.denied('anon : lit les stratégies', $$select * from public.pro_strategies$$);
+rollback;
+
 -- ---------- Le verrouillage se lève après une connexion réussie ----------
 begin;
 insert into public.audit_log (type, detail, created_at) select 'login_failed', repeat('c', 64), now() - interval '2 minutes' from generate_series(1, 5);

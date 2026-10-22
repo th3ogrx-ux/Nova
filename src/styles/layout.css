@@ -171,6 +171,9 @@
   .nav-item { flex: 1 1 0; min-width: 0; flex-direction: column; justify-content: center; gap: 3px; margin: 0; padding: 4px 2px; min-height: 48px; text-align: center; }
   .nav-item .nav-icon { width: 21px; height: 21px; }
   .nav-label, #app.sidebar-collapsed .nav-label { display: block; font-size: 9.5px; line-height: 1.15; max-width: 100%; overflow: hidden; overflow-wrap: anywhere; white-space: normal; text-align: center; }
+  /* Noms courts dans la barre du bas : 7 entrées doivent tenir côte à côte. */
+  .nav-label[data-short] { font-size: 0; line-height: 0; }
+  .nav-label[data-short]::after { content: attr(data-short); font-size: 9.5px; line-height: 1.15; }
   .nav-item.active { box-shadow: 0 0 0 1px rgba(255, 110, 100, .4) inset; }
 
   .main, #app.sidebar-collapsed .main {

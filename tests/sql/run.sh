@@ -10,4 +10,5 @@ psql -q -v ON_ERROR_STOP=1 -f tests/sql/stub-auth.sql
 psql -q -v ON_ERROR_STOP=1 -c "insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000a', 'TON_EMAIL@exemple.fr')"
 psql -q -v ON_ERROR_STOP=1 -f espace.sql 2>&1 | grep -v "NOTICE" || true
 psql -q -v ON_ERROR_STOP=1 -f securite.sql 2>&1 | grep -v "NOTICE" || true
+psql -q -v ON_ERROR_STOP=1 -f prospection.sql 2>&1 | grep -v "NOTICE" || true
 psql -q -v ON_ERROR_STOP=1 -f tests/sql/isolation.sql
