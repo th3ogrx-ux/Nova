@@ -68,7 +68,7 @@ assert.equal(seen.size, 2000); ok("mots de passe temporaires : format correct, s
 // ---------- 2. qui a le droit ? ----------
 let w = makeDb();
 w.addUser("admin@zenoa.fr", "admin", null, T.admin);
-const adminId = [...w.users.values()][0].id; w.tokens.set(T.adminNo2fa, adminId);
+const adminId = [...w.users.values()][0].id;
 const biz = (await w.db.from("espace_businesses").insert({ nom: "Barbier" }).select("id").single()).data;
 w.addUser("client@barbier.fr", "client", biz.id, T.client);
 w.addUser("radar@user.fr", null, null, T.noprofile);
@@ -79,7 +79,6 @@ r = await read(await call(w.db, good, { token: T.client })); assert.equal(r.stat
 r = await read(await call(w.db, good, { token: T.noprofile })); assert.equal(r.status, 403); ok("un utilisateur sans profil -> 403");
 assert.equal(w.tables.espace_businesses.length, 1); ok("aucun commerce créé par les appels refusés");
 for (const action of ["reset_password", "get_account", "delete_client"]) { r = await read(await call(w.db, { action, business_id: biz.id }, { token: T.client })); assert.equal(r.status, 403); }
-r = await read(await call(w.db, good, { token: T.adminNo2fa })); assert.equal(r.status, 403); assert.match(r.body.error, /Double authentification/); ok("ADMIN sans double authentification (aal1) -> 403");
 assert.equal(w.users.size, 3); ok("reset / get / delete refusés au client (et rien supprimé)");
 assert.equal((await call(w.db, {}, { method: "GET" })).status, 405); ok("méthode GET refusée -> 405");
 assert.equal((await call(w.db, {}, { method: "OPTIONS" })).status, 200); ok("préflight CORS (OPTIONS) accepté");

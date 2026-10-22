@@ -7,14 +7,14 @@ Ce document résume les protections en place, les réglages à faire à la main 
 | Sujet | Protection | Où |
 |---|---|---|
 | Accès sur invitation | Un compte sans profil ne lit ni n'écrit rien (politique restrictive sur toutes les tables) ; l'inscription est cachée dans l'appli | `securite.sql`, `src/auth.js` |
-| Double authentification | Obligatoire pour l'admin : sans code validé (niveau `aal2`), la base refuse tout, les Edge Functions aussi. Proposée aux clients (Paramètres) | `securite.sql`, `src/mfa.js`, `supabase/functions/*` |
+| Double authentification | **Facultative** (Paramètres, pour admin et clients) : une fois activée, le code est demandé à la connexion. Non exigée par la base | `src/mfa.js` |
 | Isolation des clients | RLS sur toutes les tables ; un client ne voit que son commerce ; il ne peut écrire que ses messages | `espace.sql`, `tests/sql/` |
 | Mots de passe | 12 caractères min., refus des mots courants et de ceux déjà volés (Have I Been Pwned, par préfixe SHA-1 : le mot de passe ne quitte jamais le navigateur) | `src/password-policy.js` |
 | Connexions | Échecs comptés par empreinte d'e-mail ; blocage 15 min après 5 échecs ; message d'erreur générique | `src/auth.js`, `securite.sql` |
 | Journal & alertes | Table `audit_log` (admin seulement) ; bandeau d'alerte si ≥10 échecs/heure ou ≥5 accès refusés/24 h ; ni mot de passe ni e-mail ni IP | `src/security-log.js` |
 | En-têtes | CSP stricte (scripts du site uniquement), HSTS, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy, COOP | `vercel.json` |
 | XSS | Tout texte affiché est échappé ; liens limités à `http(s)` (jamais `javascript:`) côté appli ET base | `src/views/*`, `securite.sql` |
-| Fonctions Edge | Authentification + rôle admin + 2FA vérifiés ; erreurs génériques (détails dans les logs privés) ; CORS limitable à ton domaine | `supabase/functions/` |
+| Fonctions Edge | Authentification + rôle admin vérifiés ; erreurs génériques (détails dans les logs privés) ; CORS limitable à ton domaine | `supabase/functions/` |
 | Secrets | Aucun secret dans le dépôt ; `.env` ignoré ; `.env.example` sans valeurs ; clé `service_role` uniquement dans Supabase | `.gitignore` |
 | Dépendances | `npm audit` : 0 faille ; `package-lock.json` versionné | `package.json` |
 | RGPD | Export JSON d'un client, suppression complète, purge automatique, pages légales, polices hébergées (aucune requête vers Google) | `securite.sql`, `public/legal/` |
@@ -47,18 +47,17 @@ Ce document résume les protections en place, les réglages à faire à la main 
 
 ## 3. Ordre d'installation du durcissement
 1. Déployer le nouveau code (push sur `main`).
-2. Te connecter → l'appli te demande d'**activer la double authentification** : scanne le QR code.
-3. Coller **`securite.sql`** dans Supabase → SQL Editor → Run (après l'étape 2 !).
-4. Redéployer les fonctions Edge, ajouter le secret `ALLOWED_ORIGINS`.
-5. Faire les réglages du chapitre 2.
-6. Lancer les tests : `npm test` (voir ci-dessous).
+2. Coller **`securite.sql`** dans Supabase → SQL Editor → Run (relançable sans risque).
+3. Redéployer les fonctions Edge, ajouter le secret `ALLOWED_ORIGINS`.
+4. Faire les réglages du chapitre 2.
+5. Lancer les tests : `npm test` (voir ci-dessous).
 
-> Si tu lances `securite.sql` avant d'avoir activé la 2FA : rien n'est perdu, l'appli te propose l'activation à la prochaine connexion.
+La double authentification est facultative. Conseillée pour le compte admin dès que tu as de vraies données clients (Paramètres → Double authentification).
 
 ## 4. Tests automatiques
 `npm test` lance :
 - `tests/unit/` — règles de mot de passe, vérification des fuites ;
-- `tests/functions/` — fonction `espace-admin` (droits, 2FA, journal) ;
+- `tests/functions/` — fonction `espace-admin` (droits, journal) ;
 - `tests/sql/` — **isolation des données** sur une base PostgreSQL locale jetable : un client ne lit ni n'écrit chez un autre, ne peut pas se donner le rôle admin, un compte sans profil et un admin sans 2FA n'ont aucun accès, le journal est protégé.
 
 Pour `test:sql`, il faut un PostgreSQL local : `PGHOST=… PGPORT=… PGUSER=postgres npm run test:sql`.
@@ -74,7 +73,7 @@ Pour `test:sql`, il faut un PostgreSQL local : `PGHOST=… PGPORT=… PGUSER=pos
 - **Dépendances tierces** utilisées par l'admin : `api.microlink.io` (aperçu de lien), YouTube/OpenStreetMap (incrustations). Aucune donnée client n'y est envoyée.
 
 ## 6. Checklist avant de saisir de vraies données de clients
-- [ ] 2FA activée sur le compte admin (et testée : déconnexion/reconnexion)
+- [ ] (Conseillé) 2FA activée sur le compte admin
 - [ ] `securite.sql` exécuté sans erreur ; `select tablename from pg_tables where schemaname='public' and not rowsecurity;` → 0 ligne
 - [ ] « Allow new users to sign up » **désactivé** ; liste `auth.users` relue (aucun compte inconnu)
 - [ ] Mot de passe admin ≥ 12 caractères, unique, dans un gestionnaire de mots de passe

@@ -56,16 +56,6 @@ const CATEGORIES = new Set([
 ]);
 const OSM_ID_RE = /^(node|way|relation)\/\d{1,15}$/;
 
-// Niveau d'authentification inscrit dans le jeton (déjà vérifié par auth.getUser).
-function jwtAal(token: string): string {
-  try {
-    const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-    return JSON.parse(atob(payload)).aal || "";
-  } catch {
-    return "";
-  }
-}
-
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -221,10 +211,9 @@ Deno.serve(async (req) => {
     if (userError || !userData || !userData.user) return jsonResponse({ error: "Non authentifié." }, 401);
     const userId = userData.user.id;
 
-    // Réservé à l'administrateur, avec la double authentification validée (aal2).
+    // Réservé à l'administrateur,.
     const { data: profile } = await supabase.from("espace_profiles").select("role").eq("id", userId).maybeSingle();
     if (!profile || profile.role !== "admin") return jsonResponse({ error: "Action réservée à l'administrateur." }, 403);
-    if (jwtAal(token) !== "aal2") return jsonResponse({ error: "Double authentification requise." }, 403);
 
     // ---------- Fiches envoyées par le navigateur ----------
     const body = await req.json().catch(() => ({}));

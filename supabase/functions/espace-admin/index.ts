@@ -48,22 +48,12 @@ export function generateTempPassword(): string {
 
 const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
-// Niveau d'authentification inscrit dans le jeton (déjà vérifié par auth.getUser).
-function jwtAal(token: string): string {
-  try {
-    const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-    return JSON.parse(atob(payload)).aal || "";
-  } catch {
-    return "";
-  }
-}
-
 // Journal de sécurité (jamais de mot de passe ni d'e-mail). N'empêche jamais l'action en cas d'erreur.
 async function audit(db: any, type: string, actor: string, businessId: string | null = null) {
   try { await db.from("audit_log").insert({ type, actor, business_id: businessId }); } catch (e) { console.error("[espace-admin] audit", e); }
 }
 
-// Vérifie que l'appelant est connecté ET administrateur avec la double authentification validée.
+// Vérifie que l'appelant est connecté ET administrateur (rôle lu dans la base).
 async function requireAdmin(req: Request, db: any) {
   const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
   if (!token) return { error: json({ error: "Non authentifié." }, 401) };
@@ -71,7 +61,6 @@ async function requireAdmin(req: Request, db: any) {
   if (error || !data || !data.user) return { error: json({ error: "Non authentifié." }, 401) };
   const { data: profile } = await db.from("espace_profiles").select("role").eq("id", data.user.id).maybeSingle();
   if (!profile || profile.role !== "admin") return { error: json({ error: "Action réservée à l'administrateur." }, 403) };
-  if (jwtAal(token) !== "aal2") return { error: json({ error: "Double authentification requise." }, 403) };
   return { user: data.user };
 }
 

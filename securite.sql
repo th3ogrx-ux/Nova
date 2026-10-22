@@ -4,25 +4,21 @@
 -- Ce que ça fait :
 --  1. Accès sur invitation : un compte sans profil (inscription sauvage) ne peut plus
 --     lire ni écrire AUCUNE table, même s'il arrive à se créer un compte.
---  2. Double authentification obligatoire pour l'admin : tant qu'il n'a pas validé son
---     code à 6 chiffres (niveau "aal2"), la base lui refuse tout.
+--  2. (La double authentification est FACULTATIVE : activable dans Paramètres, non exigée par la base.)
 --  3. Journal de sécurité (audit_log) + verrouillage temporaire après des échecs de connexion.
 --  4. Contraintes de format (liens http(s) uniquement, longueurs).
 --  5. RGPD : export des données d'un client, purge automatique des vieilles données.
 --
--- ⚠️ Avant de lancer : enregistre d'abord la double authentification de ton compte admin
---    (Paramètres > Double authentification), sinon tu seras bloqué à l'écran d'activation
---    (rien n'est perdu : tu l'actives, et tout revient).
 
 -- ---------- 1 + 2. Qui a le droit d'accéder à la base ----------
--- Admin  : seulement avec la double authentification validée dans cette session.
+-- Admin  : oui.
 -- Client : toujours (ses droits précis sont dans les politiques espace_*).
 -- Sans profil : jamais.
 create or replace function public.espace_access_ok()
 returns boolean language sql stable security definer set search_path = public as $$
   select case
     when exists (select 1 from public.espace_profiles where id = auth.uid() and role = 'admin')
-      then coalesce(auth.jwt() ->> 'aal', '') = 'aal2'
+      then true
     when exists (select 1 from public.espace_profiles where id = auth.uid() and role = 'client')
       then true
     else false
@@ -31,19 +27,16 @@ $$;
 revoke all on function public.espace_access_ok() from public;
 grant execute on function public.espace_access_ok() to authenticated;
 
--- L'admin n'est "admin" pour les politiques espace_* qu'avec la double authentification.
 create or replace function public.espace_is_admin()
 returns boolean language sql stable security definer set search_path = public as $$
-  select exists (select 1 from public.espace_profiles where id = auth.uid() and role = 'admin')
-     and coalesce(auth.jwt() ->> 'aal', '') = 'aal2';
+  select exists (select 1 from public.espace_profiles where id = auth.uid() and role = 'admin');
 $$;
 
--- Tables de travail de l'agence (Radar, CRM, ventes, ressources...) : l'admin avec 2FA seulement.
+-- Tables de travail de l'agence (Radar, CRM, ventes, ressources...) : l'admin seulement.
 -- Un client n'y a aucune ligne, et ne peut pas non plus en créer.
 create or replace function public.espace_admin_ok()
 returns boolean language sql stable security definer set search_path = public as $$
-  select exists (select 1 from public.espace_profiles where id = auth.uid() and role = 'admin')
-     and coalesce(auth.jwt() ->> 'aal', '') = 'aal2';
+  select exists (select 1 from public.espace_profiles where id = auth.uid() and role = 'admin');
 $$;
 revoke all on function public.espace_admin_ok() from public;
 grant execute on function public.espace_admin_ok() to authenticated;
@@ -59,9 +52,9 @@ begin
     select tablename from pg_tables
     where schemaname = 'public' and tablename <> 'espace_profiles'
   loop
-    execute format('drop policy if exists "acces sur invitation + 2FA admin" on public.%I', t.tablename);
+    execute format('drop policy if exists "acces sur invitation" on public.%I', t.tablename);
     execute format(
-      'create policy "acces sur invitation + 2FA admin" on public.%I as restrictive for all to authenticated using (public.%s()) with check (public.%s())',
+      'create policy "acces sur invitation" on public.%I as restrictive for all to authenticated using (public.%s()) with check (public.%s())',
       t.tablename,
       case when t.tablename like 'espace\_%' or t.tablename in ('user_profiles', 'demo_sites', 'audit_log') then 'espace_access_ok' else 'espace_admin_ok' end,
       case when t.tablename like 'espace\_%' or t.tablename in ('user_profiles', 'demo_sites', 'audit_log') then 'espace_access_ok' else 'espace_admin_ok' end);
@@ -71,8 +64,8 @@ end $$;
 -- Même règle pour les fichiers (avatars, ressources). Ignoré si le projet l'interdit.
 do $$
 begin
-  execute 'drop policy if exists "acces sur invitation + 2FA admin" on storage.objects';
-  execute 'create policy "acces sur invitation + 2FA admin" on storage.objects as restrictive for all to authenticated using (public.espace_access_ok()) with check (public.espace_access_ok())';
+  execute 'drop policy if exists "acces sur invitation" on storage.objects';
+  execute 'create policy "acces sur invitation" on storage.objects as restrictive for all to authenticated using (public.espace_access_ok()) with check (public.espace_access_ok())';
 exception when others then
   raise notice 'storage.objects : politique non créée (%). À ajouter à la main si besoin.', sqlerrm;
 end $$;
@@ -154,7 +147,7 @@ do $$ begin
 exception when duplicate_object or undefined_table or undefined_column then null; end $$;
 
 -- ---------- 5. RGPD ----------
--- Export de toutes les données d'un client (droit d'accès / portabilité). Admin + 2FA seulement.
+-- Export de toutes les données d'un client (droit d'accès / portabilité). Admin seulement.
 create or replace function public.espace_export_business(p_business_id uuid)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare result jsonb;

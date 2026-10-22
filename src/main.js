@@ -15,7 +15,7 @@ import { renderMessages } from "./views/messages.js";
 import { renderClients } from "./views/clients.js";
 import { needsPasswordChange, renderForcePassword } from "./force-password.js";
 import { startUnreadWatch, stopUnreadWatch, onUnread } from "./espace-unread.js";
-import { mfaState, renderMfaChallenge, renderMfaEnroll } from "./mfa.js";
+import { mfaState, renderMfaChallenge } from "./mfa.js";
 import { logEvent, loadSecurityAlerts } from "./security-log.js";
 import { renderCrm } from "./views/crm.js";
 import { renderDemoPage } from "./views/demo.js";
@@ -238,8 +238,7 @@ async function showApp(session) {
     return;
   }
 
-  // Double authentification : code demandé si elle est activée ; obligatoire (activation
-  // imposée) pour l'administrateur. La base refuse tout à l'admin tant qu'elle n'est pas validée.
+  // Double authentification facultative : si elle a été activée dans Paramètres, le code est demandé.
   let mfa;
   try { mfa = await mfaState(); } catch (err) {
     console.error("[mfa]", err);
@@ -247,13 +246,9 @@ async function showApp(session) {
     showFatalError("Impossible de vérifier la double authentification. Réessaie dans un instant.");
     return;
   }
-  const mustEnroll = getCurrentRole() === "admin" && !mfa.enrolled;
-  if (mfa.needsCode || mustEnroll) {
+  if (mfa.needsCode) {
     app.style.display = "none";
-    await new Promise((resolve) => {
-      if (mfa.needsCode) renderMfaChallenge(screenAuth, mfa.factors[0].id, resolve);
-      else renderMfaEnroll(screenAuth, { mandatory: true, onDone: resolve });
-    });
+    await new Promise((resolve) => renderMfaChallenge(screenAuth, mfa.factors[0].id, resolve));
     if (shownUserId !== session.user.id) return;
   }
 

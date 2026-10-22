@@ -34,28 +34,18 @@ end $$;
 grant usage on schema tst to anon, authenticated;
 grant execute on all functions in schema tst to anon, authenticated;
 
--- ---------- Admin AVEC 2FA ----------
+-- ---------- Admin ----------
 begin; set local role authenticated;
-select set_config('request.jwt.claim.sub', :'adm', true), set_config('request.jwt.claim.aal', 'aal2', true);
-select tst.eq('admin 2FA voit les 2 commerces', (select count(*) from public.espace_businesses), 2);
-select tst.eq('admin 2FA voit son CRM', (select count(*) from public.crm_agence_prospects), 1);
-select tst.eq('admin 2FA ne voit pas le CRM d''un autre compte', (select count(*) from public.crm_agence_prospects where user_id = :'nobody'), 0);
-select tst.eq('admin 2FA exporte un client', jsonb_array_length(public.espace_export_business(:'bizA'::uuid)->'avis'), 1);
+select set_config('request.jwt.claim.sub', :'adm', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('admin voit les 2 commerces', (select count(*) from public.espace_businesses), 2);
+select tst.eq('admin voit son CRM', (select count(*) from public.crm_agence_prospects), 1);
+select tst.eq('admin ne voit pas le CRM d''un autre compte', (select count(*) from public.crm_agence_prospects where user_id = :'nobody'), 0);
+select tst.eq('admin exporte un client', jsonb_array_length(public.espace_export_business(:'bizA'::uuid)->'avis'), 1);
 select tst.eq('l''export est journalisé', (select count(*) from public.audit_log where type = 'data_exported'), 1);
 select tst.denied('lien javascript: refusé', $$insert into public.crm_agence_projets (user_id, lien_site) values (auth.uid(), 'javascript:alert(1)')$$);
 select tst.denied('lien http accepté ? (doit passer)', $$select 1 where false$$);
 insert into public.crm_agence_projets (user_id, lien_site) values (auth.uid(), 'https://exemple.fr');
 select tst.denied('la purge n''est pas appelable', $$select public.purge_old_data()$$);
-rollback;
-
--- ---------- Admin SANS 2FA (aal1) : bloqué partout ----------
-begin; set local role authenticated;
-select set_config('request.jwt.claim.sub', :'adm', true), set_config('request.jwt.claim.aal', 'aal1', true);
-select tst.eq('admin sans 2FA : 0 commerce', (select count(*) from public.espace_businesses), 0);
-select tst.eq('admin sans 2FA : 0 ligne CRM', (select count(*) from public.crm_agence_prospects), 0);
-select tst.denied('admin sans 2FA : insertion CRM', $$insert into public.crm_agence_prospects (user_id, entreprise) values (auth.uid(), 'x')$$);
-select tst.denied('admin sans 2FA : export', $$select public.espace_export_business('10000000-0000-0000-0000-0000000000a1')$$);
-select tst.eq('admin sans 2FA peut quand même lire son rôle', (select count(*) from public.espace_profiles where id = auth.uid()), 1);
 rollback;
 
 -- ---------- Client A ----------

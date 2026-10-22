@@ -249,7 +249,6 @@ async function setupMfaCard(root) {
   const text = root.querySelector("#settings-mfa-text");
   const btn = root.querySelector("#settings-mfa-btn");
   const msg = root.querySelector("#settings-mfa-msg");
-  const mandatory = getCurrentRole() === "admin";
   let factors = [];
   try { factors = await verifiedFactors(); } catch { text.textContent = "Impossible de lire l'état de la double authentification."; return; }
 
@@ -263,9 +262,6 @@ async function setupMfaCard(root) {
     text.textContent = "Désactivée. Un code à 6 chiffres, généré par une appli sur ton téléphone, sera demandé à chaque connexion : un mot de passe volé ne suffit alors plus.";
     btn.textContent = "Activer";
     btn.onclick = () => { appEl.style.display = "none"; renderMfaEnroll(screenAuth, { mandatory: false, onDone: back, onCancel: back }); };
-  } else if (mandatory) {
-    text.textContent = "Activée ✓ — obligatoire pour le compte administrateur.";
-    btn.hidden = true;
   } else {
     text.textContent = "Activée ✓";
     btn.textContent = "Désactiver";

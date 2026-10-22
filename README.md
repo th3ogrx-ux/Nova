@@ -129,7 +129,7 @@ Couleurs et thème : `src/styles/tokens.css`.
 ## Sécurité et RGPD
 
 Voir [`docs/SECURITE.md`](docs/SECURITE.md) (protections, réglages Supabase/Vercel, risques restants, checklist avant de vraies données), ainsi que :
-- `securite.sql` — à coller dans Supabase **après** `espace.sql` et après avoir activé la double authentification ;
+- `securite.sql` — à coller dans Supabase **après** `espace.sql` ;
 - `docs/RGPD-registre-traitements.md`, `docs/RGPD-sous-traitants.md`, `docs/PROCEDURE-violation-donnees.md`, `docs/SAUVEGARDES.md` ;
 - pages légales à compléter : `public/legal/*.html` ;
 - tests : `npm test` (règles de mot de passe, fonction `espace-admin`, isolation des données sur PostgreSQL local).
