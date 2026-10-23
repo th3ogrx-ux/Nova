@@ -95,6 +95,19 @@ alter table public.pro_offers drop constraint if exists pro_offers_phases_ok;
 alter table public.pro_offers add constraint pro_offers_phases_ok
   check (jsonb_typeof(phases) = 'array' and jsonb_array_length(phases) <= 12 and char_length(phases::text) <= 120000);
 
+-- Calendrier de contenu : une ligne = une vidéo prévue (plusieurs par jour possibles).
+create table if not exists public.pro_videos (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  jour       date not null,
+  titre      text not null check (char_length(titre) between 1 and 160),
+  type       text not null default 'valeur' check (type in ('viral','valeur','perso')),
+  statut     text not null default 'a_tourner' check (statut in ('a_tourner','tourne','publie')),
+  script     text check (char_length(script) <= 8000),
+  created_at timestamptz not null default now()
+);
+create index if not exists pro_videos_idx on public.pro_videos (user_id, jour);
+
 create table if not exists public.pro_reviews (
   id        uuid primary key default gen_random_uuid(),
   user_id   uuid not null default auth.uid() references auth.users(id) on delete cascade,
@@ -120,7 +133,7 @@ create index if not exists pro_prospects_idx on public.pro_prospects (user_id, e
 do $$
 declare t text;
 begin
-  foreach t in array array['pro_strategies','pro_scripts','pro_logs','pro_prospects','pro_offers','pro_reviews','pro_settings'] loop
+  foreach t in array array['pro_strategies','pro_scripts','pro_logs','pro_prospects','pro_offers','pro_reviews','pro_settings','pro_videos'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('revoke all on public.%I from anon, authenticated', t);
     execute format('grant select, insert, update, delete on public.%I to authenticated', t);

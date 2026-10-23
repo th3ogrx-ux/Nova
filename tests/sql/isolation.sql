@@ -123,6 +123,9 @@ insert into public.pro_offers (id, nom, prix) values ('30000000-0000-0000-0000-0
 update public.pro_strategies set offer_id = '30000000-0000-0000-0000-000000000001';
 select tst.eq('admin rattache une offre à sa stratégie', (select count(*) from public.pro_strategies where offer_id is not null), 1);
 select tst.denied('admin : offre inconnue refusée', $$update public.pro_strategies set offer_id = gen_random_uuid()$$);
+insert into public.pro_videos (jour, titre, type) values ('2026-11-03', 'Vidéo 1', 'viral'), ('2026-11-03', 'Vidéo 2 même jour', 'valeur');
+select tst.eq('admin : plusieurs vidéos le même jour', (select count(*) from public.pro_videos where jour = '2026-11-03'), 2);
+select tst.denied('admin : type de vidéo inconnu refusé', $$insert into public.pro_videos (jour, titre, type) values ('2026-11-03', 'x', 'autre')$$);
 select tst.denied('admin : écrire pour un autre compte refusé', $$insert into public.pro_strategies (user_id, titre) values ('00000000-0000-0000-0000-0000000000a1', 'intrus')$$);
 rollback;
 begin; set local role authenticated;
@@ -130,6 +133,8 @@ select set_config('request.jwt.claim.sub', :'ca', true), set_config('request.jwt
 select tst.eq('client : 0 stratégie visible', (select count(*) from public.pro_strategies), 0);
 select tst.denied('client : écrit une stratégie', $$insert into public.pro_strategies (titre) values ('x')$$);
 select tst.denied('client : écrit un log', $$insert into public.pro_logs (envoyes) values (1)$$);
+select tst.eq('client : 0 vidéo visible', (select count(*) from public.pro_videos), 0);
+select tst.denied('client : écrit une vidéo', $$insert into public.pro_videos (jour, titre) values ('2026-11-03', 'x')$$);
 select tst.denied('client : écrit un prospect', $$insert into public.pro_prospects (nom) values ('x')$$);
 rollback;
 begin; set local role authenticated;
