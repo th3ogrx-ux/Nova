@@ -8,50 +8,18 @@
 // enregistre les prospects et cherche les emails sur leurs sites (ce
 // que le navigateur ne peut pas faire, faute d'autorisation CORS).
 import { supabase } from "./supabase.js";
+import { OSM_FILTERS, categoryOf, orderByPriority } from "./radar-categories.js";
 
 export const LEADS_PER_DAY = 50;
 const CITIES_PER_DAY = 3;
 const SEARCH_RADIUS_METERS = 10000;
-const RESULTS_PER_CITY = 400;
+const RESULTS_PER_CITY = 2500; // restaurants et coiffeurs sont très nombreux : on laisse de la place à tous les métiers
 const OVERPASS_TIMEOUT_MS = 30000;
 const OVERPASS_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
   "https://overpass.private.coffee/api/interpreter"
 ];
-
-// Métiers ciblés -> tag OpenStreetMap (même liste que la validation
-// côté radar-daily). Déménageurs, wedding planners, nettoyage/services
-// à domicile et e-commerçants n'ont pas de tag OSM fiable.
-const CATEGORY_TAGS = {
-  artisan_batiment: { key: "office", value: "construction_company" },
-  plombier: { key: "craft", value: "plumber" },
-  electricien: { key: "craft", value: "electrician" },
-  couvreur: { key: "craft", value: "roofer" },
-  menuisier: { key: "craft", value: "carpenter" },
-  chauffage_pac: { key: "craft", value: "hvac" },
-  cuisiniste: { key: "shop", value: "kitchen" },
-  paysagiste: { key: "craft", value: "gardener" },
-  agence_immo: { key: "office", value: "estate_agent" },
-  courtier_assurance: { key: "office", value: "insurance" },
-  courtier_credit: { key: "office", value: "financial_advisor" },
-  expert_comptable: { key: "office", value: "accountant" },
-  consultant_formateur: { key: "office", value: "consulting" },
-  organisme_formation: { key: "office", value: "educational_institution" },
-  therapeute: { key: "healthcare", value: "psychotherapist" },
-  osteopathe: { key: "healthcare", value: "osteopath" },
-  kine: { key: "healthcare", value: "physiotherapist" },
-  institut_beaute: { key: "shop", value: "beauty" },
-  coiffeur: { key: "shop", value: "hairdresser" },
-  photographe: { key: "craft", value: "photographer" },
-  lieu_reception: { key: "amenity", value: "events_venue" },
-  traiteur: { key: "craft", value: "caterer" },
-  auto_ecole: { key: "amenity", value: "driving_school" },
-  salle_sport: { key: "leisure", value: "fitness_centre" },
-  garage: { key: "shop", value: "car_repair" },
-  gite: { key: "tourism", value: "guest_house" },
-  pme_industrielle: { key: "man_made", value: "works" }
-};
 
 // Grandes villes réparties sur tout le territoire.
 const CITIES = [
@@ -111,13 +79,6 @@ function pickDaily(items, count, seed) {
   return shuffled.slice(0, count);
 }
 
-function categoryOf(tags) {
-  for (const [category, tag] of Object.entries(CATEGORY_TAGS)) {
-    if (tags[tag.key] === tag.value) return category;
-  }
-  return null;
-}
-
 function buildAddress(tags) {
   const parts = [
     [tags["addr:housenumber"], tags["addr:street"]].filter(Boolean).join(" "),
@@ -165,11 +126,7 @@ async function runOverpass(query, firstEndpoint) {
 // 54 filtres ["clé"="valeur"], motif typique de ce que les pare-feux
 // applicatifs prennent pour une injection SQL.
 function buildTagStatements() {
-  const valuesByKey = {};
-  for (const { key, value } of Object.values(CATEGORY_TAGS)) {
-    (valuesByKey[key] = valuesByKey[key] || []).push(value);
-  }
-  return Object.entries(valuesByKey)
+  return Object.entries(OSM_FILTERS)
     .map(([key, values]) => {
       const filter = values.length === 1 ? `[${key}=${values[0]}]` : `[${key}~"^(${values.join("|")})$"]`;
       return `node${filter};way${filter};`;
@@ -244,11 +201,7 @@ export async function generateTodayLeadsIfNeeded(userId, onStatus) {
     throw new Error("Impossible de joindre OpenStreetMap pour le moment (" + errors.join(" | ") + "). Réessaie dans quelques minutes.");
   }
 
-  // Mélange pour alterner villes et métiers dans la liste du jour.
-  for (let i = candidates.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
-  }
+  candidates = orderByPriority(candidates);
 
   const { data, error } = await supabase.functions.invoke("radar-daily", { body: { candidates } });
   if (error) {

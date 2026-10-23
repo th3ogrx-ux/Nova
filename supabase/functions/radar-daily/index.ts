@@ -48,11 +48,14 @@ const WEBSITE_HEADERS = {
 
 // Doit rester identique aux clés de CATEGORY_TAGS dans src/radar-generate.js.
 const CATEGORIES = new Set([
-  "artisan_batiment", "plombier", "electricien", "couvreur", "menuisier", "chauffage_pac",
-  "cuisiniste", "paysagiste", "agence_immo", "courtier_assurance", "courtier_credit",
-  "expert_comptable", "consultant_formateur", "organisme_formation", "therapeute", "osteopathe",
-  "kine", "institut_beaute", "coiffeur", "photographe", "lieu_reception", "traiteur",
-  "auto_ecole", "salle_sport", "garage", "gite", "pme_industrielle"
+  // Priorité 1
+  "coiffeur", "barbier", "restaurant", "snack", "pizzeria", "electricien", "plombier", "chauffagiste",
+  // Priorité 2
+  "institut_beaute", "onglerie", "tatoueur", "garage", "carrossier", "salle_sport", "boxe", "osteopathe", "kine", "massage",
+  // Anciens métiers (compatibilité)
+  "artisan_batiment", "couvreur", "menuisier", "chauffage_pac", "cuisiniste", "paysagiste", "agence_immo", "courtier_assurance",
+  "courtier_credit", "expert_comptable", "consultant_formateur", "organisme_formation", "therapeute", "photographe",
+  "lieu_reception", "traiteur", "auto_ecole", "gite", "pme_industrielle"
 ]);
 const OSM_ID_RE = /^(node|way|relation)\/\d{1,15}$/;
 

@@ -5,6 +5,7 @@ import { supabase } from "../supabase.js";
 import { getCurrentUser } from "../session.js";
 import { readCache, writeCache, sameData } from "../data-cache.js";
 import { generateTodayLeadsIfNeeded } from "../radar-generate.js";
+import { CATEGORY_INFO } from "../radar-categories.js";
 
 const QUALITY_LABELS = {
   no_site: { label: "Pas de site", cls: "danger" },
@@ -182,6 +183,13 @@ function googleMapsUrl(lead) {
   return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
 }
 
+// Métier du prospect ; une étoile signale les métiers prioritaires (ceux qui vivent de Google Maps).
+function categoryPill(lead) {
+  const info = CATEGORY_INFO[lead.category];
+  if (!info) return "";
+  return `<span class="status-pill ${info.priority === 1 ? "warning" : "neutral"}" title="${info.priority === 1 ? "Priorité 1" : info.priority === 2 ? "Priorité 2" : "Ancien métier"}">${info.priority === 1 ? "★ " : ""}${escapeHtml(info.label)}</span>`;
+}
+
 function leadCardHtml(lead, tab) {
   const quality = QUALITY_LABELS[lead.site_quality] || QUALITY_LABELS.no_site;
   const actions = tab === "en_attente"
@@ -201,6 +209,7 @@ function leadCardHtml(lead, tab) {
         </div>
         ${lead.address ? `<div style="font-size:11px;color:var(--light-text-dim);margin-top:5px;opacity:.8;">📍 ${escapeHtml(lead.address)}</div>` : ""}
       </div>
+      ${categoryPill(lead)}
       <span class="status-pill neutral">${quality.label}</span>
       <div style="display:flex;gap:8px;">${actions}</div>
       ${tab === "historique" ? `
