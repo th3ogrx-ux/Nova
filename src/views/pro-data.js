@@ -97,24 +97,20 @@ export const MISSING_MESSAGE = "Le module Prospection n'est pas encore installé
 export async function loadAll() {
   const since = dateKey(addDays(new Date(), -7 * 30)); // 30 semaines d'historique
   const q = (t) => supabase.from(t).select("*");
-  const [strategies, scripts, logs, prospects, offers, reviews, settings, videos] = await Promise.all([
+  const [strategies, scripts, logs, prospects, offers, reviews, settings] = await Promise.all([
     q("pro_strategies").order("position").order("created_at"),
     q("pro_scripts").order("version"),
     q("pro_logs").gte("jour", since).order("jour", { ascending: false }).order("created_at", { ascending: false }).limit(5000),
     q("pro_prospects").order("position").order("created_at", { ascending: false }),
     q("pro_offers").order("position").order("prix"),
     q("pro_reviews").order("semaine", { ascending: false }).limit(60),
-    q("pro_settings").maybeSingle(),
-    q("pro_videos").order("jour").order("created_at").limit(3000)
+    q("pro_settings").maybeSingle()
   ]);
   const failed = [strategies, scripts, logs, prospects, offers, reviews, settings].find((r) => r.error);
   if (failed) throw failed.error;
   return {
     strategies: strategies.data || [], scripts: scripts.data || [], logs: logs.data || [],
     prospects: prospects.data || [], offers: offers.data || [], reviews: reviews.data || [],
-    // La table des vidéos est récente : si le SQL n'est pas encore collé, le reste de la prospection continue de marcher.
-    videos: videos.error ? [] : videos.data || [],
-    videosMissing: !!videos.error,
     objectif: (settings.data && settings.data.objectif_hebdo) || 50
   };
 }
@@ -267,7 +263,12 @@ export function offerPriceLabel(o) {
   return fmtEuro(o.prix) + (o.periode === "mois" ? " / mois" : "");
 }
 
-// ---------- Calendrier de contenu ----------
+// ---------- Calendrier de contenu (page « Calendrier ») ----------
+export async function loadVideos() {
+  const res = await supabase.from("pro_videos").select("*").order("jour").order("created_at").limit(3000);
+  if (res.error) { if (isMissingTable(res.error)) return { videos: [], videosMissing: true }; throw res.error; }
+  return { videos: res.data || [], videosMissing: false };
+}
 export async function saveVideo(values, id) {
   return id ? run(supabase.from("pro_videos").update(values).eq("id", id).select().single())
             : run(supabase.from("pro_videos").insert({ ...values, user_id: await uid() }).select().single());

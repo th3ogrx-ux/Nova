@@ -136,6 +136,8 @@ Voir [`docs/SECURITE.md`](docs/SECURITE.md) (protections, réglages Supabase/Ver
 
 ## Module Prospection
 
+Page **Calendrier** (admin uniquement) : calendrier de création de contenu (vidéos du mois, plusieurs par jour, 3 types, scripts, avancement, saisie en lot).
+
 Page **Prospection** (admin uniquement) : tableau de bord (chiffres clés, entonnoir, objectif, évolution, calendrier de chaleur, classement), stratégies (cartes, Kanban, détail avec scripts A/B), pipeline des prospects, scripts et packs d'offre, revue de la semaine, et bouton « + » de saisie rapide.
 
 Installation : coller **`prospection.sql`** dans Supabase (SQL Editor > Run) **après** `espace.sql` et `securite.sql`. Les données sont rattachées à ton compte et réservées à l'admin (voir `tests/sql/isolation.sql`).

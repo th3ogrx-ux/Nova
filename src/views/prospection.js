@@ -7,14 +7,12 @@ import { renderStrategies } from "./pro-strategies.js";
 import { renderPipeline } from "./pro-pipeline.js";
 import { renderScripts } from "./pro-scripts.js";
 import { renderReview } from "./pro-review.js";
-import { renderContent } from "./pro-content.js";
 
 const TABS = [
   { key: "dashboard", label: "Tableau de bord", render: renderDashboard, skel: "dashboard" },
   { key: "strategies", label: "Stratégies", render: renderStrategies, skel: "cols" },
   { key: "pipeline", label: "Pipeline", render: renderPipeline, skel: "cols" },
   { key: "scripts", label: "Scripts et offres", render: renderScripts, skel: "dashboard" },
-  { key: "content", label: "Contenu", render: renderContent, skel: "dashboard" },
   { key: "review", label: "Revue", render: renderReview, skel: "dashboard" }
 ];
 const TAB_KEY = "zenoa-pro-tab";

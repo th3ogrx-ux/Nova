@@ -10,6 +10,7 @@ import { supabase, supabaseConfigured } from "./supabase.js";
 import { renderDashboard } from "./views/dashboard.js";
 import { renderRecherche } from "./views/recherche.js";
 import { renderProspection } from "./views/prospection.js";
+import { renderCalendrier } from "./views/calendrier.js";
 import { renderEspace } from "./views/espace.js";
 import { renderMessages } from "./views/messages.js";
 import { renderClients } from "./views/clients.js";
@@ -50,6 +51,7 @@ const VIEWS = {
   dashboard: { render: renderDashboard, title: "Tableau de bord", roles: ["admin", "radar"] },
   recherche: { render: renderRecherche, title: "Radar", roles: ["admin", "radar"] },
   prospection: { render: renderProspection, title: "Prospection", roles: ["admin"] },
+  calendrier: { render: renderCalendrier, title: "Calendrier", roles: ["admin"] },
   clients: { render: renderClients, title: "Clients", roles: ["admin"] },
   espace: { render: renderEspace, title: "Mon espace", roles: ["client", "admin"] },
   messages: { render: renderMessages, title: "Messages", roles: ["client", "admin"] },
