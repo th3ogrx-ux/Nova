@@ -175,6 +175,13 @@ function wireNote(card, lead) {
   return { flush: queueSave };
 }
 
+// Lien vers la fiche Google de l'entreprise : une recherche Google Maps sur son nom et son adresse
+// (adresse officielle de Google Maps, sans clé ni compte). On y voit la note, les avis et les photos.
+function googleMapsUrl(lead) {
+  const query = [lead.name, lead.address].filter(Boolean).join(" ");
+  return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
+}
+
 function leadCardHtml(lead, tab) {
   const quality = QUALITY_LABELS[lead.site_quality] || QUALITY_LABELS.no_site;
   const actions = tab === "en_attente"
@@ -189,6 +196,7 @@ function leadCardHtml(lead, tab) {
         <div style="font-size:12.5px;color:var(--light-text-dim);margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;">
           ${lead.phone ? `<span style="color:var(--ok);font-weight:600;">📞 ${escapeHtml(lead.phone)}</span>` : ""}
           ${lead.email ? `<span style="color:var(--accent-blue-2);font-weight:600;">✉️ ${escapeHtml(lead.email)}</span>` : ""}
+          <a href="${escapeHtml(googleMapsUrl(lead))}" target="_blank" rel="noopener noreferrer" style="color:var(--accent-blue-1);" title="Voir la fiche Google, la note et les avis">⭐ Fiche Google</a>
           ${lead.website && safeHttpUrl(lead.website) ? `<a href="${escapeHtml(safeHttpUrl(lead.website))}" target="_blank" rel="noopener" style="color:var(--accent-blue-1);">🔗 Site web</a>` : ""}
         </div>
         ${lead.address ? `<div style="font-size:11px;color:var(--light-text-dim);margin-top:5px;opacity:.8;">📍 ${escapeHtml(lead.address)}</div>` : ""}
