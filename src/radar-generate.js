@@ -12,14 +12,21 @@ import { OSM_FILTERS, categoryOf, orderByPriority, isChainOrBig } from "./radar-
 
 export const LEADS_PER_DAY = 50;
 const CITIES_PER_DAY = 3;
-const SEARCH_RADIUS_METERS = 10000;
-const RESULTS_PER_CITY = 2500; // restaurants et coiffeurs sont très nombreux : on laisse de la place à tous les métiers
-const OVERPASS_TIMEOUT_MS = 30000;
+const SEARCH_RADIUS_METERS = 8000;
+const RESULTS_PER_CITY = 1500;
+const ENOUGH_CANDIDATES = 250; // inutile de continuer à chercher : on n'enregistre que 50 prospects par jour
+const OVERPASS_TIMEOUT_MS = 22000;
+// Plusieurs serveurs gratuits : quand l'un est lent ou refuse, on passe au suivant, et on le laisse de côté un moment.
 const OVERPASS_ENDPOINTS = [
+  "https://overpass.openstreetmap.fr/api/interpreter",
   "https://overpass-api.de/api/interpreter",
+  "https://lz4.overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
   "https://overpass.private.coffee/api/interpreter"
 ];
+const restUntil = new Map(); // serveur -> heure avant laquelle on l'évite (il vient d'échouer)
+const REST_MS = 90000;
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Grandes villes réparties sur tout le territoire.
 const CITIES = [
@@ -90,8 +97,12 @@ function buildAddress(tags) {
 
 async function runOverpass(query, firstEndpoint) {
   let lastError = "";
-  for (let k = 0; k < OVERPASS_ENDPOINTS.length; k++) {
-    const endpoint = OVERPASS_ENDPOINTS[(firstEndpoint + k) % OVERPASS_ENDPOINTS.length];
+  const now = Date.now();
+  const all = OVERPASS_ENDPOINTS.map((_, k) => OVERPASS_ENDPOINTS[(firstEndpoint + k) % OVERPASS_ENDPOINTS.length]);
+  // Les serveurs qui viennent d'échouer passent en dernier (mais restent essayés si tout le reste échoue).
+  const ordered = [...all.filter((e) => (restUntil.get(e) || 0) <= now), ...all.filter((e) => (restUntil.get(e) || 0) > now)];
+  for (const endpoint of ordered) {
+    const host = new URL(endpoint).host;
     try {
       const res = await fetch(endpoint, {
         method: "POST",
@@ -100,21 +111,24 @@ async function runOverpass(query, firstEndpoint) {
         signal: AbortSignal.timeout(OVERPASS_TIMEOUT_MS)
       });
       if (!res.ok) {
-        lastError = endpoint + " a répondu " + res.status;
+        lastError = host + " a répondu " + res.status;
+        restUntil.set(endpoint, Date.now() + REST_MS);
         continue;
       }
       const data = await res.json();
       // Overpass répond 200 avec une "remark" quand la requête expire.
       if (data.remark && !(data.elements || []).length) {
-        lastError = endpoint + " : " + data.remark;
+        lastError = host + " : " + data.remark;
+        restUntil.set(endpoint, Date.now() + REST_MS);
         continue;
       }
+      restUntil.delete(endpoint);
       return data.elements || [];
     } catch (err) {
       // "Failed to fetch" : le serveur a répondu une erreur sans en-têtes
       // CORS (le navigateur masque alors le code), ou n'est pas joignable.
-      const host = new URL(endpoint).host;
       lastError = err.name === "TimeoutError" ? host + " : trop lent" : host + " : refusé ou injoignable";
+      restUntil.set(endpoint, Date.now() + REST_MS);
     }
   }
   throw new Error(lastError);
@@ -125,23 +139,25 @@ async function runOverpass(query, firstEndpoint) {
 // Overpass rejetaient (406 / erreurs sans en-têtes CORS) la requête à
 // 54 filtres ["clé"="valeur"], motif typique de ce que les pare-feux
 // applicatifs prennent pour une injection SQL.
+// Seules les fiches qui ont un site ou un e-mail nous servent : on le demande au serveur (beaucoup moins de résultats, donc plus rapide).
+const HAS_CONTACT = '[~"^(website|contact:website|email|contact:email)$"~"."]';
 function buildTagStatements() {
   return Object.entries(OSM_FILTERS)
     .map(([key, values]) => {
       const filter = values.length === 1 ? `[${key}=${values[0]}]` : `[${key}~"^(${values.join("|")})$"]`;
-      return `node${filter};way${filter};`;
+      return `node${filter}[name]${HAS_CONTACT};way${filter}[name]${HAS_CONTACT};`;
     })
     .join("");
 }
 
 // Toutes les entreprises joignables (téléphone ou email) des
 // métiers ciblés, dans un rectangle autour de la ville.
-async function searchCity(city, firstEndpoint) {
-  const dLat = SEARCH_RADIUS_METERS / 111320;
-  const dLon = SEARCH_RADIUS_METERS / (111320 * Math.cos((city.lat * Math.PI) / 180));
+async function searchCity(city, firstEndpoint, radius = SEARCH_RADIUS_METERS) {
+  const dLat = radius / 111320;
+  const dLon = radius / (111320 * Math.cos((city.lat * Math.PI) / 180));
   const bbox = [city.lat - dLat, city.lon - dLon, city.lat + dLat, city.lon + dLon].map((n) => n.toFixed(4)).join(",");
   const statements = buildTagStatements();
-  const elements = await runOverpass(`[out:json][timeout:25][bbox:${bbox}];(${statements});out center tags ${RESULTS_PER_CITY};`, firstEndpoint);
+  const elements = await runOverpass(`[out:json][timeout:20][bbox:${bbox}];(${statements});out center tags ${RESULTS_PER_CITY};`, firstEndpoint);
 
   const results = [];
   for (const el of elements) {
@@ -191,10 +207,18 @@ export async function generateTodayLeadsIfNeeded(userId, onStatus) {
   // Une ville après l'autre : les serveurs Overpass limitent le nombre
   // de requêtes simultanées par visiteur.
   for (let i = 0; i < cities.length; i++) {
+    if (candidates.length >= ENOUGH_CANDIDATES) break;
+    onStatus(`Le Radar cherche tes entreprises du jour… (${cities[i].name})`);
     try {
       candidates = candidates.concat(await searchCity(cities[i], i));
     } catch (err) {
-      errors.push(cities[i].name + " : " + err.message);
+      // Nouvel essai plus léger (zone réduite de moitié) après une courte pause : les serveurs gratuits saturent par moments.
+      try {
+        await wait(2500);
+        candidates = candidates.concat(await searchCity(cities[i], i + 1, SEARCH_RADIUS_METERS / 2));
+      } catch (err2) {
+        errors.push(cities[i].name + " : " + err2.message);
+      }
     }
   }
   if (!candidates.length) {

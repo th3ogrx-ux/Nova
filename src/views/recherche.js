@@ -101,7 +101,8 @@ function initLeadsTabs(root) {
       statusEl.innerHTML = "";
       if (added && activeTab === "en_attente") await loadTab("en_attente", { useCache: false });
     } catch (err) {
-      statusEl.innerHTML = `<p class="error-msg" style="margin-bottom:12px;">${escapeHtml(err.message)}</p>`;
+      statusEl.innerHTML = `<p class="error-msg" style="margin-bottom:12px;">${escapeHtml(err.message)}</p><button type="button" class="btn ghost btn-sm" data-retry style="margin-bottom:12px;">Réessayer maintenant</button>`;
+      statusEl.querySelector("[data-retry]").addEventListener("click", generateToday);
     }
   }
 
