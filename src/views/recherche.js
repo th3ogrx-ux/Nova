@@ -5,7 +5,7 @@ import { supabase } from "../supabase.js";
 import { getCurrentUser } from "../session.js";
 import { readCache, writeCache, sameData } from "../data-cache.js";
 import { generateTodayLeadsIfNeeded } from "../radar-generate.js";
-import { CATEGORY_INFO } from "../radar-categories.js";
+import { CATEGORY_INFO, qualifyLead } from "../radar-categories.js";
 
 const QUALITY_LABELS = {
   no_site: { label: "Pas de site", cls: "danger" },
@@ -124,6 +124,7 @@ function renderLeads(container, leads, tab, onChanged) {
     const card = container.querySelector(`[data-lead-id="${lead.id}"]`);
     if (!card) return;
     const note = tab === "historique" ? wireNote(card, lead) : null;
+    wireQual(card, lead);
     card.querySelectorAll("[data-status]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         if (btn.dataset.status === lead.status) return;
@@ -183,6 +184,78 @@ function googleMapsUrl(lead) {
   return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
 }
 
+// ---------- Qualification avec la fiche Google (saisie à la main) ----------
+const VERDICT = {
+  ok: { text: "✓ Qualifié", cls: "ok" },
+  ko: { text: "✗ Hors critères", cls: "danger" },
+  incomplete: { text: "", cls: "warning" },
+  none: { text: "À qualifier", cls: "neutral" }
+};
+const triState = (v) => (v === true ? "true" : v === false ? "false" : "");
+
+function qualChecksHtml(lead) {
+  const q = qualifyLead(lead);
+  return q.checks.map((c) => `<li class="${c.ok === true ? "ok" : c.ok === false ? "ko" : "na"}"><b aria-hidden="true">${c.ok === true ? "✓" : c.ok === false ? "✗" : "○"}</b><span>${escapeHtml(c.label)}</span></li>`).join("");
+}
+function qualPillHtml(lead) {
+  const q = qualifyLead(lead), v = VERDICT[q.verdict];
+  const text = q.verdict === "incomplete" ? `${q.filled}/${q.total} renseignés` : v.text;
+  return `<span class="status-pill ${v.cls}" data-qual-pill>${escapeHtml(text)}</span>`;
+}
+function qualHtml(lead) {
+  const val = (v) => (v === null || v === undefined ? "" : escapeHtml(v));
+  return `<details class="radar-qual" data-qual style="flex-basis:100%;">
+    <summary>Qualifier avec la fiche Google ${qualPillHtml(lead)}</summary>
+    <div class="radar-qual-body">
+      <p class="radar-qual-help">Ouvre la fiche (lien « ⭐ Fiche Google ») puis note ce que tu vois : le Radar vérifie tes critères.</p>
+      <div class="radar-qual-grid">
+        <label>Nombre d'avis<input type="number" min="0" inputmode="numeric" data-q="g_avis" value="${val(lead.g_avis)}"></label>
+        <label>Note (sur 5)<input type="number" min="1" max="5" step="0.1" inputmode="decimal" data-q="g_note" value="${val(lead.g_note)}"></label>
+        <label>Nombre de photos<input type="number" min="0" inputmode="numeric" data-q="g_photos" value="${val(lead.g_photos)}"></label>
+        <label>Description présente ?<select data-q="g_description"><option value=""${triState(lead.g_description) === "" ? " selected" : ""}>—</option><option value="true"${triState(lead.g_description) === "true" ? " selected" : ""}>Oui</option><option value="false"${triState(lead.g_description) === "false" ? " selected" : ""}>Non</option></select></label>
+        <label>Des avis sans réponse ?<select data-q="g_sans_reponse"><option value=""${triState(lead.g_sans_reponse) === "" ? " selected" : ""}>—</option><option value="true"${triState(lead.g_sans_reponse) === "true" ? " selected" : ""}>Oui</option><option value="false"${triState(lead.g_sans_reponse) === "false" ? " selected" : ""}>Non</option></select></label>
+        <label>Date du dernier avis<input type="date" data-q="g_dernier_avis" value="${val(lead.g_dernier_avis)}"></label>
+      </div>
+      <ul class="radar-qual-checks" data-qual-checks>${qualChecksHtml(lead)}</ul>
+      <div class="radar-qual-status" data-qual-status aria-live="polite"></div>
+    </div></details>`;
+}
+
+// Enregistre chaque saisie (au bout de 600 ms) et met le verdict à jour tout de suite, sans recharger la liste.
+function wireQual(card, lead) {
+  const statusEl = card.querySelector("[data-qual-status]");
+  let timer = null, pending = Promise.resolve();
+  const read = () => {
+    const out = {};
+    card.querySelectorAll("[data-q]").forEach((el) => {
+      const key = el.dataset.q, raw = el.value.trim();
+      if (key === "g_description" || key === "g_sans_reponse") out[key] = raw === "" ? null : raw === "true";
+      else if (key === "g_dernier_avis") out[key] = raw || null;
+      else out[key] = raw === "" ? null : Number(raw);
+    });
+    return out;
+  };
+  const refreshView = () => {
+    card.querySelector("[data-qual-pill]").outerHTML = qualPillHtml(lead);
+    card.querySelector("[data-qual-checks]").innerHTML = qualChecksHtml(lead);
+  };
+  async function save() {
+    const values = read();
+    const { error } = await supabase.from("radar_leads").update(values).eq("id", lead.id);
+    statusEl.textContent = error
+      ? (/g_|column|schema cache/i.test(error.message || "") ? "Non enregistré : colle radar-qualification.sql dans Supabase (SQL Editor > Run), puis recharge." : "Non enregistré : " + error.message)
+      : "Enregistré ✓";
+  }
+  const onChange = () => {
+    Object.assign(lead, read());
+    refreshView();
+    statusEl.textContent = "";
+    clearTimeout(timer);
+    timer = setTimeout(() => { pending = pending.then(save); }, 600);
+  };
+  card.querySelectorAll("[data-q]").forEach((el) => { el.addEventListener("input", onChange); el.addEventListener("change", onChange); });
+}
+
 // Métier du prospect ; une étoile signale les métiers prioritaires (ceux qui vivent de Google Maps).
 function categoryPill(lead) {
   const info = CATEGORY_INFO[lead.category];
@@ -212,6 +285,7 @@ function leadCardHtml(lead, tab) {
       ${categoryPill(lead)}
       <span class="status-pill neutral">${quality.label}</span>
       <div style="display:flex;gap:8px;">${actions}</div>
+      ${qualHtml(lead)}
       ${tab === "historique" ? `
         <div style="flex-basis:100%;">
           <textarea data-note rows="2" maxlength="2000" placeholder="Ajouter une note…" style="font-size:13px;padding:9px 12px;resize:vertical;min-height:40px;">${escapeHtml(lead.note || "")}</textarea>

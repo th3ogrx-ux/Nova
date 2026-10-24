@@ -8,7 +8,7 @@
 // enregistre les prospects et cherche les emails sur leurs sites (ce
 // que le navigateur ne peut pas faire, faute d'autorisation CORS).
 import { supabase } from "./supabase.js";
-import { OSM_FILTERS, categoryOf, orderByPriority } from "./radar-categories.js";
+import { OSM_FILTERS, categoryOf, orderByPriority, isChainOrBig } from "./radar-categories.js";
 
 export const LEADS_PER_DAY = 50;
 const CITIES_PER_DAY = 3;
@@ -148,12 +148,12 @@ async function searchCity(city, firstEndpoint) {
     const tags = el.tags || {};
     const category = categoryOf(tags);
     if (!tags.name || !category) continue;
+    if (isChainOrBig(tags)) continue; // indépendants seulement : ni chaîne, ni plus de 10 employés
     const website = tags.website || tags["contact:website"] || null;
     const phone = tags.phone || tags["contact:phone"] || null;
     const email = tags.email || tags["contact:email"] || null;
-    // Un site seul ne suffit pas : l'email n'y est pas toujours trouvable,
-    // et la fiche resterait alors sans aucun moyen de contact direct.
-    if (!phone && !email) continue;
+    // Il faut un e-mail : soit déjà connu, soit à chercher sur le site (l'edge function vérifie le site et l'e-mail).
+    if (!email && !website) continue;
     results.push({
       osm_id: el.type + "/" + el.id,
       name: tags.name,

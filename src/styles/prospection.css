@@ -526,3 +526,19 @@ i.pro-cell.l1 { background: rgba(225, 29, 46, .28); } i.pro-cell.l2 { background
   .pro-toolbar-right { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .pro-meter i { animation-delay: 0s; } }
+
+/* ---------- Radar : qualification avec la fiche Google ---------- */
+.radar-qual { border-top: 1px dashed var(--light-border); padding-top: 8px; }
+.radar-qual > summary { cursor: pointer; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12.5px; font-weight: 700; color: var(--light-text); list-style-position: inside; }
+.radar-qual-body { padding: 10px 0 2px; }
+.radar-qual-help { margin: 0 0 10px; font-size: 12.5px; color: var(--light-text-dim); }
+.radar-qual-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; }
+.radar-qual-grid label { display: flex; flex-direction: column; gap: 5px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--light-text-dim); min-width: 0; }
+.radar-qual-grid input, .radar-qual-grid .zs-btn { font-size: 14px; padding: 8px 10px; min-height: 40px; text-transform: none; letter-spacing: normal; }
+.radar-qual-checks { list-style: none; padding: 0; margin: 12px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 14px; font-size: 12.5px; }
+.radar-qual-checks li { display: flex; gap: 8px; align-items: flex-start; color: var(--light-text-dim); }
+.radar-qual-checks li b { width: 16px; text-align: center; flex-shrink: 0; }
+.radar-qual-checks li.ok { color: var(--ok); } .radar-qual-checks li.ko { color: var(--danger); font-weight: 700; }
+.radar-qual-status { min-height: 16px; margin-top: 8px; font-size: 12px; color: var(--ok); }
+#app:not([data-theme="dark"]) .radar-qual-checks li.ok, #app:not([data-theme="dark"]) .radar-qual-status { color: #1b7443; }
+@media (max-width: 640px) { .radar-qual-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .radar-qual-checks { grid-template-columns: minmax(0, 1fr); } }

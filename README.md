@@ -141,3 +141,9 @@ Page **Calendrier** (admin uniquement) : calendrier de création de contenu (vid
 Page **Prospection** (admin uniquement) : tableau de bord (chiffres clés, entonnoir, objectif, évolution, calendrier de chaleur, classement), stratégies (cartes, Kanban, détail avec scripts A/B), pipeline des prospects, scripts et packs d'offre, revue de la semaine, et bouton « + » de saisie rapide.
 
 Installation : coller **`prospection.sql`** dans Supabase (SQL Editor > Run) **après** `espace.sql` et `securite.sql`. Les données sont rattachées à ton compte et réservées à l'admin (voir `tests/sql/isolation.sql`).
+
+## Radar : cibles et critères
+
+- **Quoi** (dans l'ordre) : coiffeurs/barbiers, restaurants/snacks/pizzerias, artisans (électriciens, plombiers, chauffagistes).
+- **Filtrés automatiquement** : indépendants (pas de chaînes, pas plus de 10 employés), site absent ou ancien, e-mail trouvé (OpenStreetMap ou site du commerce). Fonction `supabase/functions/radar-daily` à redéployer après chaque mise à jour.
+- **À vérifier à la main** depuis la fiche Google (Google ne les donne pas gratuitement) : avis, note, photos, description, réponses, dernier avis. `radar-qualification.sql` ajoute les champs ; le Radar affiche « ✓ Qualifié » ou « ✗ Hors critères ».
