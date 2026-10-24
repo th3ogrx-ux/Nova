@@ -74,14 +74,27 @@ async function userFrom(req: Request, db: any) {
   const { data, error } = await db.auth.getUser(token);
   return error || !data || !data.user ? null : data.user;
 }
-async function isAdmin(db: any, userId: string) {
+// Qui peut publier : l'admin, ou un membre de l'équipe dont le rôle permet de voir ET modifier les audits.
+// Renvoie le propriétaire des audits (l'admin), ou null si l'accès est refusé.
+async function ownerFor(db: any, userId: string): Promise<string | null> {
   const { data } = await db.from("espace_profiles").select("role").eq("id", userId).maybeSingle();
-  return !!data && data.role === "admin";
+  if (data && data.role === "admin") return userId;
+  const { data: m } = await db.from("team_members").select("role_id").eq("user_id", userId).maybeSingle();
+  if (!m || !m.role_id) return null;
+  const { data: role } = await db.from("team_roles").select("perms").eq("id", m.role_id).maybeSingle();
+  const p = role && role.perms && role.perms.audits;
+  if (!p || p.view !== true || p.edit !== true) return null;
+  const { data: owner } = await db.from("espace_profiles").select("id").eq("role", "admin").limit(1).maybeSingle();
+  return owner ? owner.id : null;
+}
+async function isTeamMember(db: any, userId: string) {
+  const { data } = await db.from("team_members").select("user_id").eq("user_id", userId).maybeSingle();
+  return !!data;
 }
 
-async function publish(db: any, user: any, body: any) {
+async function publish(db: any, ownerId: string, body: any) {
   if (!UUID_RE.test(String(body.audit_id))) return json({ error: "Audit introuvable." }, 400);
-  const { data: audit } = await db.from("audits").select("id,title,client_name,cover_path,logo_path,content,slug").eq("id", body.audit_id).eq("user_id", user.id).maybeSingle();
+  const { data: audit } = await db.from("audits").select("id,title,client_name,cover_path,logo_path,content,slug").eq("id", body.audit_id).eq("user_id", ownerId).maybeSingle();
   if (!audit) return json({ error: "Audit introuvable." }, 404);
   const patch: Record<string, unknown> = {
     status: "published",
@@ -105,9 +118,9 @@ async function publish(db: any, user: any, body: any) {
   return json({ audit: data });
 }
 
-async function unpublish(db: any, user: any, body: any) {
+async function unpublish(db: any, ownerId: string, body: any) {
   if (!UUID_RE.test(String(body.audit_id))) return json({ error: "Audit introuvable." }, 400);
-  const { data, error } = await db.from("audits").update({ status: "draft" }).eq("id", body.audit_id).eq("user_id", user.id)
+  const { data, error } = await db.from("audits").update({ status: "draft" }).eq("id", body.audit_id).eq("user_id", ownerId)
     .select("id,status,slug,has_password,expires_at,published_at").maybeSingle();
   if (error || !data) return json({ error: "Audit introuvable." }, 404);
   return json({ audit: data });
@@ -143,7 +156,8 @@ async function view(db: any, req: Request, body: any) {
   const countView = async () => {
     if (body.count === false) return;
     const viewer = req.headers.get("Authorization") ? await userFrom(req, db) : null;
-    if (!(viewer && viewer.id === a.user_id)) await db.from("audit_views").insert({ audit_id: a.id });
+    const mine = viewer && (viewer.id === a.user_id || (await isTeamMember(db, viewer.id)));
+    if (!mine) await db.from("audit_views").insert({ audit_id: a.id });
   };
   const sign = async () => {
     if (!paths.length) return;
@@ -166,8 +180,9 @@ Deno.serve(async (req: Request) => {
     if (body.action === "publish" || body.action === "unpublish") {
       const user = await userFrom(req, db);
       if (!user) return json({ error: "Non authentifié." }, 401);
-      if (!(await isAdmin(db, user.id))) return json({ error: "Action réservée à l'administrateur." }, 403);
-      return body.action === "publish" ? await publish(db, user, body) : await unpublish(db, user, body);
+      const ownerId = await ownerFor(db, user.id);
+      if (!ownerId) return json({ error: "Action réservée à l'administrateur." }, 403);
+      return body.action === "publish" ? await publish(db, ownerId, body) : await unpublish(db, ownerId, body);
     }
     return json({ error: "Action inconnue." }, 400);
   } catch (e) {

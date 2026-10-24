@@ -15,7 +15,7 @@ try { ({ handle, generateTempPassword } = await import("./.espace-admin.tmp.ts")
 
 // ---------- fausse base en mémoire ----------
 function makeDb() {
-  const tables = { espace_businesses: [], espace_profiles: [], audit_log: [] };
+  const tables = { espace_businesses: [], espace_profiles: [], audit_log: [], team_members: [], team_roles: [], team_presence: [], user_profiles: [] };
   const users = new Map();   // id -> { id, email, password, user_metadata, last_sign_in_at }
   const tokens = new Map();  // token -> userId
   let seq = 0; const failProfileInsert = { on: false };
@@ -45,7 +45,7 @@ function makeDb() {
       admin: {
         createUser: async ({ email, password, user_metadata }) => {
           if ([...users.values()].some(u => u.email === email)) return { data: null, error: { message: "A user with this email address has already been registered" } };
-          const u = { id: `u${++seq}`, email, password, user_metadata: user_metadata || {}, last_sign_in_at: null }; users.set(u.id, u); return { data: { user: u }, error: null };
+          const u = { id: `00000000-0000-4000-9000-${String(++seq).padStart(12, "0")}`, email, password, user_metadata: user_metadata || {}, last_sign_in_at: null }; users.set(u.id, u); return { data: { user: u }, error: null };
         },
         updateUserById: async (id, attrs) => { const u = users.get(id); if (!u) return { data: null, error: { message: "nf" } }; if (attrs.password) u.password = attrs.password; if (attrs.user_metadata) u.user_metadata = { ...u.user_metadata, ...attrs.user_metadata }; return { data: { user: u }, error: null }; },
         getUserById: async (id) => users.has(id) ? { data: { user: users.get(id) }, error: null } : { data: null, error: { message: "nf" } },
@@ -53,7 +53,7 @@ function makeDb() {
       }
     }
   };
-  const addUser = (email, role, businessId, token) => { const u = { id: `u${++seq}`, email, user_metadata: {}, last_sign_in_at: null }; users.set(u.id, u); tokens.set(token, u.id); if (role) tables.espace_profiles.push({ id: u.id, role, business_id: businessId || null }); return u; };
+  const addUser = (email, role, businessId, token) => { const u = { id: `00000000-0000-4000-9000-${String(++seq).padStart(12, "0")}`, email, user_metadata: {}, last_sign_in_at: null }; users.set(u.id, u); tokens.set(token, u.id); if (role) tables.espace_profiles.push({ id: u.id, role, business_id: businessId || null }); return u; };
   return { db, tables, users, tokens, addUser, failProfileInsert };
 }
 const call = (db, body, { token, method = "POST" } = {}) => handle(new Request("https://x.test/fn", { method, headers: { "content-type": "application/json", ...(token ? { authorization: "Bearer " + token } : {}) }, body: method === "POST" ? JSON.stringify(body) : undefined }), db);
@@ -114,4 +114,37 @@ assert.ok([...w.users.values()].some(x => x.email === "admin@zenoa.fr")); assert
 r = await read(await call(w.db, { action: "nimporte", }, { token: T.admin })); assert.equal(r.status, 400); ok("action inconnue -> 400");
 assert.deepEqual(w.tables.audit_log.map(a => a.type), ["client_created", "client_password_reset", "client_deleted"]); assert.ok(w.tables.audit_log.every(a => a.actor === adminId && !JSON.stringify(a).includes("@")));
 ok("journal : création / réinitialisation / suppression enregistrées, sans e-mail ni mot de passe");
+
+// ---------- 5. équipe ----------
+w = makeDb();
+w.addUser("admin@zenoa.fr", "admin", null, T.admin);
+const biz2 = (await w.db.from("espace_businesses").insert({ nom: "Salon Éclat" }).select("id").single()).data;
+const cu = w.addUser("client@eclat.fr", "client", biz2.id, T.client); cu.last_sign_in_at = "2026-10-20T10:00:00Z";
+const role = (await w.db.from("team_roles").insert({ nom: "Setter", perms: {} }).select("id").single()).data;
+for (const action of ["team_list", "team_create", "team_remove", "team_reset_password"]) { r = await read(await call(w.db, { action, email: "x@y.fr", user_id: cu.id }, { token: T.client })); assert.equal(r.status, 403); }
+assert.equal(w.users.size, 2); ok("équipe : toutes les actions refusées à un client");
+r = await read(await call(w.db, { action: "team_create", email: "pas-un-email" }, { token: T.admin })); assert.equal(r.status, 400);
+r = await read(await call(w.db, { action: "team_create", email: "a@b.fr", role_id: "pas-un-uuid" }, { token: T.admin })); assert.equal(r.status, 400);
+r = await read(await call(w.db, { action: "team_create", email: "a@b.fr", role_id: "00000000-0000-4000-8000-0000000000aa" }, { token: T.admin })); assert.equal(r.status, 400);
+assert.equal(w.tables.team_members.length, 0); assert.equal(w.users.size, 2); ok("team_create : email / rôle invalides -> 400, rien créé");
+r = await read(await call(w.db, { action: "team_create", email: " Lea@Zenoa.fr ", role_id: role.id, pseudo: "Léa" }, { token: T.admin }));
+assert.equal(r.status, 200); assert.equal(r.body.email, "lea@zenoa.fr"); assert.match(r.body.temp_password, /^\S{4}-\S{4}-\S{4}$/);
+const mu = [...w.users.values()].find(x => x.email === "lea@zenoa.fr"); assert.equal(mu.user_metadata.must_change_password, true);
+assert.deepEqual(w.tables.team_members.map(m => [m.user_id, m.role_id]), [[mu.id, role.id]]); assert.equal(w.tables.user_profiles[0].pseudo, "Léa");
+assert.ok(!w.tables.espace_profiles.some(p => p.id === mu.id)); ok("team_create : compte + membre lié au rôle + pseudo, sans profil client/admin");
+r = await read(await call(w.db, { action: "team_create", email: "lea@zenoa.fr" }, { token: T.admin })); assert.equal(r.status, 409); ok("team_create : email déjà utilisé -> 409");
+w.tables.team_presence.push({ user_id: mu.id, last_seen: "2026-10-24T09:00:00Z" });
+r = await read(await call(w.db, { action: "team_list" }, { token: T.admin }));
+assert.equal(r.body.members.length, 1); assert.equal(r.body.members[0].email, "lea@zenoa.fr"); assert.equal(r.body.members[0].last_seen, "2026-10-24T09:00:00Z"); assert.equal(r.body.members[0].pseudo, "Léa");
+assert.equal(r.body.partners.length, 1); assert.equal(r.body.partners[0].nom, "Salon Éclat"); assert.equal(r.body.partners[0].last_sign_in_at, "2026-10-20T10:00:00Z");
+ok("team_list : membres (rôle, activité, pseudo) séparés des partenaires (clients, dernière connexion)");
+r = await read(await call(w.db, { action: "team_reset_password", user_id: mu.id }, { token: T.admin })); assert.equal(r.status, 200); assert.equal(mu.password, r.body.temp_password);
+r = await read(await call(w.db, { action: "team_reset_password", user_id: cu.id }, { token: T.admin })); assert.equal(r.status, 404); ok("team_reset_password : membre oui, client non");
+r = await read(await call(w.db, { action: "team_remove", user_id: adminId2() }, { token: T.admin })); assert.equal(r.status, 404);
+function adminId2() { return [...w.users.values()][0].id; }
+r = await read(await call(w.db, { action: "team_remove", user_id: cu.id }, { token: T.admin })); assert.equal(r.status, 404);
+assert.equal(w.users.size, 3); ok("team_remove : impossible sur l'admin ou sur un client");
+r = await read(await call(w.db, { action: "team_remove", user_id: mu.id }, { token: T.admin }));
+assert.equal(r.status, 200); assert.ok(!w.users.has(mu.id)); assert.equal(w.tables.team_members.length, 0); assert.equal(w.users.size, 2); ok("team_remove : le membre est exclu (compte supprimé)");
+assert.ok(w.tables.audit_log.every(a => !JSON.stringify(a).includes("@"))); ok("journal d'équipe : sans e-mail");
 console.log(`\n${passed} vérifications OK`);

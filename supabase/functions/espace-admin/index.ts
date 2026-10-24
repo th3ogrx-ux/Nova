@@ -8,6 +8,10 @@
 //   reset_password  { business_id }                   -> nouveau mot de passe temporaire
 //   get_account     { business_id }                   -> email et dernière connexion du client
 //   delete_client   { business_id }                   -> supprime le commerce, ses données et son compte
+//   team_list                                         -> membres de l'équipe + partenaires (clients), e-mails et dernière activité
+//   team_create     { email, role_id?, pseudo? }      -> compte de membre + mot de passe temporaire
+//   team_remove     { user_id }                       -> exclut un membre (supprime son compte)
+//   team_reset_password { user_id }                   -> nouveau mot de passe temporaire pour un membre
 //
 // Fichier volontairement autonome (aucun import local) : à coller tel quel dans
 // Supabase > Edge Functions > (nouvelle fonction "espace-admin") > Code > Deploy.
@@ -136,6 +140,93 @@ async function deleteClient(db: any, body: any, actor: string) {
   return json({ ok: true });
 }
 
+// ---------- Équipe : membres (comptes avec un rôle) et partenaires (clients) ----------
+
+// Tout ce qu'il faut pour la page « Équipe » : membres, clients, dernière activité. Les e-mails et dernières connexions
+// ne sont lisibles que côté serveur (auth.users), d'où cette action.
+async function teamList(db: any) {
+  const [m, pr, pf, cl] = await Promise.all([
+    db.from("team_members").select("user_id,role_id,created_at"),
+    db.from("team_presence").select("user_id,last_seen"),
+    db.from("user_profiles").select("user_id,pseudo,avatar_url"),
+    db.from("espace_profiles").select("id,business_id").eq("role", "client")
+  ]);
+  if (m.error) return json({ error: "La table des membres n'est pas installée : colle equipe.sql dans Supabase (SQL Editor)." }, 500);
+  const presence: Record<string, string> = {};
+  for (const r of pr.data || []) presence[r.user_id] = r.last_seen;
+  const profiles: Record<string, any> = {};
+  for (const r of pf.data || []) profiles[r.user_id] = r;
+  const info = async (id: string) => {
+    const { data } = await db.auth.admin.getUserById(id);
+    const u = data && data.user;
+    return { email: u ? u.email : null, last_sign_in_at: u ? u.last_sign_in_at || null : null, must_change_password: !!(u && u.user_metadata && u.user_metadata.must_change_password) };
+  };
+  const members = await Promise.all((m.data || []).map(async (r: any) => ({
+    user_id: r.user_id, role_id: r.role_id, created_at: r.created_at,
+    pseudo: (profiles[r.user_id] || {}).pseudo || null, avatar_url: (profiles[r.user_id] || {}).avatar_url || null,
+    last_seen: presence[r.user_id] || null, ...(await info(r.user_id))
+  })));
+  const { data: biz } = await db.from("espace_businesses").select("id,nom,is_example");
+  const names: Record<string, string> = {};
+  for (const b of biz || []) if (!b.is_example) names[b.id] = b.nom;
+  const partners = (await Promise.all((cl.data || []).filter((r: any) => names[r.business_id]).map(async (r: any) => ({
+    user_id: r.id, business_id: r.business_id, nom: names[r.business_id], last_seen: presence[r.id] || null, ...(await info(r.id))
+  }))));
+  return json({ members, partners });
+}
+
+async function teamCreate(db: any, body: any, actor: string) {
+  const email = text(body.email, 200).toLowerCase();
+  const pseudo = text(body.pseudo, 40);
+  if (!EMAIL_RE.test(email)) return json({ error: "L'email n'est pas valide." }, 400);
+  let roleId: string | null = null;
+  if (body.role_id) {
+    if (!UUID_RE.test(String(body.role_id))) return json({ error: "Rôle invalide." }, 400);
+    const { data: role } = await db.from("team_roles").select("id").eq("id", body.role_id).maybeSingle();
+    if (!role) return json({ error: "Ce rôle n'existe pas." }, 400);
+    roleId = role.id;
+  }
+  const password = generateTempPassword();
+  const { data: created, error: userError } = await db.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { must_change_password: true } });
+  if (userError || !created || !created.user) {
+    const exists = /already|registered|exists/i.test(userError ? userError.message : "");
+    return json({ error: exists ? "Un compte existe déjà avec cet email." : "Création du compte impossible." }, exists ? 409 : 500);
+  }
+  const { error: memberError } = await db.from("team_members").insert({ user_id: created.user.id, role_id: roleId });
+  if (memberError) {
+    await db.auth.admin.deleteUser(created.user.id);
+    return json({ error: "Création du membre impossible. As-tu collé equipe.sql dans Supabase ?" }, 500);
+  }
+  if (pseudo) { try { await db.from("user_profiles").insert({ user_id: created.user.id, pseudo }); } catch (e) { console.error("[espace-admin] pseudo", e); } }
+  await audit(db, "team_member_created", actor);
+  return json({ user_id: created.user.id, email, temp_password: password });
+}
+
+// Seulement un membre de l'équipe : jamais l'admin, jamais un client.
+async function memberOnly(db: any, id: unknown) {
+  if (!UUID_RE.test(String(id || ""))) return null;
+  const { data } = await db.from("team_members").select("user_id").eq("user_id", id).maybeSingle();
+  return data ? String(id) : null;
+}
+async function teamRemove(db: any, body: any, actor: string) {
+  const id = await memberOnly(db, body.user_id);
+  if (!id) return json({ error: "Membre introuvable." }, 404);
+  await db.from("team_members").delete().eq("user_id", id);
+  const { error } = await db.auth.admin.deleteUser(id);
+  if (error) return json({ error: "Suppression impossible." }, 500);
+  await audit(db, "team_member_removed", actor);
+  return json({ ok: true });
+}
+async function teamResetPassword(db: any, body: any, actor: string) {
+  const id = await memberOnly(db, body.user_id);
+  if (!id) return json({ error: "Membre introuvable." }, 404);
+  const password = generateTempPassword();
+  const { data, error } = await db.auth.admin.updateUserById(id, { password, user_metadata: { must_change_password: true } });
+  if (error || !data || !data.user) return json({ error: "Réinitialisation impossible." }, 500);
+  await audit(db, "team_member_password_reset", actor);
+  return json({ email: data.user.email, temp_password: password });
+}
+
 export async function handle(req: Request, db: any): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
   if (req.method !== "POST") return json({ error: "Méthode non autorisée." }, 405);
@@ -148,6 +239,10 @@ export async function handle(req: Request, db: any): Promise<Response> {
       case "reset_password": return await resetPassword(db, body, auth.user.id);
       case "get_account": return await getAccount(db, body);
       case "delete_client": return await deleteClient(db, body, auth.user.id);
+      case "team_list": return await teamList(db);
+      case "team_create": return await teamCreate(db, body, auth.user.id);
+      case "team_remove": return await teamRemove(db, body, auth.user.id);
+      case "team_reset_password": return await teamResetPassword(db, body, auth.user.id);
       default: return json({ error: "Action inconnue." }, 400);
     }
   } catch (err) {

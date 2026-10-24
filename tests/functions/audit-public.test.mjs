@@ -30,17 +30,19 @@ assert.equal(tooManyAttempts("k", 1010), true); assert.equal(tooManyAttempts("k"
 ok("anti-devinette : 9e essai en une minute bloqué");
 
 // ---- faux client base de données ----
-function fake(rows, views, profile = { role: "admin" }, user = { id: "u1" }) {
+function fake(rows, views, profile = { role: "admin" }, user = { id: "u1" }, team = { member: null, role: null }) {
   const state = { rows, views, signed: [] };
   const q = (table) => {
     const ctx = { table, filters: {}, patch: null };
     const api = {
-      select() { return api; }, eq(k, v) { ctx.filters[k] = v; return api; },
+      select() { return api; }, limit() { return api; }, eq(k, v) { ctx.filters[k] = v; return api; },
       update(p) { ctx.patch = p; return api; }, insert(p) { if (table === "audit_views") state.views.push(p); return Promise.resolve({ error: null }); },
       maybeSingle() { return Promise.resolve(run()); }, single() { return Promise.resolve(run()); }
     };
     function run() {
-      if (table === "espace_profiles") return { data: profile };
+      if (table === "espace_profiles") return ctx.filters.role === "admin" ? { data: { id: "u1" } } : { data: profile };
+      if (table === "team_members") return { data: team.member && ctx.filters.user_id === team.member.user_id ? team.member : null };
+      if (table === "team_roles") return { data: team.role };
       const row = state.rows.find((r) => Object.entries(ctx.filters).every(([k, v]) => r[k] === v));
       if (ctx.patch && row) Object.assign(row, ctx.patch);
       return { data: row || null, error: null };
@@ -103,5 +105,20 @@ r = await call({ action: "publish", audit_id: ID, password: "" }, "tok");
 assert.equal(r.audit.has_password, false); assert.equal(r.audit.slug, slug);
 assert.equal((await call({ action: "view", slug })).state, "ok");
 ok("republié sans mot de passe : même lien");
+
+// ---- membres de l'équipe ----
+const perms = (audits) => ({ member: { user_id: "m1", role_id: "r1" }, role: { perms: { audits } } });
+db = fake([audit()], [], { role: "none" }, { id: "m1" }, perms({ view: true, edit: true, delete: false }));
+r = await call({ action: "publish", audit_id: ID }, "tok");
+assert.equal(r.audit.status, "published"); ok("membre avec « voir + modifier » : peut publier les audits de l'admin");
+db = fake([audit()], [], { role: "none" }, { id: "m1" }, perms({ view: true, edit: false, delete: false }));
+assert.match((await call({ action: "publish", audit_id: ID }, "tok")).error, /administrateur/); ok("membre sans « modifier » : refusé");
+db = fake([audit()], [], { role: "none" }, { id: "m1" }, perms({ view: false, edit: true, delete: false }));
+assert.match((await call({ action: "publish", audit_id: ID }, "tok")).error, /administrateur/); ok("membre sans « voir » : refusé");
+db = fake([audit()], [], { role: "none" }, { id: "m1" }, { member: { user_id: "m1", role_id: null }, role: null });
+assert.match((await call({ action: "publish", audit_id: ID }, "tok")).error, /administrateur/); ok("membre sans rôle : refusé");
+db = fake([{ ...audit(), status: "published", slug: "abcdEFGH12", published_content: { title: "T", content: { pages: [] } } }], [], { role: "none" }, { id: "m1" }, perms({ view: true, edit: true }));
+await call({ action: "view", slug: "abcdEFGH12" }, "tok");
+assert.equal(db.state.views.length, 0); ok("les visites d'un membre de l'équipe ne sont pas comptées");
 assert.equal((await call({ action: "x" })).error, "Action inconnue.");
 console.log(`\n${passed} groupes de tests passés`);
