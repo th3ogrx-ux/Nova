@@ -100,64 +100,98 @@ export async function renderEditor(root, id, back) {
     pagesEl.innerHTML = `<div class="aud-tabs" role="tablist">${content.pages.map((p, i) => `<button type="button" role="tab" class="pro-tab${i === st.page ? " on" : ""}" aria-selected="${i === st.page}" data-page="${i}">${escapeHtml(p.title || "Page " + (i + 1))}</button>`).join("")}<button type="button" class="pro-tab aud-addpage" data-addpage>+ Page</button></div>
       <div class="aud-pageedit"><input type="text" class="aud-pagetitle" maxlength="80" value="${escapeHtml(content.pages[st.page].title || "")}" aria-label="Titre de la page" placeholder="Titre de la page">
       ${content.pages.length > 1 ? `<button type="button" class="btn ghost btn-sm" data-delpage>Supprimer la page</button>` : ""}</div>`;
-    pagesEl.querySelectorAll("[data-page]").forEach((b) => b.addEventListener("click", () => { st.page = +b.dataset.page; drawPages(); drawBlocks(); }));
-    pagesEl.querySelector("[data-addpage]").addEventListener("click", () => { content.pages.push({ id: newId(), title: "Page " + (content.pages.length + 1), blocks: [] }); st.page = content.pages.length - 1; drawPages(); drawBlocks(); changed(); });
+    pagesEl.querySelectorAll("[data-page]").forEach((b) => b.addEventListener("click", () => { st.page = +b.dataset.page; drawPages(); drawBlocks({ reset: true }); }));
+    pagesEl.querySelector("[data-addpage]").addEventListener("click", () => { content.pages.push({ id: newId(), title: "Page " + (content.pages.length + 1), blocks: [] }); st.page = content.pages.length - 1; drawPages(); drawBlocks({ reset: true }); changed(); });
     pagesEl.querySelector(".aud-pagetitle").addEventListener("input", (ev) => { content.pages[st.page].title = ev.target.value; pagesEl.querySelector(`[data-page="${st.page}"]`).textContent = ev.target.value || "Page " + (st.page + 1); changed(); });
     pagesEl.querySelector("[data-delpage]")?.addEventListener("click", async () => {
       const ok = await window.confirmDialog("Supprimer cette page et tous ses blocs ?", { danger: true, confirmLabel: "Supprimer" });
       if (!ok) return;
-      content.pages.splice(st.page, 1); st.page = Math.max(0, st.page - 1); drawPages(); drawBlocks(); changed();
+      content.pages.splice(st.page, 1); st.page = Math.max(0, st.page - 1); drawPages(); drawBlocks({ reset: true }); changed();
     });
   }
 
   // ---- blocs
+  // Chaque bloc a son élément, créé une seule fois et réutilisé : ajouter, déplacer ou supprimer un bloc ne reconstruit
+  // plus tous les autres (c'est ce qui rendait l'ajout lent sur un long audit).
   const blocksEl = root.querySelector("[data-blocks]");
   const blocks = () => content.pages[st.page].blocks;
-  const inserter = (index) => `<div class="aud-ins"><button type="button" class="aud-ins-btn" data-ins="${index}" aria-label="Ajouter un bloc ici">+ Ajouter un bloc</button></div>`;
+  const wraps = new Map(); // id du bloc -> élément
+  const emptyEl = document.createElement("div");
+  emptyEl.className = "card aud-empty";
+  emptyEl.innerHTML = `<p>Cette page est vide. Ajoute ton premier bloc : titre, texte, image, tableau…</p>`;
+  const makeInserter = () => {
+    const el = document.createElement("div");
+    el.className = "aud-ins";
+    el.innerHTML = `<button type="button" class="aud-ins-btn" aria-label="Ajouter un bloc ici">+ Ajouter un bloc</button>`;
+    return el;
+  };
+  blocksEl.addEventListener("click", (ev) => {
+    const btn = ev.target.closest(".aud-ins-btn");
+    if (btn) openPicker([...blocksEl.querySelectorAll(".aud-ins")].indexOf(btn.parentElement));
+  });
 
-  function drawBlocks() {
-    const list = blocks();
-    blocksEl.innerHTML = (list.length ? "" : `<div class="card aud-empty"><p>Cette page est vide. Ajoute ton premier bloc : titre, texte, image, tableau…</p></div>`) +
-      inserter(0) + list.map((b, i) => `<div class="aud-blockwrap" data-i="${i}"></div>${inserter(i + 1)}`).join("");
-    blocksEl.querySelectorAll("[data-ins]").forEach((btn) => btn.addEventListener("click", () => openPicker(+btn.dataset.ins)));
-    list.forEach((b, i) => {
-      const wrap = blocksEl.querySelector(`.aud-blockwrap[data-i="${i}"]`);
-      const def = BLOCK_TYPES[b.type];
-      wrap.className = "card aud-block";
-      wrap.innerHTML = `<div class="aud-block-bar"><span class="aud-handle" data-handle title="Glisser pour déplacer" aria-label="Déplacer">⋮⋮</span><span class="aud-block-type">${escapeHtml(def ? def.label : b.type)}</span>
-        <span class="aud-block-tools"><button type="button" class="aud-tool" data-up aria-label="Monter" ${i === 0 ? "disabled" : ""}>↑</button><button type="button" class="aud-tool" data-down aria-label="Descendre" ${i === list.length - 1 ? "disabled" : ""}>↓</button><button type="button" class="aud-tool" data-dup aria-label="Dupliquer">⧉</button><button type="button" class="aud-tool danger" data-del aria-label="Supprimer">✕</button></span></div>
-        <div class="aud-block-body" data-body></div>`;
-      buildBlockEditor(b, wrap.querySelector("[data-body]"), { onChange: changed, urlOf: (p) => st.urlOf(p), upload: async (f) => { const p = await uploadImage(f, id); await refreshUrls(); return p; }, toast });
-      const move = (to) => { const [x] = list.splice(i, 1); list.splice(to, 0, x); drawBlocks(); changed(); };
-      wrap.querySelector("[data-up]").addEventListener("click", () => move(i - 1));
-      wrap.querySelector("[data-down]").addEventListener("click", () => move(i + 1));
-      wrap.querySelector("[data-dup]").addEventListener("click", () => { const c = clone(b); c.id = newId(); list.splice(i + 1, 0, c); drawBlocks(); changed(); });
-      wrap.querySelector("[data-del]").addEventListener("click", async () => {
-        const ok = await window.confirmDialog("Supprimer ce bloc ?", { danger: true, confirmLabel: "Supprimer" });
-        if (!ok) return; list.splice(i, 1); drawBlocks(); changed();
-      });
-      // Glisser-déposer : on ne peut attraper un bloc que par sa poignée (sinon on ne pourrait plus sélectionner du texte).
-      const handle = wrap.querySelector("[data-handle]");
-      handle.addEventListener("pointerdown", () => { wrap.draggable = true; });
-      const stop = () => { wrap.draggable = false; };
-      handle.addEventListener("pointerup", stop); handle.addEventListener("pointercancel", stop);
-      wrap.addEventListener("dragstart", (ev) => { ev.dataTransfer.setData("text/plain", String(i)); ev.dataTransfer.effectAllowed = "move"; wrap.classList.add("dragging"); });
-      wrap.addEventListener("dragend", () => { stop(); wrap.classList.remove("dragging"); blocksEl.querySelectorAll(".drop-before,.drop-after").forEach((x) => x.classList.remove("drop-before", "drop-after")); });
-      wrap.addEventListener("dragover", (ev) => {
-        ev.preventDefault();
-        const r = wrap.getBoundingClientRect(), after = ev.clientY > r.top + r.height / 2;
-        wrap.classList.toggle("drop-after", after); wrap.classList.toggle("drop-before", !after);
-      });
-      wrap.addEventListener("dragleave", () => wrap.classList.remove("drop-before", "drop-after"));
-      wrap.addEventListener("drop", (ev) => {
-        ev.preventDefault();
-        const from = parseInt(ev.dataTransfer.getData("text/plain"), 10);
-        if (Number.isNaN(from)) return;
-        const r = wrap.getBoundingClientRect(); let to = i + (ev.clientY > r.top + r.height / 2 ? 1 : 0);
-        const [x] = list.splice(from, 1); if (from < to) to--; list.splice(to, 0, x);
-        drawBlocks(); changed();
-      });
+  function makeWrap(b) {
+    const wrap = document.createElement("div");
+    const def = BLOCK_TYPES[b.type];
+    const idx = () => blocks().indexOf(b);
+    wrap.className = "card aud-block";
+    wrap.innerHTML = `<div class="aud-block-bar"><span class="aud-handle" data-handle title="Glisser pour déplacer" aria-label="Déplacer">⋮⋮</span><span class="aud-block-type">${escapeHtml(def ? def.label : b.type)}</span>
+      <span class="aud-block-tools"><button type="button" class="aud-tool" data-up aria-label="Monter">↑</button><button type="button" class="aud-tool" data-down aria-label="Descendre">↓</button><button type="button" class="aud-tool" data-dup aria-label="Dupliquer">⧉</button><button type="button" class="aud-tool danger" data-del aria-label="Supprimer">✕</button></span></div>
+      <div class="aud-block-body" data-body></div>`;
+    buildBlockEditor(b, wrap.querySelector("[data-body]"), { onChange: changed, urlOf: (p) => st.urlOf(p), upload: async (f) => { const p = await uploadImage(f, id); await refreshUrls(); return p; }, toast });
+    const move = (to) => { const list = blocks(), i = idx(); if (to < 0 || to >= list.length) return; list.splice(to, 0, list.splice(i, 1)[0]); drawBlocks(); changed(); };
+    wrap.querySelector("[data-up]").addEventListener("click", () => move(idx() - 1));
+    wrap.querySelector("[data-down]").addEventListener("click", () => move(idx() + 1));
+    wrap.querySelector("[data-dup]").addEventListener("click", () => { const c = clone(b); c.id = newId(); blocks().splice(idx() + 1, 0, c); drawBlocks({ focus: c.id }); changed(); });
+    wrap.querySelector("[data-del]").addEventListener("click", async () => {
+      const ok = await window.confirmDialog("Supprimer ce bloc ?", { danger: true, confirmLabel: "Supprimer" });
+      if (!ok) return; blocks().splice(idx(), 1); wraps.delete(b.id); drawBlocks(); changed();
     });
+    // Glisser-déposer : on ne peut attraper un bloc que par sa poignée (sinon on ne pourrait plus sélectionner du texte).
+    const handle = wrap.querySelector("[data-handle]");
+    handle.addEventListener("pointerdown", () => { wrap.draggable = true; });
+    const stop = () => { wrap.draggable = false; };
+    handle.addEventListener("pointerup", stop); handle.addEventListener("pointercancel", stop);
+    wrap.addEventListener("dragstart", (ev) => { ev.dataTransfer.setData("text/plain", String(idx())); ev.dataTransfer.effectAllowed = "move"; wrap.classList.add("dragging"); });
+    wrap.addEventListener("dragend", () => { stop(); wrap.classList.remove("dragging"); blocksEl.querySelectorAll(".drop-before,.drop-after").forEach((x) => x.classList.remove("drop-before", "drop-after")); });
+    wrap.addEventListener("dragover", (ev) => {
+      ev.preventDefault();
+      const r = wrap.getBoundingClientRect(), after = ev.clientY > r.top + r.height / 2;
+      wrap.classList.toggle("drop-after", after); wrap.classList.toggle("drop-before", !after);
+    });
+    wrap.addEventListener("dragleave", () => wrap.classList.remove("drop-before", "drop-after"));
+    wrap.addEventListener("drop", (ev) => {
+      ev.preventDefault();
+      const from = parseInt(ev.dataTransfer.getData("text/plain"), 10);
+      if (Number.isNaN(from)) return;
+      const list = blocks(), r = wrap.getBoundingClientRect(); let to = idx() + (ev.clientY > r.top + r.height / 2 ? 1 : 0);
+      list.splice(to - (from < to ? 1 : 0), 0, list.splice(from, 1)[0]);
+      drawBlocks(); changed();
+    });
+    return wrap;
+  }
+
+  // Remet les éléments dans le bon ordre en réutilisant ceux qui existent déjà.
+  function drawBlocks({ focus = null, reset = false } = {}) {
+    if (reset) wraps.clear();
+    const list = blocks(), alive = new Set(list.map((b) => b.id)), nodes = [];
+    for (const k of [...wraps.keys()]) if (!alive.has(k)) wraps.delete(k);
+    if (!list.length) nodes.push(emptyEl);
+    nodes.push(makeInserter());
+    list.forEach((b, i) => {
+      let w = wraps.get(b.id);
+      if (!w) { w = makeWrap(b); wraps.set(b.id, w); }
+      w.querySelector("[data-up]").disabled = i === 0;
+      w.querySelector("[data-down]").disabled = i === list.length - 1;
+      nodes.push(w, makeInserter());
+    });
+    blocksEl.replaceChildren(...nodes);
+    if (focus && wraps.get(focus)) {
+      const w = wraps.get(focus);
+      w.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      const f = w.querySelector("input:not([type=file]):not([type=checkbox]), textarea, select, [contenteditable]");
+      if (f) f.focus({ preventScroll: true });
+    }
   }
 
   function openPicker(index) {
@@ -172,7 +206,7 @@ export async function renderEditor(root, id, back) {
     document.addEventListener("keydown", onKey);
     pick.addEventListener("click", (ev) => { if (ev.target === pick) close(); });
     pick.querySelector("[data-close]").addEventListener("click", close);
-    pick.querySelectorAll("[data-type]").forEach((b) => b.addEventListener("click", () => { blocks().splice(index, 0, makeBlock(b.dataset.type)); close(); drawBlocks(); changed(); }));
+    pick.querySelectorAll("[data-type]").forEach((b) => b.addEventListener("click", () => { const nb = makeBlock(b.dataset.type); blocks().splice(index, 0, nb); close(); drawBlocks({ focus: nb.id }); changed(); }));
   }
 
   root.querySelector("[data-tpl]").addEventListener("click", async () => {
