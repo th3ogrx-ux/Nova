@@ -3,6 +3,14 @@
 -- Les audits ne sont lisibles que par toi (admin). La page publique passe par la fonction audit-public (service role).
 -- ============================================================================
 
+-- Règle « seulement l'admin » (même définition que securite.sql : sans risque si elle existe déjà).
+create or replace function public.espace_admin_ok()
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.espace_profiles where id = auth.uid() and role = 'admin');
+$$;
+revoke all on function public.espace_admin_ok() from public;
+grant execute on function public.espace_admin_ok() to authenticated;
+
 create table if not exists public.audits (
   id            uuid primary key default gen_random_uuid(),
   user_id       uuid not null default auth.uid() references auth.users(id) on delete cascade,
