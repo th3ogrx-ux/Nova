@@ -47,7 +47,6 @@ export async function renderPublicAudit(el, slug) {
     store.set(SEEN(slug), "1");
     document.title = res.audit.title || "Audit";
     el.innerHTML = renderAuditHtml(res.audit, (p) => (res.urls || {})[p] || "");
-    el.querySelectorAll(".pub-toc a").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); el.querySelector(a.getAttribute("href"))?.scrollIntoView({ behavior: "smooth" }); }));
   }
 
   function askPassword(res) {

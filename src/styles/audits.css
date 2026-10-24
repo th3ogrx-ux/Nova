@@ -167,3 +167,9 @@
 .view-readonly [data-act="edit"], .view-readonly [data-act="unpub"], .view-readonly .aud-ins, .view-readonly [data-publish], .view-readonly [data-tpl],
 .view-readonly [data-act="sold"], .view-readonly [data-act="sent"], .view-readonly [data-act="unsent"] { display: none !important; }
 .view-nodelete [data-act="del"], .view-nodelete [data-delete], .view-nodelete [data-del] { display: none !important; }
+
+/* Page d'audit : une seule colonne, sans sommaire ni titres de pages */
+.pub-layout, .pub-layout:not(:has(.pub-toc)) { display: block; max-width: 800px; }
+.pub-section + .pub-section { margin-top: 8px; }
+.pub-layout, .pub-layout:not(:has(.pub-toc)) { max-width: 1040px; }
+.pub-main { max-width: 800px; }

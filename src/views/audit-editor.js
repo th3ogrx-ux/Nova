@@ -240,8 +240,7 @@ export function showPreview(audit, urlOf) {
   const onKey = (ev) => { if (ev.key === "Escape") close(); };
   document.addEventListener("keydown", onKey);
   ov.querySelector("[data-x]").addEventListener("click", close);
-  ov.querySelectorAll(".pub-toc a").forEach((a) => a.addEventListener("click", (ev) => { ev.preventDefault(); ov.querySelector(a.getAttribute("href"))?.scrollIntoView({ behavior: "smooth" }); }));
-}
+  }
 
 export async function openPreview(id) {
   try { const a = await getAudit(id); const u = await signedUrls(collectImagePaths(a)); showPreview(a, u); } catch { toast("Aperçu impossible.", "error"); }

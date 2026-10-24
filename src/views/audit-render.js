@@ -115,10 +115,6 @@ export function collectImagePaths(audit) {
 export function renderAuditHtml(audit, urlOf, { agencyName = "Zenoa Agency" } = {}) {
   const u = (p) => urlOf(p) || "";
   const pages = ((audit.content && audit.content.pages) || []).filter((p) => p);
-  const toc = pages.map((pg, i) => {
-    const subs = (pg.blocks || []).filter((b) => b.type === "title" && b.text).map((b) => b.text);
-    return `<li><a href="#sec-${i}">${e(pg.title || "Page " + (i + 1))}</a>${subs.length ? `<ul>${subs.map((s) => `<li>${e(s)}</li>`).join("")}</ul>` : ""}</li>`;
-  }).join("");
   return `
     <header class="pub-head">
       ${audit.cover_path ? `<div class="pub-cover" style="background-image:url('${e(u(audit.cover_path)).replace(/'/g, "%27")}')"></div>` : ""}
@@ -129,9 +125,8 @@ export function renderAuditHtml(audit, urlOf, { agencyName = "Zenoa Agency" } = 
       </div>
     </header>
     <div class="pub-layout">
-      ${pages.length > 1 || pages.some((p) => (p.blocks || []).some((b) => b.type === "title")) ? `<nav class="pub-toc" aria-label="Sommaire"><h2>Sommaire</h2><ol>${toc}</ol></nav>` : ""}
       <main class="pub-main">
-        ${pages.map((pg, i) => `<section class="pub-section" id="sec-${i}">${pages.length > 1 ? `<h2 class="pub-page-title">${e(pg.title || "Page " + (i + 1))}</h2>` : ""}${(pg.blocks || []).map((b) => `<div class="pub-block">${renderBlock(b, u)}</div>`).join("")}</section>`).join("")}
+        ${pages.map((pg) => `<section class="pub-section">${(pg.blocks || []).map((b) => `<div class="pub-block">${renderBlock(b, u)}</div>`).join("")}</section>`).join("")}
       </main>
     </div>
     <footer class="pub-foot">${e(agencyName)}</footer>`;
