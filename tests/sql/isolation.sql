@@ -153,4 +153,31 @@ insert into public.audit_log (type, detail) values ('login_success', repeat('c',
 select tst.eq('après une connexion réussie : déverrouillé', public.login_locked(repeat('c', 64))::int, 0);
 rollback;
 
+-- ---------- Audits ----------
+insert into public.audits (id, user_id, title, status, slug, password_hash, has_password) values
+  ('20000000-0000-0000-0000-0000000000a1', :'adm', 'Audit admin', 'published', 'abcdEFGH12', 'secret-hash', true),
+  ('20000000-0000-0000-0000-0000000000a2', :'nobody', 'Audit inconnu', 'draft', null, null, false);
+insert into public.audit_views (audit_id) values ('20000000-0000-0000-0000-0000000000a1'), ('20000000-0000-0000-0000-0000000000a1');
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'adm', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('admin : voit seulement ses audits', (select count(*) from public.audits), 1);
+select tst.eq('admin : voit les vues de son audit', (select vues from public.audit_view_stats()), 2);
+select tst.denied('admin : lit password_hash', $$select password_hash from public.audits$$);
+select tst.denied('admin : écrit password_hash', $$update public.audits set password_hash = 'x'$$);
+select tst.denied('admin : se met published tout seul', $$update public.audits set status = 'published', slug = 'zzzzzzzz99'$$);
+select tst.denied('admin : écrit une vue', $$insert into public.audit_views (audit_id) values ('20000000-0000-0000-0000-0000000000a1')$$);
+select tst.denied('admin : crée un audit pour un autre', $$insert into public.audits (user_id, title) values ('00000000-0000-0000-0000-0000000000f1', 'x')$$);
+update public.audits set title = 'Nouveau titre';
+select tst.eq('admin : modifie son titre', (select count(*) from public.audits where title = 'Nouveau titre'), 1);
+rollback;
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'ca', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('client : ne voit aucun audit', (select count(*) from public.audits), 0);
+select tst.denied('client : crée un audit', $$insert into public.audits (title) values ('x')$$);
+rollback;
+begin; set local role anon;
+select tst.denied('anon : lit les audits', $$select id from public.audits$$);
+select tst.denied('anon : lit les vues', $$select * from public.audit_views$$);
+rollback;
+
 \echo TOUS LES TESTS ISOLATION SONT PASSES

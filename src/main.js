@@ -9,6 +9,7 @@ import { getSession, onAuthChange, renderAuthScreen, signOut } from "./auth.js";
 import { supabase, supabaseConfigured } from "./supabase.js";
 import { renderDashboard } from "./views/dashboard.js";
 import { renderRecherche } from "./views/recherche.js";
+import { renderAudits } from "./views/audits.js";
 import { renderProspection } from "./views/prospection.js";
 import { renderCalendrier } from "./views/calendrier.js";
 import { renderEspace } from "./views/espace.js";
@@ -52,6 +53,7 @@ const VIEWS = {
   recherche: { render: renderRecherche, title: "Radar", roles: ["admin", "radar"] },
   prospection: { render: renderProspection, title: "Suivi prospection", roles: ["admin"] },
   calendrier: { render: renderCalendrier, title: "Calendrier", roles: ["admin"] },
+  audits: { render: renderAudits, title: "Audits", roles: ["admin"] },
   clients: { render: renderClients, title: "Clients", roles: ["admin"] },
   espace: { render: renderEspace, title: "Mon espace", roles: ["client", "admin"] },
   messages: { render: renderMessages, title: "Messages", roles: ["client", "admin"] },
