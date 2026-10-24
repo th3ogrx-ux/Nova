@@ -16,10 +16,18 @@ export async function callAuditFn(body) {
   if (data && data.error) throw new Error(data.error);
   return data;
 }
+// Premier appel à vide : le serveur « se réveille » pendant que tu édites, la vraie publication est ensuite rapide.
+let warmed = 0;
+export function warmUp() {
+  if (Date.now() - warmed < 240000) return;
+  warmed = Date.now();
+  supabase.functions.invoke("audit-public", { body: { action: "ping" } }).catch(() => {});
+}
 export const publishError = (err) => (err && err.message) || "Action impossible pour le moment.";
 export const unpublish = (auditId) => callAuditFn({ action: "unpublish", audit_id: auditId });
 
-export function openPublishDialog(audit, { onChange = () => {} } = {}) {
+export function openPublishDialog(audit, { onChange = () => {}, beforePublish = null } = {}) {
+  warmUp();
   const pub = audit.status === "published";
   const expDay = audit.expires_at ? audit.expires_at.slice(0, 10) : "";
   const { overlay, close } = openModal(`${modalHeader(pub ? "Publication" : "Publier l'audit")}
@@ -37,16 +45,18 @@ export function openPublishDialog(audit, { onChange = () => {} } = {}) {
   overlay.querySelector("[data-copy]")?.addEventListener("click", async () => toast((await copyText(publicUrl(audit.slug))) ? "Lien copié ✓" : "Copie impossible", "ok"));
   overlay.querySelector("[data-url]")?.addEventListener("focus", (e) => e.target.select());
   form.addEventListener("submit", async (e) => {
-    e.preventDefault(); errorEl.textContent = ""; go.disabled = true;
+    e.preventDefault(); errorEl.textContent = ""; go.disabled = true; go.textContent = "Publication…";
+    // On s'assure que tout est enregistré AVANT de publier (sinon l'ancienne version serait publiée).
+    if (beforePublish && !(await beforePublish())) { errorEl.textContent = "Enregistrement en cours : réessaie dans un instant."; go.disabled = false; go.textContent = pub ? "Republier" : "Publier"; return; }
     const body = { action: "publish", audit_id: audit.id, expires_at: form.expires.value ? new Date(form.expires.value + "T23:59:59").toISOString() : null };
     if (form.password.value) body.password = form.password.value;
     else if (form.rm_password && form.rm_password.checked) body.password = "";
     try {
       const res = await callAuditFn(body);
       onChange(res.audit); close();
-      openPublishDialog({ ...audit, ...res.audit }, { onChange });
+      openPublishDialog({ ...audit, ...res.audit }, { onChange, beforePublish });
       toast(pub ? "Audit republié ✓" : "Audit publié ✓");
-    } catch (err) { errorEl.textContent = publishError(err); go.disabled = false; }
+    } catch (err) { errorEl.textContent = publishError(err); go.disabled = false; go.textContent = pub ? "Republier" : "Publier"; }
   });
   overlay.querySelector("[data-unpub]")?.addEventListener("click", async () => {
     const ok = await window.confirmDialog("Dépublier cet audit ? Le lien affichera « Audit indisponible ».", { confirmLabel: "Dépublier" });

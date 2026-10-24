@@ -14,20 +14,30 @@ async function run(q) { const { data, error } = await q; if (error) throw error;
 export const EMPTY_CONTENT = () => ({ pages: [{ id: newId(), title: "Page 1", blocks: [] }] });
 export const newId = () => Math.random().toString(36).slice(2, 10);
 
+// Liste + vues en même temps (deux requêtes en parallèle au lieu de l'une après l'autre).
 export async function listAudits() {
-  const rows = await run(supabase.from("audits").select(LIST_COLS).eq("is_template", false).order("updated_at", { ascending: false }));
-  let stats = {};
-  try {
-    const s = await run(supabase.rpc("audit_view_stats"));
-    stats = Object.fromEntries((s || []).map((r) => [r.audit_id, { vues: Number(r.vues), derniere: r.derniere }]));
-  } catch { /* les vues arrivent avec audits.sql : pas bloquant */ }
+  const [rows, stats] = await Promise.all([
+    run(supabase.from("audits").select(LIST_COLS).eq("is_template", false).order("updated_at", { ascending: false })),
+    run(supabase.rpc("audit_view_stats")).then((s) => Object.fromEntries((s || []).map((r) => [r.audit_id, { vues: Number(r.vues), derniere: r.derniere }]))).catch(() => ({}))
+  ]);
   return rows.map((a) => ({ ...a, vues: (stats[a.id] || {}).vues || 0, derniere: (stats[a.id] || {}).derniere || null }));
 }
-export const getAudit = (id) => run(supabase.from("audits").select(AUDIT_COLS).eq("id", id).single());
+// Un audit ouvert est gardé quelques secondes : survoler « Modifier » le charge déjà (ouverture quasi instantanée).
+const loading = new Map();
+export function getAudit(id, { fresh = false } = {}) {
+  const hit = loading.get(id);
+  if (!fresh && hit && Date.now() - hit.at < 20000) return hit.promise;
+  const promise = run(supabase.from("audits").select(AUDIT_COLS).eq("id", id).single());
+  loading.set(id, { at: Date.now(), promise });
+  promise.catch(() => loading.delete(id));
+  return promise;
+}
+export const forgetAudit = (id) => loading.delete(id);
 export async function createAudit(values) {
   return run(supabase.from("audits").insert({ content: EMPTY_CONTENT(), ...values, user_id: await uid() }).select(AUDIT_COLS).single());
 }
-export const updateAudit = (id, values) => run(supabase.from("audits").update({ ...values, updated_at: new Date().toISOString() }).eq("id", id).select(AUDIT_COLS).single());
+// La sauvegarde ne renvoie que l'essentiel (pas tout le contenu de l'audit) : plus rapide.
+export const updateAudit = (id, values) => { forgetAudit(id); return run(supabase.from("audits").update({ ...values, updated_at: new Date().toISOString() }).eq("id", id).select("id,updated_at").single()); };
 export const deleteAudit = (id) => run(supabase.from("audits").delete().eq("id", id));
 export async function duplicateAudit(id) {
   const a = await getAudit(id);

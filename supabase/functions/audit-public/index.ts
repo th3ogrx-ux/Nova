@@ -81,7 +81,7 @@ async function isAdmin(db: any, userId: string) {
 
 async function publish(db: any, user: any, body: any) {
   if (!UUID_RE.test(String(body.audit_id))) return json({ error: "Audit introuvable." }, 400);
-  const { data: audit } = await db.from("audits").select("*").eq("id", body.audit_id).eq("user_id", user.id).maybeSingle();
+  const { data: audit } = await db.from("audits").select("id,title,client_name,cover_path,logo_path,content,slug").eq("id", body.audit_id).eq("user_id", user.id).maybeSingle();
   if (!audit) return json({ error: "Audit introuvable." }, 404);
   const patch: Record<string, unknown> = {
     status: "published",
@@ -136,16 +136,21 @@ async function view(db: any, req: Request, body: any) {
   }
 
   // Tes propres visites (connecté) ne comptent pas.
-  const viewer = await userFrom(req, db);
-  if (body.count !== false && !(viewer && viewer.id === a.user_id)) await db.from("audit_views").insert({ audit_id: a.id });
-
   const snap = a.published_content;
   const paths = imagePaths(snap);
   const urls: Record<string, string> = {};
-  if (paths.length) {
+  // En parallèle : compter la vue (sauf si c'est toi, connecté) et préparer les images.
+  const countView = async () => {
+    if (body.count === false) return;
+    const viewer = req.headers.get("Authorization") ? await userFrom(req, db) : null;
+    if (!(viewer && viewer.id === a.user_id)) await db.from("audit_views").insert({ audit_id: a.id });
+  };
+  const sign = async () => {
+    if (!paths.length) return;
     const { data: signed } = await db.storage.from(BUCKET).createSignedUrls(paths, 3600);
     for (const s of signed || []) if (s.signedUrl) urls[s.path] = s.signedUrl;
-  }
+  };
+  await Promise.all([countView().catch((e) => console.error("[audit-public] vue", e)), sign()]);
   return json({ state: "ok", audit: snap, urls });
 }
 
@@ -157,6 +162,7 @@ Deno.serve(async (req: Request) => {
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
   try {
     if (body.action === "view") return await view(db, req, body);
+    if (body.action === "ping") return json({ ok: true }); // sert seulement à réveiller la fonction
     if (body.action === "publish" || body.action === "unpublish") {
       const user = await userFrom(req, db);
       if (!user) return json({ error: "Non authentifié." }, 401);

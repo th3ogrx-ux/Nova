@@ -16,7 +16,7 @@ export async function renderEditor(root, id, back) {
     root.querySelector("[data-back]").addEventListener("click", back); return;
   }
   const content = audit.content && Array.isArray(audit.content.pages) && audit.content.pages.length ? clone(audit.content) : { pages: [{ id: newId(), title: "Page 1", blocks: [] }] };
-  const st = { page: 0, saving: false, dirty: false, timer: null, urlOf: () => "" };
+  const st = { page: 0, saving: null, dirty: false, timer: null, urlOf: () => "" };
   const fields = { title: audit.title, client_name: audit.client_name || "", cover_path: audit.cover_path, logo_path: audit.logo_path };
 
   root.innerHTML = `
@@ -47,21 +47,26 @@ export async function renderEditor(root, id, back) {
   const saveEl = root.querySelector("[data-save]");
   const setSave = (text, cls = "") => { saveEl.textContent = text; saveEl.className = "aud-save " + cls; };
 
-  async function saveNow() {
-    clearTimeout(st.timer); st.timer = null;
-    if (!st.dirty) return true;
-    if (st.saving) { st.timer = setTimeout(saveNow, 400); return false; }
-    st.saving = true; st.dirty = false; setSave("Enregistrement…");
+  // Une seule sauvegarde à la fois ; saveNow() attend toujours que tout soit bien enregistré (utile avant de publier).
+  async function doSave() {
+    st.dirty = false; setSave("Enregistrement…");
     try {
       await updateAudit(id, { title: fields.title.trim() || "Audit sans titre", client_name: fields.client_name.trim() || null, cover_path: fields.cover_path, logo_path: fields.logo_path, content });
-      st.saving = false;
-      setSave(audit.status === "published" ? "Enregistré · pas encore republié" : "Brouillon enregistré", "ok");
+      if (!st.dirty) setSave(audit.status === "published" ? "Enregistré · pas encore republié" : "Brouillon enregistré", "ok");
       return true;
     } catch (err) {
-      st.saving = false; st.dirty = true; console.error("[Audits]", err);
-      setSave("Échec de l'enregistrement : nouvel essai…", "err"); st.timer = setTimeout(saveNow, 4000);
+      st.dirty = true; console.error("[Audits]", err);
+      setSave("Échec de l'enregistrement : nouvel essai…", "err"); clearTimeout(st.timer); st.timer = setTimeout(saveNow, 4000);
       return false;
     }
+  }
+  async function saveNow() {
+    clearTimeout(st.timer); st.timer = null;
+    while (st.saving) await st.saving;
+    if (!st.dirty) return true;
+    st.saving = doSave();
+    const ok = await st.saving; st.saving = null;
+    return ok && !st.dirty ? true : ok;
   }
   const changed = () => { st.dirty = true; setSave("Modifications en cours…"); clearTimeout(st.timer); st.timer = setTimeout(saveNow, 900); };
   const beforeUnload = (e) => { if (st.dirty) { e.preventDefault(); e.returnValue = ""; } };
@@ -72,12 +77,14 @@ export async function renderEditor(root, id, back) {
   // ---- en-tête
   root.querySelectorAll(".aud-ed-fields input").forEach((inp) => inp.addEventListener("input", () => { fields[inp.name] = inp.value; changed(); }));
   const mediaLabels = { logo_path: "Logo du client (facultatif)", cover_path: "Image de couverture (facultatif)" };
-  async function refreshUrls() { st.urlOf = await signedUrls([...collectImagePaths({ ...fields, content })]); }
+  // Les adresses d'images arrivent après l'affichage : l'éditeur s'ouvre tout de suite, les images apparaissent ensuite.
+  const hydrate = () => root.querySelectorAll("img[data-p]").forEach((i) => { const u = st.urlOf(i.dataset.p); if (u && i.getAttribute("src") !== u) i.src = u; });
+  async function refreshUrls() { st.urlOf = await signedUrls([...collectImagePaths({ ...fields, content })]); hydrate(); }
   function drawMedia() {
     root.querySelectorAll("[data-media]").forEach((box) => {
       const key = box.dataset.media, path = fields[key];
       box.innerHTML = `<span class="aud-lbl-t">${mediaLabels[key]}</span>
-        ${path ? `<img class="aud-thumb" src="${escapeHtml(st.urlOf(path))}" alt="">` : ""}
+        ${path ? `<img class="aud-thumb" data-p="${escapeHtml(path)}" src="${escapeHtml(st.urlOf(path))}" alt="">` : ""}
         <span class="aud-media-btns"><label class="btn ghost btn-sm aud-file">${path ? "Changer" : "Ajouter"}<input type="file" accept="image/jpeg,image/png,image/webp" hidden></label>${path ? `<button type="button" class="btn ghost btn-sm" data-rm>Retirer</button>` : ""}</span>`;
       box.querySelector("input").addEventListener("change", async (ev) => {
         const f = ev.target.files[0]; if (!f) return;
@@ -178,13 +185,14 @@ export async function renderEditor(root, id, back) {
   // ---- aperçu / publication
   root.querySelector("[data-preview]").addEventListener("click", async () => { await refreshUrls(); showPreview({ ...audit, ...fields, title: fields.title || "Audit sans titre", content }, st.urlOf); });
   root.querySelector("[data-publish]").addEventListener("click", async () => {
-    await saveNow();
     const m = await import("./audit-publish.js");
-    m.openPublishDialog(audit, { onChange: (a) => { Object.assign(audit, a); setSave(a.status === "published" ? "Publié" : "Brouillon enregistré", "ok"); } });
+    m.openPublishDialog(audit, { beforePublish: saveNow, onChange: (a) => { Object.assign(audit, a); setSave(a.status === "published" ? "Publié" : "Brouillon enregistré", "ok"); } });
   });
 
-  await refreshUrls();
   drawMedia(); drawPages(); drawBlocks();
+  refreshUrls().catch(() => {});
+  // Réveille la fonction de publication pendant que tu travailles : la publication est alors instantanée.
+  import("./audit-publish.js").then((m) => m.warmUp()).catch(() => {});
   setSave(audit.status === "published" ? "Publié" : "Brouillon enregistré", "ok");
 }
 

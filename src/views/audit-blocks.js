@@ -80,7 +80,7 @@ function editText(b, el, ctx) {
 export function imagePicker(holder, getPath, setPath, ctx, label = "Choisir une image") {
   const draw = () => {
     const p = getPath();
-    holder.innerHTML = `${p ? `<img class="aud-thumb big" src="${e(ctx.urlOf(p))}" alt="">` : ""}<span class="aud-media-btns"><label class="btn ghost btn-sm aud-file">${p ? "Changer l'image" : label}<input type="file" accept="image/jpeg,image/png,image/webp" hidden></label>${p ? `<button type="button" class="btn ghost btn-sm" data-rm>Retirer</button>` : ""}</span>`;
+    holder.innerHTML = `${p ? `<img class="aud-thumb big" data-p="${e(p)}" src="${e(ctx.urlOf(p))}" alt="">` : ""}<span class="aud-media-btns"><label class="btn ghost btn-sm aud-file">${p ? "Changer l'image" : label}<input type="file" accept="image/jpeg,image/png,image/webp" hidden></label>${p ? `<button type="button" class="btn ghost btn-sm" data-rm>Retirer</button>` : ""}</span>`;
     holder.querySelector("input").addEventListener("change", async (ev) => {
       const f = ev.target.files[0]; if (!f) return;
       try { setPath(await ctx.upload(f)); ctx.onChange(); draw(); } catch (err) { ctx.toast(err.message, "error"); }
@@ -126,7 +126,7 @@ function editRecos(b, el, ctx) {
 
 function editGallery(b, el, ctx) {
   const draw = () => {
-    el.innerHTML = `<div class="aud-gal">${b.items.map((it, i) => `<div class="aud-gal-item"><img class="aud-thumb big" src="${e(ctx.urlOf(it.path))}" alt=""><input type="text" maxlength="200" data-c="${i}" value="${e(it.caption)}" placeholder="Légende" aria-label="Légende"><button type="button" class="btn ghost btn-sm" data-rm="${i}">Retirer</button></div>`).join("")}</div>
+    el.innerHTML = `<div class="aud-gal">${b.items.map((it, i) => `<div class="aud-gal-item"><img class="aud-thumb big" data-p="${e(it.path)}" src="${e(ctx.urlOf(it.path))}" alt=""><input type="text" maxlength="200" data-c="${i}" value="${e(it.caption)}" placeholder="Légende" aria-label="Légende"><button type="button" class="btn ghost btn-sm" data-rm="${i}">Retirer</button></div>`).join("")}</div>
       <label class="btn ghost btn-sm aud-file">+ Ajouter des images<input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden></label>`;
     el.querySelectorAll("[data-c]").forEach((i) => i.addEventListener("input", () => { b.items[+i.dataset.c].caption = i.value; ctx.onChange(); }));
     el.querySelectorAll("[data-rm]").forEach((x) => x.addEventListener("click", () => { b.items.splice(+x.dataset.rm, 1); ctx.onChange(); draw(); }));
@@ -143,7 +143,7 @@ function editGallery(b, el, ctx) {
 function editAnnotated(b, el, ctx) {
   const draw = () => {
     el.innerHTML = `<div data-pick></div>` + (b.path ? `<p class="pro-muted" style="margin:0 0 6px;">Clique sur l'image pour poser un repère numéroté.</p>
-      <div class="aud-annot"><img src="${e(ctx.urlOf(b.path))}" alt="" draggable="false">${b.notes.map((n, i) => `<span class="pub-pin" style="left:${n.x}%;top:${n.y}%">${i + 1}</span>`).join("")}</div>
+      <div class="aud-annot"><img data-p="${e(b.path)}" src="${e(ctx.urlOf(b.path))}" alt="" draggable="false">${b.notes.map((n, i) => `<span class="pub-pin" style="left:${n.x}%;top:${n.y}%">${i + 1}</span>`).join("")}</div>
       ${b.notes.map((n, i) => `<div class="aud-reco" style="grid-template-columns:34px 1fr auto;"><b>${i + 1}</b><input type="text" maxlength="300" data-n="${i}" value="${e(n.text)}" placeholder="Ce que montre ce repère" aria-label="Repère ${i + 1}"><button type="button" class="aud-tool danger" data-rm="${i}" aria-label="Retirer le repère">✕</button></div>`).join("")}` : "") +
       lbl("Légende (facultatif)", `<input type="text" data-k="caption" maxlength="240" value="${e(b.caption)}">`);
     imagePicker(el.querySelector("[data-pick]"), () => b.path, (p) => { b.path = p; b.notes = []; }, { ...ctx, onChange: () => { ctx.onChange(); draw(); } });

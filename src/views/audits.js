@@ -1,10 +1,14 @@
 // Page « Audits » : liste des audits (recherche, filtres, actions) ; l'éditeur s'ouvre à la place de la liste.
-import { listAudits, createAudit, duplicateAudit, deleteAudit, isMissingTable, MISSING_MESSAGE, publicUrl, fmtDate, fmtDateTime } from "./audits-data.js";
+import { getAudit, listAudits, createAudit, duplicateAudit, deleteAudit, isMissingTable, MISSING_MESSAGE, publicUrl, fmtDate, fmtDateTime } from "./audits-data.js";
 import { emptyState, openModal, modalHeader, field, readForm, toast, copyText, skeleton } from "./pro-ui.js";
 import { escapeHtml } from "./pro-data.js";
 import { BUILTIN_TEMPLATES, listCustomTemplates, deleteTemplate, freshContent } from "./audit-templates.js";
 
 const state = { q: "", status: "", client: "" };
+let lastList = null; // dernière liste connue : affichée tout de suite, puis rafraîchie en arrière-plan
+
+// Charge à l'avance l'éditeur (le code) pour qu'il s'ouvre sans attente.
+const prefetchEditor = () => { import("./audit-editor.js"); import("./audit-blocks.js"); import("./audit-publish.js"); };
 
 export async function renderAudits(root, { openId = null } = {}) {
   if (openId) { const m = await import("./audit-editor.js"); return m.renderEditor(root, openId, () => renderAudits(root)); }
@@ -15,10 +19,12 @@ export async function renderAudits(root, { openId = null } = {}) {
     </div>
     <div class="pro-body" data-body>${skeleton("cols")}</div>`;
   const body = root.querySelector("[data-body]");
-  let list = [];
+  let list = lastList || [];
+  if (lastList) draw();
+  setTimeout(prefetchEditor, 300);
 
   const reload = async () => {
-    try { list = await listAudits(); } catch (err) {
+    try { list = lastList = await listAudits(); } catch (err) {
       console.error("[Audits]", err);
       body.innerHTML = `<div class="card"><p class="error-msg" style="margin:0;">${escapeHtml(isMissingTable(err) ? MISSING_MESSAGE : "Impossible de charger les audits. Recharge la page.")}</p></div>`;
       return false;
@@ -81,6 +87,9 @@ export async function renderAudits(root, { openId = null } = {}) {
       const a = list.find((x) => x.id === card.dataset.id);
       const on = (act, fn) => card.querySelector(`[data-act="${act}"]`)?.addEventListener("click", fn);
       on("edit", () => open(a.id));
+      const warm = () => getAudit(a.id).catch(() => {});
+      card.querySelector('[data-act="edit"]').addEventListener("pointerenter", warm);
+      card.querySelector('[data-act="edit"]').addEventListener("touchstart", warm, { passive: true });
       on("preview", async () => { const m = await import("./audit-editor.js"); m.openPreview(a.id); });
       on("copy", async () => toast((await copyText(publicUrl(a.slug))) ? "Lien copié ✓" : "Copie impossible", "ok"));
       on("dup", async () => { try { await duplicateAudit(a.id); toast("Audit dupliqué ✓"); reload(); } catch (err) { toast("Duplication impossible.", "error"); } });
