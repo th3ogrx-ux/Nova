@@ -31,6 +31,14 @@ begin
   exception when others then raise notice 'ok  % (refusé : %)', name, sqlerrm; return; end;
   raise exception 'ÉCHEC % : l''action a été autorisée', name;
 end $$;
+-- Exécute une instruction et vérifie le nombre de lignes touchées
+create function tst.n(name text, stmt text, want bigint) returns void language plpgsql as $$
+declare n bigint;
+begin
+  execute stmt; get diagnostics n = row_count;
+  if n is distinct from want then raise exception 'ÉCHEC % : % ligne(s) touchée(s), attendu %', name, n, want; end if;
+  raise notice 'ok  %', name;
+end $$;
 grant usage on schema tst to anon, authenticated;
 grant execute on all functions in schema tst to anon, authenticated;
 
@@ -178,6 +186,70 @@ rollback;
 begin; set local role anon;
 select tst.denied('anon : lit les audits', $$select id from public.audits$$);
 select tst.denied('anon : lit les vues', $$select * from public.audit_views$$);
+rollback;
+
+-- ---------- Équipe : rôles et permissions ----------
+\set m1 '00000000-0000-0000-0000-0000000000c1'
+\set m2 '00000000-0000-0000-0000-0000000000c2'
+insert into auth.users (id, email) values (:'m1','m1@x.fr'), (:'m2','m2@x.fr');
+insert into public.team_roles (id, nom, perms) values
+  ('30000000-0000-0000-0000-000000000001', 'Setter', '{"prospection":{"view":true,"edit":true,"delete":false},"radar":{"view":true,"edit":false,"delete":false},"audits":{"view":false,"edit":true,"delete":true}}'),
+  ('30000000-0000-0000-0000-000000000002', 'Autre', '{}');
+insert into public.team_members (user_id, role_id) values (:'m1', '30000000-0000-0000-0000-000000000001'), (:'m2', null);
+insert into public.pro_prospects (id, user_id, nom) values ('40000000-0000-0000-0000-000000000001', :'adm', 'Prospect de l''admin');
+insert into public.radar_leads (user_id, website) values (:'adm', 'https://exemple.fr');
+
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'m1', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('membre : droits lus', (public.my_perms() -> 'prospection' ->> 'edit')::boolean::int, 1);
+select tst.eq('membre : voit les prospects de l''admin', (select count(*) from public.pro_prospects where user_id = :'adm'), 1);
+select tst.n('membre : modifie un prospect de l''admin', $$update public.pro_prospects set nom = 'Modifié' where user_id = '00000000-0000-0000-0000-00000000000a'$$, 1);
+select tst.n('membre : ajoute un prospect pour l''admin', $$insert into public.pro_prospects (user_id, nom) values ('00000000-0000-0000-0000-00000000000a', 'Nouveau')$$, 1);
+select tst.n('membre : suppression sans droit = 0 ligne', $$delete from public.pro_prospects where user_id = '00000000-0000-0000-0000-00000000000a'$$, 0);
+select tst.eq('membre : voit les pistes Radar (lecture)', (select count(*) from public.radar_leads where user_id = :'adm'), 1);
+select tst.n('membre : Radar en lecture seule (modif = 0)', $$update public.radar_leads set website = 'https://x.fr' where user_id = '00000000-0000-0000-0000-00000000000a'$$, 0);
+select tst.denied('membre : ajoute une piste Radar sans droit', $$insert into public.radar_leads (user_id, website) values ('00000000-0000-0000-0000-00000000000a', 'https://y.fr')$$);
+select tst.eq('membre : audits sans « voir » = rien', (select count(*) from public.audits), 0);
+select tst.denied('membre : crée un audit (voir décoché)', $$insert into public.audits (user_id, title) values ('00000000-0000-0000-0000-00000000000a', 'x')$$);
+select tst.eq('membre : ne voit que son rôle', (select count(*) from public.team_roles), 1);
+select tst.eq('membre : ne voit que lui dans l''équipe', (select count(*) from public.team_members), 1);
+select tst.denied('membre : se change de rôle', $$update public.team_members set role_id = '30000000-0000-0000-0000-000000000002'$$);
+select tst.denied('membre : crée un rôle', $$insert into public.team_roles (nom, perms) values ('Pirate', '{}')$$);
+select tst.denied('membre : modifie son rôle', $$update public.team_roles set perms = '{"audits":{"view":true,"edit":true,"delete":true}}'$$);
+select tst.denied('membre : s''ajoute dans l''équipe', $$insert into public.team_members (user_id) values ('00000000-0000-0000-0000-0000000000f1')$$);
+select tst.denied('membre : écrit dans la présence', $$insert into public.team_presence (user_id) values ('00000000-0000-0000-0000-0000000000f1')$$);
+select public.touch_presence();
+select tst.eq('membre : ne lit pas la présence', (select count(*) from public.team_presence), 0);
+select tst.eq('membre : pas d''accès aux clients', (select count(*) from public.espace_businesses), 0);
+select tst.denied('membre : écrit un client', $$insert into public.espace_businesses (nom) values ('x')$$);
+select tst.eq('membre : pas de messages', (select count(*) from public.espace_messages), 0);
+rollback;
+
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'m2', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('membre sans rôle : voit rien (prospects)', (select count(*) from public.pro_prospects where user_id = :'adm'), 0);
+select tst.eq('membre sans rôle : voit rien (radar)', (select count(*) from public.radar_leads where user_id = :'adm'), 0);
+select tst.denied('membre sans rôle : écrit pour l''admin', $$insert into public.pro_prospects (user_id, nom) values ('00000000-0000-0000-0000-00000000000a', 'x')$$);
+rollback;
+
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'adm', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select public.touch_presence();
+select tst.eq('admin : voit tous les rôles', (select count(*) from public.team_roles), 2);
+select tst.eq('admin : voit tous les membres', (select count(*) from public.team_members), 2);
+select tst.eq('admin : lit la présence', (select count(*) from public.team_presence), 1);
+select tst.n('admin : change le rôle d''un membre', $$update public.team_members set role_id = '30000000-0000-0000-0000-000000000002' where user_id = '00000000-0000-0000-0000-0000000000c2'$$, 1);
+rollback;
+
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'ca', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('client : ne voit aucun rôle', (select count(*) from public.team_roles), 0);
+select tst.denied('client : touche à l''équipe', $$insert into public.team_members (user_id) values ('00000000-0000-0000-0000-0000000000f1')$$);
+select tst.eq('client : ne voit pas les prospects', (select count(*) from public.pro_prospects), 0);
+rollback;
+begin; set local role anon;
+select tst.denied('anon : lit les rôles', $$select * from public.team_roles$$);
+select tst.denied('anon : appelle touch_presence', $$select public.touch_presence()$$);
 rollback;
 
 \echo TOUS LES TESTS ISOLATION SONT PASSES

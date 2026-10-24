@@ -15,15 +15,12 @@
 -- Client : toujours (ses droits précis sont dans les politiques espace_*).
 -- Sans profil : jamais.
 create or replace function public.espace_access_ok()
-returns boolean language sql stable security definer set search_path = public as $$
-  select case
-    when exists (select 1 from public.espace_profiles where id = auth.uid() and role = 'admin')
-      then true
-    when exists (select 1 from public.espace_profiles where id = auth.uid() and role = 'client')
-      then true
-    else false
-  end;
-$$;
+returns boolean language plpgsql stable security definer set search_path = public as $$
+begin
+  if exists (select 1 from public.espace_profiles where id = auth.uid() and role in ('admin', 'client')) then return true; end if;
+  if to_regclass('public.team_members') is null then return false; end if;
+  return exists (select 1 from public.team_members where user_id = auth.uid());
+end $$;
 revoke all on function public.espace_access_ok() from public;
 grant execute on function public.espace_access_ok() to authenticated;
 
@@ -35,9 +32,12 @@ $$;
 -- Tables de travail de l'agence (Radar, CRM, ventes, ressources...) : l'admin seulement.
 -- Un client n'y a aucune ligne, et ne peut pas non plus en créer.
 create or replace function public.espace_admin_ok()
-returns boolean language sql stable security definer set search_path = public as $$
-  select exists (select 1 from public.espace_profiles where id = auth.uid() and role = 'admin');
-$$;
+returns boolean language plpgsql stable security definer set search_path = public as $$
+begin
+  if exists (select 1 from public.espace_profiles where id = auth.uid() and role = 'admin') then return true; end if;
+  if to_regclass('public.team_members') is null then return false; end if;
+  return exists (select 1 from public.team_members where user_id = auth.uid());
+end $$;
 revoke all on function public.espace_admin_ok() from public;
 grant execute on function public.espace_admin_ok() to authenticated;
 

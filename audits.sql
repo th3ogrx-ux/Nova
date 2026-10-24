@@ -5,9 +5,12 @@
 
 -- Règle « seulement l'admin » (même définition que securite.sql : sans risque si elle existe déjà).
 create or replace function public.espace_admin_ok()
-returns boolean language sql stable security definer set search_path = public as $$
-  select exists (select 1 from public.espace_profiles where id = auth.uid() and role = 'admin');
-$$;
+returns boolean language plpgsql stable security definer set search_path = public as $$
+begin
+  if exists (select 1 from public.espace_profiles where id = auth.uid() and role = 'admin') then return true; end if;
+  if to_regclass('public.team_members') is null then return false; end if;
+  return exists (select 1 from public.team_members where user_id = auth.uid());
+end $$;
 revoke all on function public.espace_admin_ok() from public;
 grant execute on function public.espace_admin_ok() to authenticated;
 
