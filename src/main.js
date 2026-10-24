@@ -217,7 +217,54 @@ async function refreshSidebarProfile(session) {
   show(profile);
 }
 
+// Écran de chargement visible pendant que le rôle / la 2FA se vérifient
+// (au lieu d'un écran noir), avec une sortie de secours si ça traîne.
+function showLoading() {
+  app.style.display = "none";
+  screenAuth.style.display = "";
+  screenAuth.innerHTML = `
+    <div class="auth-screen">
+      <div class="card auth-card" style="text-align:center;">
+        <span class="metal-title auth-logo">ZENOA AGENCY</span>
+        <p style="font-size:13.5px;color:var(--text-dim);line-height:1.6;" id="loading-msg">Chargement…</p>
+      </div>
+    </div>`;
+  return setTimeout(() => {
+    const msg = document.getElementById("loading-msg");
+    if (msg) msg.innerHTML = 'Ça prend plus de temps que prévu…<br><br><button type="button" class="btn primary" id="loading-retry" style="width:100%;margin-bottom:8px;">Réessayer</button><button type="button" class="btn ghost" id="loading-reset" style="width:100%;">Se déconnecter et recommencer</button>';
+    document.getElementById("loading-retry")?.addEventListener("click", () => location.reload());
+    document.getElementById("loading-reset")?.addEventListener("click", resetSession);
+  }, 8000);
+}
+
+// Déconnexion de secours : efface la session locale même si le serveur ne répond pas.
+async function resetSession() {
+  try { await Promise.race([signOut(), new Promise((r) => setTimeout(r, 2000))]); } catch { /* on continue */ }
+  try {
+    Object.keys(localStorage).filter((k) => k.startsWith("sb-")).forEach((k) => localStorage.removeItem(k));
+  } catch { /* stockage indisponible */ }
+  location.reload();
+}
+
+function withTimeout(promise, ms, label) {
+  return Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error(label + " : délai dépassé")), ms))]);
+}
+
 async function showApp(session) {
+  if (shownUserId === session.user.id) return;
+  const loadingTimer = showLoading();
+  try {
+    await showAppInner(session);
+  } catch (err) {
+    console.error("[Zenoa Agency] showApp :", err);
+    shownUserId = null;
+    showFatalError("Impossible d'ouvrir ton espace pour le moment. Réessaie, ou déconnecte-toi et reconnecte-toi.");
+  } finally {
+    clearTimeout(loadingTimer);
+  }
+}
+
+async function showAppInner(session) {
   // Supabase prévient aussi à chaque renouvellement de la connexion (environ
   // toutes les heures) : on ne recharge l'appli que si l'utilisateur change.
   if (shownUserId === session.user.id) return;
@@ -227,12 +274,11 @@ async function showApp(session) {
 
   // Le rôle est connu AVANT d'afficher quoi que ce soit : un client ne doit
   // jamais voir (ni déclencher) les pages Radar, même un instant.
-  const role = await loadRole(session.user.id);
+  const role = await withTimeout(loadRole(session.user.id), 15000, "loadRole");
   if (shownUserId !== session.user.id) return; // déconnecté pendant l'attente
   if (!role.ok) {
     shownUserId = null;
-    showFatalError(role.message + ' <a href="#" id="retry-role" style="color:var(--warm-2);">Réessayer</a>');
-    document.getElementById("retry-role").addEventListener("click", (e) => { e.preventDefault(); location.reload(); });
+    showFatalError(role.message + '');
     return;
   }
 
@@ -245,7 +291,7 @@ async function showApp(session) {
 
   // Double authentification facultative : si elle a été activée dans Paramètres, le code est demandé.
   let mfa;
-  try { mfa = await mfaState(); } catch (err) {
+  try { mfa = await withTimeout(mfaState(), 15000, "mfa"); } catch (err) {
     console.error("[mfa]", err);
     shownUserId = null;
     showFatalError("Impossible de vérifier la double authentification. Réessaie dans un instant.");
@@ -360,9 +406,13 @@ function showFatalError(message) {
         <span class="metal-title auth-logo">ZENOA AGENCY</span>
         <h1 class="auth-title" style="color:var(--danger);">Oups, un problème</h1>
         <p style="font-size:13.5px;color:var(--text-dim);text-align:center;line-height:1.6;">${message}</p>
+        <button type="button" class="btn primary" id="fatal-retry" style="width:100%;margin-top:14px;">Réessayer</button>
+        <button type="button" class="btn ghost" id="fatal-reset" style="width:100%;margin-top:8px;">Se déconnecter et recommencer</button>
       </div>
     </div>
   `;
+  document.getElementById("fatal-retry").addEventListener("click", () => location.reload());
+  document.getElementById("fatal-reset").addEventListener("click", resetSession);
 }
 
 async function boot() {
