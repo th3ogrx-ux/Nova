@@ -1,15 +1,15 @@
 # Registre des traitements (modèle — art. 30 RGPD)
 
-> Modèle à compléter. Deux registres sont à tenir : en tant que **responsable de traitement** (tes propres données : comptes, prospection) et en tant que **sous-traitant** (avis et chiffres de tes clients). À faire relire par un juriste.
+> Rempli le 24/10/2026 avec les informations de l'éditeur. Deux registres sont à tenir : en tant que **responsable de traitement** (tes propres données : comptes, prospection) et en tant que **sous-traitant** (avis et chiffres de tes clients). À faire relire par un juriste.
 
-**Responsable / sous-traitant :** [NOM, ADRESSE, E-MAIL] — Délégué à la protection des données : non désigné (non obligatoire à cette échelle).
+**Responsable / sous-traitant :** Théo Gerber (Zenoa Agency), 57310, France, th3o.grx@gmail.com — Délégué à la protection des données : non désigné (non obligatoire à cette échelle).
 
 ## A. Zenoa agit comme sous-traitant (données des entreprises clientes)
 
 | Traitement | Finalité | Personnes concernées | Données | Destinataires | Durée | Sécurité |
 |---|---|---|---|---|---|---|
-| Espace client : suivi des avis | Montrer au client ses avis et sa note | Auteurs d'avis (clients du client) | Prénom ou pseudo, note, texte, date | Le client, Zenoa | Contrat + [12 mois] | RLS, HTTPS, journal |
-| Espace client : chiffres | Suivi des vues, appels, itinéraires, etc. | Aucune personne identifiée | Chiffres agrégés par mois | Le client, Zenoa | Contrat + [12 mois] | idem |
+| Espace client : suivi des avis | Montrer au client ses avis et sa note | Auteurs d'avis (clients du client) | Prénom ou pseudo, note, texte, date | Le client, Zenoa | Contrat + 12 mois | RLS, HTTPS, journal |
+| Espace client : chiffres | Suivi des vues, appels, itinéraires, etc. | Aucune personne identifiée | Chiffres agrégés par mois | Le client, Zenoa | Contrat + 12 mois | idem |
 | Messagerie | Échanges client ↔ Zenoa | Contact du client | Nom du commerce, contenu des messages | Client, Zenoa | 24 mois (purge auto) | idem |
 | Comptes de connexion | Authentification | Contact du client | E-mail, mot de passe (haché), date de dernière connexion | Zenoa, Supabase | Contrat | Hachage par Supabase Auth, 2FA proposée |
 
@@ -17,9 +17,11 @@
 
 | Traitement | Finalité | Personnes | Données | Base légale | Durée | Notes |
 |---|---|---|---|---|---|---|
-| Prospection B2B (Radar, module Prospection) | Trouver et suivre des entreprises à démarcher | Dirigeants/entreprises prospectés | Nom du commerce, adresse, téléphone et e-mail professionnels, site, notes | Intérêt légitime (prospection B2B, art. L34-5 CPCE : information + droit d'opposition) | [3 ans après le dernier contact] | Données issues de sources publiques (OpenStreetMap, sites web). Prévoir une mention d'information dans les premiers contacts. |
+| Prospection B2B (Radar, module Prospection) | Trouver et suivre des entreprises à démarcher | Dirigeants/entreprises prospectés | Nom du commerce, adresse, téléphone et e-mail professionnels, site, notes | Intérêt légitime (prospection B2B, art. L34-5 CPCE : information + droit d'opposition) | 3 ans après le dernier contact | Données issues de sources publiques (OpenStreetMap, fiches Google, sites web, comptes professionnels Instagram/TikTok). Contact par e-mail pro, message privé Instagram/TikTok ou téléphone. Mention d'information et possibilité de s'opposer (« stop ») dans le premier message ; retrait immédiat sur demande. |
 | Journal de sécurité | Détecter les abus | Utilisateurs | Type d'événement, date, identifiant de compte | Intérêt légitime | 12 mois (échecs : 30 jours) | Pas d'IP ni d'e-mail (empreinte SHA-256 pour les échecs) |
-| Facturation / ventes | Gestion commerciale | Clients | Montants, noms | Obligation légale | 10 ans (obligation comptable) | |
+| Équipe (membres) | Donner accès à l'appli à des collaborateurs | Membres de l'équipe | E-mail, pseudo, rôle, dernière activité | Contrat de collaboration (intérêt légitime) | Jusqu'à la fin de la collaboration | Droits par rôle appliqués par la base de données |
+| Pages d'audit partagées | Compter les ouvertures des audits envoyés | Destinataires des audits | Date et heure d'ouverture (pas d'IP) | Intérêt légitime | Tant que l'audit existe | Lien privé, mot de passe et expiration facultatifs |
+| Facturation / ventes | Gestion commerciale, paiements via PayPal | Clients | Montants, noms | Obligation légale | 10 ans (obligation comptable) | Paiement traité par PayPal |
 
 ## C. Droits des personnes — comment les traiter
 - **Accès / portabilité** : Clients → fiche client → « Exporter les données du client » (JSON).
