@@ -50,7 +50,7 @@ if ("serviceWorker" in navigator) {
 const VIEWS = {
   dashboard: { render: renderDashboard, title: "Tableau de bord", roles: ["admin", "radar"] },
   recherche: { render: renderRecherche, title: "Radar", roles: ["admin", "radar"] },
-  prospection: { render: renderProspection, title: "Prospection", roles: ["admin"] },
+  prospection: { render: renderProspection, title: "Suivi prospection", roles: ["admin"] },
   calendrier: { render: renderCalendrier, title: "Calendrier", roles: ["admin"] },
   clients: { render: renderClients, title: "Clients", roles: ["admin"] },
   espace: { render: renderEspace, title: "Mon espace", roles: ["client", "admin"] },
@@ -181,6 +181,9 @@ window.addEventListener("zenoa:espace-changed", () => {
   clearTimeout(espaceRefreshTimer);
   espaceRefreshTimer = setTimeout(() => { refreshInBackground("espace"); refreshInBackground("messages"); }, 600);
 });
+
+// Une fiche client vient d'être créée depuis le suivi de prospection.
+window.addEventListener("zenoa:client-created", () => { ["clients", "espace", "messages"].forEach(refreshInBackground); });
 
 function clearViews() {
   viewCache.forEach((e) => e.el.remove());

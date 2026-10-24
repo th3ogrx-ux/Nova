@@ -179,3 +179,10 @@ drop trigger if exists pro_prospects_owner on public.pro_prospects;
 create trigger pro_prospects_owner before insert or update on public.pro_prospects for each row execute function public.pro_same_owner();
 
 notify pgrst, 'reload schema';
+
+-- Suivi prospection : objectifs du prospect + notes importantes (les notes existent déjà), et même chose sur la fiche client.
+alter table public.pro_prospects add column if not exists objectifs text check (char_length(objectifs) <= 2000);
+alter table public.pro_prospects drop constraint if exists pro_prospects_notes_check;
+alter table public.pro_prospects add constraint pro_prospects_notes_check check (char_length(notes) <= 4000);
+alter table if exists public.espace_businesses add column if not exists objectifs text check (char_length(objectifs) <= 2000);
+alter table if exists public.espace_businesses add column if not exists notes_prospection text check (char_length(notes_prospection) <= 4000);

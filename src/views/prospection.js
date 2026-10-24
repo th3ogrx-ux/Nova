@@ -4,12 +4,14 @@ import { skeleton, toast } from "./pro-ui.js";
 import { openQuickEntry } from "./pro-quick.js";
 import { renderDashboard } from "./pro-dashboard.js";
 import { renderStrategies } from "./pro-strategies.js";
+import { renderSuivi } from "./pro-suivi.js";
 import { renderPipeline } from "./pro-pipeline.js";
 import { renderScripts } from "./pro-scripts.js";
 import { renderReview } from "./pro-review.js";
 
 const TABS = [
   { key: "dashboard", label: "Tableau de bord", render: renderDashboard, skel: "dashboard" },
+  { key: "suivi", label: "Suivi", render: renderSuivi, skel: "cols" },
   { key: "strategies", label: "Stratégies", render: renderStrategies, skel: "cols" },
   { key: "pipeline", label: "Pipeline", render: renderPipeline, skel: "cols" },
   { key: "scripts", label: "Scripts et offres", render: renderScripts, skel: "dashboard" },
@@ -23,7 +25,7 @@ try { const t = localStorage.getItem(TAB_KEY); if (TABS.some((x) => x.key === t)
 
 export async function renderProspection(root) {
   root.innerHTML = `
-    <h1 class="page-title">Prospection</h1>
+    <h1 class="page-title">Suivi prospection</h1>
     <nav class="pro-tabs" role="tablist" aria-label="Sections de la prospection">${TABS.map((t) => `<button type="button" role="tab" class="pro-tab" data-tab="${t.key}" aria-selected="false">${t.label}</button>`).join("")}</nav>
     <div class="pro-body" data-body aria-live="polite">${skeleton(TABS.find((t) => t.key === state.tab).skel)}</div>
     <div class="pro-fab-wrap"><button type="button" class="pro-fab" data-fab aria-label="Noter mes messages du jour" title="Noter mes messages du jour"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>`;

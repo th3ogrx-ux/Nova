@@ -58,7 +58,8 @@ export function openProspectModal(prospect, data, ctx) {
         ${field("Stratégie", `<select name="strategy_id"><option value="">—</option>${data.strategies.map((s) => `<option value="${s.id}"${s.id === p.strategy_id ? " selected" : ""}>${escapeHtml(s.titre)}</option>`).join("")}</select>`)}
         ${field("Valeur estimée (€)", `<input type="number" name="valeur" min="0" step="1" value="${p.valeur != null ? p.valeur : ""}">`)}
       </div>
-      ${field("Notes", `<textarea name="notes" rows="3" maxlength="2000">${escapeHtml(p.notes || "")}</textarea>`)}
+      ${field("Objectifs du prospect", `<textarea name="objectifs" rows="2" maxlength="2000">${escapeHtml(p.objectifs || "")}</textarea>`)}
+      ${field("Notes importantes", `<textarea name="notes" rows="3" maxlength="4000">${escapeHtml(p.notes || "")}</textarea>`)}
       <div class="error-msg" data-error></div>
       <div class="modal-actions">${prospect ? `<button type="button" class="btn danger" data-delete style="margin-right:auto;">Supprimer</button>` : ""}<button type="button" class="btn ghost" data-close>Annuler</button><button type="submit" class="btn primary">Enregistrer</button></div>
     </form>`, { maxWidth: 520 });

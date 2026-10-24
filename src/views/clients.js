@@ -569,6 +569,11 @@ export async function renderClients(root) {
             ${field("Lien d'avis Google", `<input type="url" name="lien" maxlength="500" placeholder="https://search.google.com/local/writereview?placeid=…" value="${escapeHtml(biz.lien_avis_google || "")}">`, { span: true })}
           </div>
           <div class="admin-hint">Ce lien sert au QR code « Demander des avis » que voit le client.</div>
+          <div class="crm-form-grid" style="margin-top:10px;">
+            ${field("Objectifs du client", `<textarea name="objectifs" rows="3" maxlength="2000" placeholder="Ce qu'il veut obtenir…">${escapeHtml(biz.objectifs || "")}</textarea>`, { span: true })}
+            ${field("Notes importantes (privées)", `<textarea name="notes_prospection" rows="4" maxlength="4000" placeholder="Repris de la prospection, modifiable à tout moment">${escapeHtml(biz.notes_prospection || "")}</textarea>`, { span: true })}
+          </div>
+          <div class="admin-hint">Ces notes ne sont visibles que par toi, jamais par le client.</div>
           <div class="field" style="margin-top:10px;"><label class="field-label">Chiffres à suivre pour ce client</label>${metricChecks(enabledMetrics(biz))}
             <div class="admin-hint">Seuls les chiffres cochés sont affichés au client et à saisir chaque mois. Les autres ne sont pas supprimés : tu peux les ré-afficher quand tu veux.</div></div>
           <div id="info-msg" class="error-msg" style="min-height:18px;"></div>
@@ -605,6 +610,9 @@ export async function renderClients(root) {
       if (!metrics.length) { setMsg(msg, "Garde au moins un chiffre à suivre."); return; }
       const patch = { nom, secteur: f.secteur.value.trim() || null, ville: f.ville.value.trim() || null, lien_avis_google: lien || null };
       if (!sameMetrics(metrics, enabledMetrics(biz))) patch.metriques = metrics; // seulement si modifié
+      // Objectifs / notes : envoyés seulement s'ils changent (la colonne vient de prospection.sql).
+      if (f.objectifs.value.trim() !== (biz.objectifs || "")) patch.objectifs = f.objectifs.value.trim() || null;
+      if (f.notes_prospection.value.trim() !== (biz.notes_prospection || "")) patch.notes_prospection = f.notes_prospection.value.trim() || null;
       btn.disabled = true;
       const { data: saved, error: saveError } = await supabase.from("espace_businesses").update(patch).eq("id", biz.id).select("*").single();
       btn.disabled = false;

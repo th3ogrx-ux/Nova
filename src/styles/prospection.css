@@ -542,3 +542,11 @@ i.pro-cell.l1 { background: rgba(225, 29, 46, .28); } i.pro-cell.l2 { background
 .radar-qual-status { min-height: 16px; margin-top: 8px; font-size: 12px; color: var(--ok); }
 #app:not([data-theme="dark"]) .radar-qual-checks li.ok, #app:not([data-theme="dark"]) .radar-qual-status { color: #1b7443; }
 @media (max-width: 640px) { .radar-qual-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .radar-qual-checks { grid-template-columns: minmax(0, 1fr); } }
+
+/* Suivi : cartes de prospects avec objectifs, notes et 3 boutons */
+.pro-suivi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+.pro-suivi-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.pro-suivi-label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--light-text-dim); }
+.pro-suivi-label textarea { width: 100%; resize: vertical; font: inherit; font-size: 13.5px; }
+.pro-suivi-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+.pro-suivi-btns .btn { flex: 1 1 auto; white-space: nowrap; }
