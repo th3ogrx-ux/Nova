@@ -157,3 +157,12 @@ Installation (une seule fois) :
 2. Supabase > Edge Functions > nouvelle fonction **`audit-public`** : coller `supabase/functions/audit-public/index.ts` > Deploy.
 
 Publication : lien privé du type `/a/xK9f2mQpZr7T` (12 caractères aléatoires), page publique sans connexion, mot de passe (haché PBKDF2) et date d'expiration facultatifs, dépublication (« Audit indisponible »), `noindex`. Le lien montre toujours la dernière version **publiée** (bouton « Republier » après modification). Vues comptées côté serveur (tes propres visites connectées ne comptent pas). Images dans le bucket privé existant `user-resources` (dossier `<ton id>/audits/…`), servies par liens signés d'1 h.
+
+## Équipe, partenaires et rôles
+
+- **Bouton « Équipe »** (icône de deux personnes, à gauche des paramètres, admin seulement) : en haut **Mon équipe** (membres avec rôle, « En ligne » / « Vu il y a… », boutons Rôle, Mot de passe, Exclure), en bas **Mes partenaires** (tes clients, avec leur dernière activité). « + Ajouter un membre » crée le compte (mot de passe temporaire à changer à la première connexion).
+- **Paramètres > Rôles et permissions** : créer des rôles et cocher, pour chaque page (Tableau de bord, Radar, Suivi prospection, Calendrier, Audits), *Voir*, *Créer / modifier*, *Supprimer*. Clients, Messages, Équipe et Rôles restent réservés à l'admin.
+- Les membres travaillent sur **les données de l'admin**. Les droits sont appliqués par la base de données (`equipe.sql`, politiques « equipe … »), pas seulement par l'interface.
+- « En ligne » = l'appli est ouverte (un signal toutes les minutes, `touch_presence`).
+
+Installation : `equipe.sql` (SQL Editor), puis redéployer les fonctions `espace-admin` et `audit-public` (Edge Functions).

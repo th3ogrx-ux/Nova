@@ -2,6 +2,7 @@
 // d'affaires du mois, graphique du CA par jour sur 30 jours, et bouton
 // "Historique" ouvrant la liste complète (table public.sales, voir sales.sql).
 import { supabase } from "../supabase.js";
+import { can } from "../session.js";
 import { readCache, writeCache, sameData } from "../data-cache.js";
 
 const CHART_DAYS = 30;
@@ -116,7 +117,7 @@ async function openSalesHistory(userId, onChanged) {
           <span style="color:var(--text-dim);width:78px;flex-shrink:0;">${longDate(s.sold_on)}</span>
           <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(s.client) || `<span style="color:var(--text-dim);">Sans nom</span>`}</span>
           <span style="font-weight:700;white-space:nowrap;">${formatEuros(Number(s.amount))}</span>
-          <button type="button" class="icon-btn" data-delete-sale="${s.id}" title="Supprimer cette vente" style="width:26px;height:26px;flex-shrink:0;">✕</button>
+          ${can("dashboard", "delete") ? `<button type="button" class="icon-btn" data-delete-sale="${s.id}" title="Supprimer cette vente" style="width:26px;height:26px;flex-shrink:0;">✕</button>` : ""}
         </div>
       `).join("")}
     `;
@@ -254,7 +255,9 @@ function drawSalesCard(container, userId, sales) {
 
   renderBarChart(container.querySelector("#sales-chart"), sales);
 
-  container.querySelector("#sale-form").addEventListener("submit", async (e) => {
+  // Sans le droit « modifier » (membre de l'équipe) : pas de formulaire d'ajout.
+  if (!can("dashboard", "edit")) container.querySelector("#sale-form").remove();
+  container.querySelector("#sale-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const errorEl = container.querySelector("#sale-error");
     const submitBtn = e.target.querySelector("button[type=submit]");

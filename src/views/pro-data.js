@@ -1,6 +1,7 @@
 // Module Prospection : listes de valeurs, accès aux tables pro_* (voir prospection.sql)
 // et tous les calculs (semaines, taux, tendances) utilisés par les écrans.
 import { supabase } from "../supabase.js";
+import { getDataOwnerId } from "../session.js";
 
 export const CANAUX = {
   instagram:   { label: "Instagram", icon: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".9" fill="currentColor"/>' },
@@ -176,7 +177,7 @@ async function run(promise) {
   if (error) throw error;
   return data;
 }
-const uid = async () => (await supabase.auth.getUser()).data.user.id;
+const uid = async () => getDataOwnerId() || (await supabase.auth.getUser()).data.user.id; // un membre écrit pour l'admin (propriétaire des données)
 
 export async function saveStrategy(values, id) {
   return id ? run(supabase.from("pro_strategies").update(values).eq("id", id).select().single())

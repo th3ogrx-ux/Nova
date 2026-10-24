@@ -1,7 +1,7 @@
 // Paramètres — pseudo, photo de profil, apparence, déconnexion, suppression de compte.
 import { passwordError } from "../password-policy.js";
 import { supabase } from "../supabase.js";
-import { getCurrentUser, isClient } from "../session.js";
+import { getCurrentUser, isClient, isTeam } from "../session.js";
 import { signOut } from "../auth.js";
 import { getTheme, setTheme } from "../theme.js";
 import { verifiedFactors, renderMfaEnroll } from "../mfa.js";
@@ -176,7 +176,14 @@ export async function renderSettings(root) {
   });
 
   // Un client n'a pas la zone "Supprimer mon compte" : son compte est géré par Zenoa.
-  if (isClient()) root.querySelector("#settings-danger").remove();
+  if (isClient() || isTeam()) root.querySelector("#settings-danger").remove(); // un membre est géré par l'admin (Équipe > Exclure)
+  if (getCurrentRole() === "admin") {
+    const rolesCard = document.createElement("div");
+    rolesCard.className = "card settings-section";
+    rolesCard.id = "settings-roles";
+    root.querySelector("#settings-security").before(rolesCard);
+    import("./equipe-roles.js").then((m) => m.renderRolesCard(rolesCard)).catch((err) => console.error("[Rôles]", err));
+  }
 
   root.querySelector("#settings-password-save").addEventListener("click", async () => {
     const input = root.querySelector("#settings-new-password");

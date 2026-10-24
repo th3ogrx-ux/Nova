@@ -2,7 +2,7 @@
 // ouverture de la journée, les prospects du jour sont générés (voir
 // src/radar-generate.js) : aucune recherche à lancer soi-même.
 import { supabase } from "../supabase.js";
-import { getCurrentUser } from "../session.js";
+import { getCurrentUser, getDataOwnerId, can } from "../session.js";
 import { readCache, writeCache, sameData } from "../data-cache.js";
 import { generateTodayLeadsIfNeeded } from "../radar-generate.js";
 import { CATEGORY_INFO, qualifyLead } from "../radar-categories.js";
@@ -66,7 +66,7 @@ function initLeadsTabs(root) {
   async function loadTab(tab, { useCache = true } = {}) {
     activeTab = tab;
     setActiveTab(tab);
-    const user = await getCurrentUser();
+    const user = { id: getDataOwnerId() || (await getCurrentUser()).id };
     const cacheKey = `radar:${tab}:${user.id}`;
     const cached = useCache ? readCache(cacheKey) : null;
     if (cached) {
@@ -92,7 +92,8 @@ function initLeadsTabs(root) {
   // Prospects du jour : cherchés en arrière-plan, au-dessus de la liste,
   // sans bloquer la page (la recherche OpenStreetMap peut prendre du temps).
   async function generateToday() {
-    const user = await getCurrentUser();
+    if (!can("radar", "edit")) return; // un membre en lecture seule ne lance pas la recherche du jour
+    const user = { id: getDataOwnerId() || (await getCurrentUser()).id };
     try {
       const added = await generateTodayLeadsIfNeeded(user.id, (message) => {
         statusEl.innerHTML = `<p class="radar-status"><span class="book-spinner" style="width:16px;height:16px;border-width:2px;"></span>${escapeHtml(message)}</p>`;

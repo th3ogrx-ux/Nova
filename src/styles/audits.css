@@ -161,3 +161,9 @@
 .aud-picker { background: rgba(0,0,0,.72); }
 .aud-block { contain: layout style; }
 .aud-pick { transition: border-color .12s; }
+
+/* ---- Membre de l'équipe sans le droit de modifier / supprimer : on masque les boutons d'ajout, de modification et de suppression ---- */
+.view-readonly .pro-fab-wrap, .view-readonly [data-action="new"], .view-readonly [data-action="new2"], .view-readonly [data-act="dup"],
+.view-readonly [data-act="edit"], .view-readonly [data-act="unpub"], .view-readonly .aud-ins, .view-readonly [data-publish], .view-readonly [data-tpl],
+.view-readonly [data-act="sold"], .view-readonly [data-act="sent"], .view-readonly [data-act="unsent"] { display: none !important; }
+.view-nodelete [data-act="del"], .view-nodelete [data-delete], .view-nodelete [data-del] { display: none !important; }

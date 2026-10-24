@@ -149,6 +149,7 @@
 
 /* Barre du haut : visible seulement sur téléphone. */
 .mobile-topbar { display: none; }
+.mobile-actions { display: inline-flex; gap: 8px; }
 
 /* ---------- Téléphone : navigation en barre en bas, logo en haut ---------- */
 @media (max-width: 640px) {

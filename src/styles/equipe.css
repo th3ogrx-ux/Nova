@@ -1,0 +1,32 @@
+/* Équipe : membres, partenaires, rôles */
+.eq-section { margin-bottom: 18px; }
+.eq-count { font-size: 12px; font-weight: 600; background: rgba(225,29,46,.14); color: var(--warm-1); border-radius: 999px; padding: 1px 9px; margin-left: 6px; vertical-align: middle; }
+.eq-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--light-border); flex-wrap: wrap; }
+.eq-row:first-of-type { border-top: 0; }
+.eq-avatar { flex: none; width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #b3121f, #ff4a3d); color: #fff; display: grid; place-items: center; font-weight: 700; overflow: hidden; }
+.eq-avatar.alt { background: linear-gradient(135deg, #3d0709, #9b1220); }
+.eq-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.eq-who { display: flex; flex-direction: column; min-width: 0; flex: 1 1 180px; }
+.eq-who strong, .eq-who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eq-role-chip { font-size: 12px; font-weight: 600; padding: 3px 11px; border-radius: 999px; border: 1px solid var(--light-border); }
+.eq-role-chip.none { color: var(--warning); border-color: #f6923d66; background: #f6923d14; }
+.eq-presence { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--light-text-dim); min-width: 130px; }
+.eq-presence i { width: 9px; height: 9px; border-radius: 50%; background: #8d7b79; }
+.eq-presence.on { color: var(--ok); font-weight: 600; } .eq-presence.on i { background: var(--ok); box-shadow: 0 0 0 3px #4fbf7a33; }
+.eq-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+@media (max-width: 720px) { .eq-btns { margin-left: 0; width: 100%; } .eq-btns .btn { flex: 1 1 auto; } .eq-presence { min-width: 0; } }
+.eq-roles { display: grid; gap: 8px; }
+.eq-role { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 14px; border: 1px solid var(--light-border); border-radius: var(--radius-md); }
+.eq-role-main { display: flex; flex-direction: column; min-width: 0; } .eq-role-main span { font-size: 12.5px; }
+.eq-role-btns { display: flex; gap: 8px; }
+.eq-matrix { margin: 14px 0 8px; border: 1px solid rgba(255,255,255,.12); border-radius: var(--radius-md); overflow: hidden; }
+.eq-mrow { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, 84px); align-items: center; padding: 8px 12px; border-top: 1px solid rgba(255,255,255,.08); gap: 6px; }
+.eq-mhead { border-top: 0; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; opacity: .7; text-align: center; }
+.eq-mname { display: flex; flex-direction: column; } .eq-mname small { opacity: .65; font-size: 11.5px; }
+.eq-cell { display: grid; place-items: center; } .eq-cell input { width: 20px; height: 20px; accent-color: var(--warm-1); cursor: pointer; }
+@media (max-width: 560px) { .eq-mrow { grid-template-columns: minmax(0, 1fr) repeat(3, 56px); padding: 8px; } .eq-mhead { font-size: 10px; } }
+.eq-reserved { font-size: 12.5px; opacity: .75; margin: 6px 0 12px; line-height: 1.5; }
+.eq-pick { display: grid; gap: 8px; margin-bottom: 12px; }
+.eq-opt { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid rgba(255,255,255,.14); border-radius: var(--radius-md); cursor: pointer; }
+.eq-opt input { accent-color: var(--warm-1); }
+.icon-btn[hidden] { display: none !important; }

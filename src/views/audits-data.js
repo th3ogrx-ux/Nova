@@ -1,5 +1,6 @@
 // Module Audits : accès aux tables audits / audit_views (voir audits.sql).
 import { supabase } from "../supabase.js";
+import { getDataOwnerId } from "../session.js";
 
 // Colonnes lisibles : password_hash n'est volontairement jamais demandé (la base refuse de le donner).
 export const AUDIT_COLS = "id,user_id,title,client_name,status,content,cover_path,logo_path,slug,has_password,expires_at,is_template,template_kind,published_content,created_at,updated_at,published_at";
@@ -8,7 +9,7 @@ const LIST_COLS = "id,title,client_name,status,slug,has_password,expires_at,is_t
 export const MISSING_MESSAGE = "Le module Audits n'est pas encore installé : colle le fichier audits.sql dans Supabase (SQL Editor > Run), puis recharge la page.";
 export const isMissingTable = (err) => !!err && (err.code === "PGRST205" || err.code === "42P01" || /audits|schema cache/i.test(err.message || ""));
 
-const uid = async () => (await supabase.auth.getUser()).data.user.id;
+const uid = async () => getDataOwnerId() || (await supabase.auth.getUser()).data.user.id; // un membre écrit pour l'admin (propriétaire des données)
 async function run(q) { const { data, error } = await q; if (error) throw error; return data; }
 
 export const EMPTY_CONTENT = () => ({ pages: [{ id: newId(), title: "Page 1", blocks: [] }] });

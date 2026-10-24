@@ -1,5 +1,5 @@
 // Tableau de bord — les ventes (voir sales-card.js).
-import { getCurrentUser } from "../session.js";
+import { getCurrentUser, getDataOwnerId } from "../session.js";
 import { renderSalesCard } from "./sales-card.js";
 
 export async function renderDashboard(root) {
@@ -8,5 +8,5 @@ export async function renderDashboard(root) {
     <div class="card" id="dashboard-sales" style="padding:20px;margin-bottom:24px;"></div>
   `;
   const user = await getCurrentUser();
-  await renderSalesCard(root.querySelector("#dashboard-sales"), user.id);
+  await renderSalesCard(root.querySelector("#dashboard-sales"), getDataOwnerId() || user.id);
 }

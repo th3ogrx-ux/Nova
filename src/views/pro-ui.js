@@ -59,6 +59,7 @@ export function readForm(form) {
 export function friendlyError(err) {
   console.error("[Prospection]", err);
   const m = String((err && err.message) || "");
+  if (/row-level security|permission denied/i.test(m)) return "Ton rôle ne permet pas cette action. Demande à l'administrateur de modifier tes droits.";
   if (/pro_offers_phases_ok|violates check constraint|phases|titres_mois|offer_id|schema cache|column/i.test(m)) return "La base de données n'est pas à jour (ou le pack est trop long). Recolle prospection.sql dans Supabase (SQL Editor > Run), puis réessaie. Ton texte est gardé.";
   if (/JWT|expired|not authenticated|401/i.test(m)) return "Ta session a expiré : reconnecte-toi, puis réessaie. Ton texte est gardé.";
   if (/Failed to fetch|NetworkError|network/i.test(m)) return "Pas de connexion pour le moment. Réessaie dans un instant. Ton texte est gardé.";

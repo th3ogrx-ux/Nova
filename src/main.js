@@ -10,6 +10,7 @@ import { supabase, supabaseConfigured } from "./supabase.js";
 import { renderDashboard } from "./views/dashboard.js";
 import { renderRecherche } from "./views/recherche.js";
 import { renderAudits } from "./views/audits.js";
+import { renderEquipe } from "./views/equipe.js";
 import { renderProspection } from "./views/prospection.js";
 import { renderCalendrier } from "./views/calendrier.js";
 import { renderEspace } from "./views/espace.js";
@@ -23,7 +24,7 @@ import { renderDemoPage } from "./views/demo.js";
 import { renderSettings, setOnProfileUpdated, applyAvatarPreview } from "./views/settings.js";
 import { applyTheme } from "./theme.js";
 import { initCustomSelects } from "./custom-select.js";
-import { setCurrentUser, getCurrentRole, loadRole } from "./session.js";
+import { setCurrentUser, getCurrentRole, loadRole, can, getRoleName } from "./session.js";
 import { initA11y, markActiveNav } from "./a11y.js";
 import { readCache, writeCache, clearCache } from "./data-cache.js";
 
@@ -48,29 +49,51 @@ if ("serviceWorker" in navigator) {
 // ses paramètres ; le Radar lui sont fermés (la base
 // de données le lui interdit aussi : ceci évite seulement de lui montrer des
 // pages vides ou de lancer des recherches à sa place).
+const TEAM = ["admin", "team"];
 const VIEWS = {
-  dashboard: { render: renderDashboard, title: "Tableau de bord", roles: ["admin", "radar"] },
-  recherche: { render: renderRecherche, title: "Radar", roles: ["admin", "radar"] },
-  prospection: { render: renderProspection, title: "Suivi prospection", roles: ["admin"] },
-  calendrier: { render: renderCalendrier, title: "Calendrier", roles: ["admin"] },
-  audits: { render: renderAudits, title: "Audits", roles: ["admin"] },
+  dashboard: { render: renderDashboard, title: "Tableau de bord", roles: ["admin", "radar", "team"], perm: "dashboard" },
+  recherche: { render: renderRecherche, title: "Radar", roles: ["admin", "radar", "team"], perm: "radar" },
+  prospection: { render: renderProspection, title: "Suivi prospection", roles: TEAM, perm: "prospection" },
+  calendrier: { render: renderCalendrier, title: "Calendrier", roles: TEAM, perm: "calendrier" },
+  audits: { render: renderAudits, title: "Audits", roles: TEAM, perm: "audits" },
   clients: { render: renderClients, title: "Clients", roles: ["admin"] },
   espace: { render: renderEspace, title: "Mon espace", roles: ["client", "admin"] },
   messages: { render: renderMessages, title: "Messages", roles: ["client", "admin"] },
-  settings: { render: renderSettings, title: "Paramètres", roles: ["admin", "radar", "client"] },
+  equipe: { render: renderEquipe, title: "Équipe", roles: ["admin"] },
+  settings: { render: renderSettings, title: "Paramètres", roles: ["admin", "radar", "client", "team"] },
 };
 
-const canOpen = (name) => !!VIEWS[name] && VIEWS[name].roles.includes(getCurrentRole());
-const homeView = () => (getCurrentRole() === "client" ? "espace" : "dashboard");
+// Un membre de l'équipe n'ouvre que les pages dont son rôle coche « voir ».
+const canOpen = (name) => {
+  const v = VIEWS[name];
+  if (!v || !v.roles.includes(getCurrentRole())) return false;
+  return getCurrentRole() !== "team" || !v.perm || can(v.perm);
+};
+const TEAM_HOME = ["dashboard", "recherche", "prospection", "calendrier", "audits"];
+const homeView = () => {
+  const role = getCurrentRole();
+  if (role === "client") return "espace";
+  if (role === "team") return TEAM_HOME.find(canOpen) || "settings";
+  return "dashboard";
+};
 
 // Affiche dans le menu uniquement les pages permises au rôle courant.
 function applyRoleToNav() {
   const role = getCurrentRole();
   document.querySelectorAll(".nav-item[data-roles], .nav-group[data-roles]").forEach((el) => {
-    el.hidden = !el.dataset.roles.split(" ").includes(role);
+    el.hidden = !el.dataset.roles.split(" ").includes(role) || (role === "team" && !!el.dataset.perm && !can(el.dataset.perm));
   });
+  // Un titre de groupe n'apparaît que s'il reste au moins une page visible en dessous.
+  document.querySelectorAll(".nav-group[data-roles]").forEach((g) => {
+    if (g.hidden) return;
+    let n = g.nextElementSibling, any = false;
+    while (n && !n.classList.contains("nav-group")) { if (n.classList.contains("nav-item") && !n.hidden) any = true; n = n.nextElementSibling; }
+    g.hidden = !any;
+  });
+  // Boutons « Équipe » (à gauche des paramètres) : toi seulement.
+  ["team-btn", "team-btn-mobile"].forEach((id) => { document.getElementById(id).hidden = role !== "admin"; });
   // Pour toi (admin), cette page est un aperçu de ce que voient tes clients.
-  document.getElementById("my-role-display").textContent = role === "admin" ? "Fondateur Zenoa" : "";
+  document.getElementById("my-role-display").textContent = role === "admin" ? "Fondateur Zenoa" : role === "team" ? (getRoleName() || "Membre de l'équipe") : "";
   const espaceLabel = document.getElementById("espace-nav-label");
   espaceLabel.textContent = role === "admin" ? "Aperçu client" : "Mon espace";
   if (role === "admin") espaceLabel.dataset.short = "Aperçu"; else delete espaceLabel.dataset.short; // nom court dans la barre du téléphone
@@ -105,9 +128,17 @@ let shownUserId = null;
 
 const todayStamp = () => new Date().toDateString();
 
+// Membre sans le droit « modifier » : la page se met en lecture seule (boutons d'ajout / de suppression masqués, voir audits.css).
+function markReadonly(el, name) {
+  const perm = VIEWS[name] && VIEWS[name].perm;
+  el.classList.toggle("view-readonly", getCurrentRole() === "team" && !!perm && !can(perm, "edit"));
+  el.classList.toggle("view-nodelete", getCurrentRole() === "team" && !!perm && !can(perm, "delete"));
+}
+
 function mountView(name) {
   const el = document.createElement("div");
   el.hidden = name !== currentView;
+  markReadonly(el, name);
   viewRoot.appendChild(el);
   const entry = { el, day: todayStamp(), scrollTop: 0, ready: null };
   viewCache.set(name, entry);
@@ -124,6 +155,7 @@ function refreshInBackground(name) {
   entry.refreshing = true;
   const fresh = document.createElement("div");
   fresh.hidden = true;
+  markReadonly(fresh, name);
   viewRoot.appendChild(fresh);
   Promise.resolve(VIEWS[name].render(fresh))
     .then(() => {
@@ -202,6 +234,8 @@ function wireNav() {
   });
   document.getElementById("settings-btn").addEventListener("click", () => switchView("settings"));
   document.getElementById("settings-btn-mobile").addEventListener("click", () => switchView("settings"));
+  document.getElementById("team-btn").addEventListener("click", () => switchView("equipe"));
+  document.getElementById("team-btn-mobile").addEventListener("click", () => switchView("equipe"));
   initA11y();
 }
 
@@ -309,7 +343,7 @@ async function showAppInner(session) {
   }
 
   // Premier accès d'un client : mot de passe temporaire à remplacer avant tout.
-  if (getCurrentRole() === "client" && needsPasswordChange(session.user)) {
+  if ((getCurrentRole() === "client" || getCurrentRole() === "team") && needsPasswordChange(session.user)) {
     app.style.display = "none";
     await new Promise((resolve) => renderForcePassword(screenAuth, resolve));
     if (shownUserId !== session.user.id) return;
@@ -325,6 +359,7 @@ async function showAppInner(session) {
   refreshSidebarProfile(session); // sans attendre : n'empêche pas la page de s'afficher
 
   if (getCurrentRole() === "admin") showSecurityAlerts();
+  startPresence();
 
   const home = homeView();
   switchView(home);
@@ -365,6 +400,17 @@ async function showSecurityAlerts() {
   mainEl.parentNode.insertBefore(banner, mainEl);
 }
 
+// « Je suis là » : toutes les minutes tant que l'appli est ouverte et visible (sert à voir qui est en ligne).
+let presenceTimer = null;
+function startPresence() {
+  stopPresence();
+  const ping = () => { if (!document.hidden) supabase.rpc("touch_presence").then(() => {}, () => {}); };
+  ping();
+  presenceTimer = setInterval(ping, 60000);
+  document.addEventListener("visibilitychange", ping);
+}
+function stopPresence() { clearInterval(presenceTimer); presenceTimer = null; }
+
 function showNoAccess() {
   app.style.display = "none";
   screenAuth.style.display = "";
@@ -384,6 +430,7 @@ function showNoAccess() {
 
 function showAuth() {
   stopUnreadWatch();
+  stopPresence();
   // Déconnexion : on oublie l'utilisateur et ses données gardées en mémoire.
   if (shownUserId) clearCache();
   shownUserId = null;
