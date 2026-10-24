@@ -122,3 +122,15 @@
 .pub-sep { border: 0; border-top: 1px solid var(--p-line); margin: 8px 0; }
 .pub-cta { margin: 0; } .pub-btn { display: inline-block; background: linear-gradient(135deg, #b3121f, #ff4a3d); color: #fff; text-decoration: none; font-weight: 700; padding: 12px 22px; border-radius: 999px; }
 .pub-foot { text-align: center; padding: 22px; color: var(--p-dim); font-size: 12.5px; border-top: 1px solid var(--p-line); font-family: var(--font-brand); letter-spacing: .08em; text-transform: uppercase; }
+
+.pub-root, .pub-root body { background: #0b0506; }
+@media (prefers-color-scheme: light) { .pub-root, .pub-root body { background: #fbf8f6; } }
+.pub-center { max-width: 420px; margin: 0 auto; padding: 18vh 20px 40px; text-align: center; }
+.pub-dim { color: var(--p-dim); }
+.pub-pw { display: flex; gap: 8px; margin: 16px 0 6px; }
+.pub-pw input { flex: 1; min-width: 0; padding: 12px 14px; border-radius: 999px; border: 1px solid var(--p-line); background: var(--p-card); color: var(--p-text); font: inherit; }
+.pub-pw .pub-btn { border: 0; cursor: pointer; font: inherit; font-weight: 700; }
+.pub-err { color: var(--danger); min-height: 22px; font-size: 14px; }
+.aud-linkbox { display: flex; gap: 8px; } .aud-linkbox input { flex: 1; min-width: 0; font: inherit; font-size: 13px; }
+.aud-check { display: flex; align-items: center; gap: 8px; width: auto; }
+.aud-check input[type="checkbox"] { width: auto; flex: none; margin: 0; }

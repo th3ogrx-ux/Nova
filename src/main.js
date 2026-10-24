@@ -439,6 +439,18 @@ async function boot() {
       return;
     }
 
+    // Page publique d'un audit : aucune authentification, comme les maquettes.
+    const auditMatch = window.location.pathname.match(/^\/a\/([A-Za-z0-9]{8,16})\/?$/);
+    if (auditMatch) {
+      document.getElementById("screen-auth").style.display = "none";
+      document.getElementById("app").style.display = "none";
+      const pubScreen = document.getElementById("screen-demo");
+      pubScreen.style.display = "";
+      const { renderPublicAudit } = await import("./views/audit-public.js");
+      await renderPublicAudit(pubScreen, auditMatch[1]);
+      return;
+    }
+
     wireNav();
     const session = await getSession();
     if (session) {
