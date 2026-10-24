@@ -147,3 +147,13 @@ Installation : coller **`prospection.sql`** dans Supabase (SQL Editor > Run) **a
 - **Quoi** (dans l'ordre) : coiffeurs/barbiers, restaurants/snacks/pizzerias, artisans (électriciens, plombiers, chauffagistes).
 - **Filtrés automatiquement** : indépendants (pas de chaînes, pas plus de 10 employés), site absent ou ancien, e-mail trouvé (OpenStreetMap ou site du commerce). Fonction `supabase/functions/radar-daily` à redéployer après chaque mise à jour.
 - **À vérifier à la main** depuis la fiche Google (Google ne les donne pas gratuitement) : avis, note, photos, description, réponses, dernier avis. `radar-qualification.sql` ajoute les champs ; le Radar affiche « ✓ Qualifié » ou « ✗ Hors critères ».
+
+## Module Audits
+
+Menu **Livrables > Audits** : liste (recherche, filtres statut / client), éditeur à blocs (titre, texte riche, image, galerie, capture annotée, tableau, score, graphique, recommandations, vidéo Loom/YouTube, citation, séparateur, bouton), plusieurs pages avec sommaire automatique, sauvegarde automatique, aperçu, modèles (SEO, publicité, site, réseaux, vierge + modèles perso).
+
+Installation (une seule fois) :
+1. Supabase > SQL Editor : coller `audits.sql` > Run (tables `audits` et `audit_views`, droits par colonne).
+2. Supabase > Edge Functions > nouvelle fonction **`audit-public`** : coller `supabase/functions/audit-public/index.ts` > Deploy.
+
+Publication : lien privé du type `/a/xK9f2mQpZr7T` (12 caractères aléatoires), page publique sans connexion, mot de passe (haché PBKDF2) et date d'expiration facultatifs, dépublication (« Audit indisponible »), `noindex`. Le lien montre toujours la dernière version **publiée** (bouton « Republier » après modification). Vues comptées côté serveur (tes propres visites connectées ne comptent pas). Images dans le bucket privé existant `user-resources` (dossier `<ton id>/audits/…`), servies par liens signés d'1 h.

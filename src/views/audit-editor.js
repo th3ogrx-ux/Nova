@@ -25,6 +25,7 @@ export async function renderEditor(root, id, back) {
         <button type="button" class="btn ghost btn-sm" data-back>← Audits</button>
         <span class="aud-save" data-save aria-live="polite">Brouillon enregistré</span>
         <span class="aud-ed-bar-actions">
+          <button type="button" class="btn ghost btn-sm" data-tpl>Enregistrer comme modèle</button>
           <button type="button" class="btn ghost btn-sm" data-preview>Aperçu</button>
           <button type="button" class="btn primary btn-sm" data-publish>Publier</button>
         </span>
@@ -166,6 +167,13 @@ export async function renderEditor(root, id, back) {
     pick.querySelector("[data-close]").addEventListener("click", close);
     pick.querySelectorAll("[data-type]").forEach((b) => b.addEventListener("click", () => { blocks().splice(index, 0, makeBlock(b.dataset.type)); close(); drawBlocks(); changed(); }));
   }
+
+  root.querySelector("[data-tpl]").addEventListener("click", async () => {
+    const name = window.prompt("Nom du modèle", fields.title || "Mon modèle");
+    if (!name || !name.trim()) return;
+    const { saveAsTemplate, freshContent } = await import("./audit-templates.js");
+    try { await saveAsTemplate(audit, name.trim().slice(0, 160), freshContent(content)); toast("Modèle enregistré ✓ (disponible dans « Nouveau projet »)"); } catch (err) { console.error(err); toast("Enregistrement du modèle impossible.", "error"); }
+  });
 
   // ---- aperçu / publication
   root.querySelector("[data-preview]").addEventListener("click", async () => { await refreshUrls(); showPreview({ ...audit, ...fields, title: fields.title || "Audit sans titre", content }, st.urlOf); });

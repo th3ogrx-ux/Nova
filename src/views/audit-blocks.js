@@ -1,7 +1,7 @@
 // Audits : les blocs de l'éditeur. Chaque type a un libellé, une valeur de départ et un éditeur (le rendu est dans audit-render.js).
 import { escapeHtml } from "./pro-data.js";
 import { newId } from "./audits-data.js";
-import { sanitizeHtml, PRIORITIES, safeUrl } from "./audit-render.js";
+import { sanitizeHtml, PRIORITIES, safeUrl, videoEmbed, gaugeSvg, chartSvg } from "./audit-render.js";
 
 const e = escapeHtml;
 
@@ -13,6 +13,11 @@ export const BLOCK_TYPES = {
   recos: { label: "Recommandations", hint: "Liste avec priorité haute, moyenne ou basse", make: () => ({ items: [{ text: "", priority: "high" }] }), edit: editRecos },
   quote: { label: "Citation / encart", hint: "Citation ou encart mis en avant", make: () => ({ style: "callout", text: "", author: "" }), edit: editQuote },
   separator: { label: "Séparateur", hint: "Ligne de séparation", make: () => ({}), edit: (b, el) => { el.innerHTML = `<p class="pro-muted" style="margin:0;">Une ligne de séparation s'affichera ici.</p>`; } },
+  gallery: { label: "Galerie", hint: "Plusieurs images côte à côte", make: () => ({ items: [] }), edit: editGallery },
+  annotated: { label: "Capture annotée", hint: "Image avec des repères numérotés", make: () => ({ path: null, caption: "", notes: [] }), edit: editAnnotated },
+  score: { label: "Score", hint: "Jauge de 0 à 100", make: () => ({ label: "Score global", value: 50, comment: "" }), edit: editScore },
+  chart: { label: "Graphique", hint: "Barres ou courbe, données saisies à la main", make: () => ({ kind: "bar", title: "", points: [{ label: "", value: "" }, { label: "", value: "" }] }), edit: editChart },
+  video: { label: "Vidéo", hint: "Lien Loom ou YouTube", make: () => ({ url: "", caption: "" }), edit: editVideo },
   cta: { label: "Bouton d'action", hint: "Bouton vers un lien (prise de rendez-vous…)", make: () => ({ label: "Prendre rendez-vous", url: "" }), edit: editCta }
 };
 export const extendBlockTypes = (more) => Object.assign(BLOCK_TYPES, more);
@@ -117,4 +122,75 @@ function editRecos(b, el, ctx) {
     el.querySelector("[data-add]").addEventListener("click", () => { if (b.items.length < 40) { b.items.push({ text: "", priority: "medium" }); ctx.onChange(); draw(); } });
   };
   draw();
+}
+
+function editGallery(b, el, ctx) {
+  const draw = () => {
+    el.innerHTML = `<div class="aud-gal">${b.items.map((it, i) => `<div class="aud-gal-item"><img class="aud-thumb big" src="${e(ctx.urlOf(it.path))}" alt=""><input type="text" maxlength="200" data-c="${i}" value="${e(it.caption)}" placeholder="Légende" aria-label="Légende"><button type="button" class="btn ghost btn-sm" data-rm="${i}">Retirer</button></div>`).join("")}</div>
+      <label class="btn ghost btn-sm aud-file">+ Ajouter des images<input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden></label>`;
+    el.querySelectorAll("[data-c]").forEach((i) => i.addEventListener("input", () => { b.items[+i.dataset.c].caption = i.value; ctx.onChange(); }));
+    el.querySelectorAll("[data-rm]").forEach((x) => x.addEventListener("click", () => { b.items.splice(+x.dataset.rm, 1); ctx.onChange(); draw(); }));
+    el.querySelector("input[type=file]").addEventListener("change", async (ev) => {
+      for (const f of [...ev.target.files].slice(0, 12 - b.items.length)) {
+        try { b.items.push({ path: await ctx.upload(f), caption: "" }); } catch (err) { ctx.toast(err.message, "error"); }
+      }
+      ctx.onChange(); draw();
+    });
+  };
+  draw();
+}
+
+function editAnnotated(b, el, ctx) {
+  const draw = () => {
+    el.innerHTML = `<div data-pick></div>` + (b.path ? `<p class="pro-muted" style="margin:0 0 6px;">Clique sur l'image pour poser un repère numéroté.</p>
+      <div class="aud-annot"><img src="${e(ctx.urlOf(b.path))}" alt="" draggable="false">${b.notes.map((n, i) => `<span class="pub-pin" style="left:${n.x}%;top:${n.y}%">${i + 1}</span>`).join("")}</div>
+      ${b.notes.map((n, i) => `<div class="aud-reco" style="grid-template-columns:34px 1fr auto;"><b>${i + 1}</b><input type="text" maxlength="300" data-n="${i}" value="${e(n.text)}" placeholder="Ce que montre ce repère" aria-label="Repère ${i + 1}"><button type="button" class="aud-tool danger" data-rm="${i}" aria-label="Retirer le repère">✕</button></div>`).join("")}` : "") +
+      lbl("Légende (facultatif)", `<input type="text" data-k="caption" maxlength="240" value="${e(b.caption)}">`);
+    imagePicker(el.querySelector("[data-pick]"), () => b.path, (p) => { b.path = p; b.notes = []; }, { ...ctx, onChange: () => { ctx.onChange(); draw(); } });
+    // imagePicker redessine seul son bloc ; on redessine tout pour afficher la zone de repères
+    bind(b, el, ctx);
+    const area = el.querySelector(".aud-annot");
+    area?.addEventListener("click", (ev) => {
+      if (b.notes.length >= 20) return;
+      const r = area.querySelector("img").getBoundingClientRect();
+      b.notes.push({ x: Math.round(((ev.clientX - r.left) / r.width) * 1000) / 10, y: Math.round(((ev.clientY - r.top) / r.height) * 1000) / 10, text: "" });
+      ctx.onChange(); draw(); el.querySelector(`[data-n="${b.notes.length - 1}"]`)?.focus();
+    });
+    el.querySelectorAll("[data-n]").forEach((i) => i.addEventListener("input", () => { b.notes[+i.dataset.n].text = i.value; ctx.onChange(); }));
+    el.querySelectorAll("[data-rm]").forEach((x) => x.addEventListener("click", () => { b.notes.splice(+x.dataset.rm, 1); ctx.onChange(); draw(); }));
+  };
+  draw();
+}
+
+function editScore(b, el, ctx) {
+  el.innerHTML = `<div class="aud-score">${lbl("Intitulé", `<input type="text" data-k="label" maxlength="80" value="${e(b.label)}">`)}
+    ${lbl("Score (0 à 100)", `<input type="number" data-k="value" min="0" max="100" step="1" value="${e(b.value)}">`)}</div>
+    <div class="aud-gauge-prev">${gaugeSvg(b.value)}</div>` + lbl("Commentaire (facultatif)", `<textarea data-k="comment" rows="2" maxlength="400">${e(b.comment)}</textarea>`);
+  bind(b, el, ctx);
+  el.querySelector('[data-k="value"]').addEventListener("input", () => { el.querySelector(".aud-gauge-prev").innerHTML = gaugeSvg(b.value); });
+}
+
+function editChart(b, el, ctx) {
+  const draw = () => {
+    el.innerHTML = `<div class="aud-score">${lbl("Type", `<select data-k="kind"><option value="bar">Barres</option><option value="line">Courbe</option></select>`)}${lbl("Titre", `<input type="text" data-k="title" maxlength="120" value="${e(b.title)}">`)}</div>
+      ${b.points.map((p, i) => `<div class="aud-reco" style="grid-template-columns:1fr 110px auto;"><input type="text" maxlength="30" data-l="${i}" value="${e(p.label)}" placeholder="Libellé (ex : Jan)" aria-label="Libellé"><input type="number" step="any" data-v="${i}" value="${e(p.value)}" placeholder="Valeur" aria-label="Valeur"><button type="button" class="aud-tool danger" data-rm="${i}" aria-label="Retirer">✕</button></div>`).join("")}
+      <button type="button" class="btn ghost btn-sm" data-add>+ Point</button><div class="aud-gauge-prev">${chartSvg(b).replace('class="pub-chart"', 'class="pub-chart" style="max-width:520px"')}</div>`;
+    el.querySelector("select").value = b.kind;
+    const preview = () => { el.querySelector(".aud-gauge-prev").innerHTML = chartSvg(b); };
+    el.querySelectorAll("[data-l]").forEach((i) => i.addEventListener("input", () => { b.points[+i.dataset.l].label = i.value; ctx.onChange(); preview(); }));
+    el.querySelectorAll("[data-v]").forEach((i) => i.addEventListener("input", () => { b.points[+i.dataset.v].value = i.value; ctx.onChange(); preview(); }));
+    el.querySelectorAll("[data-rm]").forEach((x) => x.addEventListener("click", () => { if (b.points.length > 1) { b.points.splice(+x.dataset.rm, 1); ctx.onChange(); draw(); } }));
+    el.querySelector("[data-add]").addEventListener("click", () => { if (b.points.length < 14) { b.points.push({ label: "", value: "" }); ctx.onChange(); draw(); } });
+    el.querySelector('[data-k="kind"]').addEventListener("change", (ev) => { b.kind = ev.target.value; ctx.onChange(); preview(); });
+    el.querySelector('[data-k="title"]').addEventListener("input", (ev) => { b.title = ev.target.value; ctx.onChange(); });
+  };
+  draw();
+}
+
+function editVideo(b, el, ctx) {
+  el.innerHTML = lbl("Lien Loom ou YouTube", `<input type="url" data-k="url" maxlength="300" value="${e(b.url)}" placeholder="https://www.loom.com/share/…">`) + `<p class="aud-hint" data-hint></p>` + lbl("Légende (facultatif)", `<input type="text" data-k="caption" maxlength="240" value="${e(b.caption)}">`);
+  bind(b, el, ctx);
+  const hint = el.querySelector("[data-hint]");
+  const check = () => { hint.textContent = !b.url ? "" : videoEmbed(b.url) ? "✓ Vidéo reconnue" : "Lien non reconnu : seuls Loom et YouTube sont acceptés."; hint.style.color = videoEmbed(b.url) ? "var(--ok)" : "var(--danger)"; };
+  el.querySelector('[data-k="url"]').addEventListener("input", check); check();
 }

@@ -2,6 +2,7 @@
 import { listAudits, createAudit, duplicateAudit, deleteAudit, isMissingTable, MISSING_MESSAGE, publicUrl, fmtDate, fmtDateTime } from "./audits-data.js";
 import { emptyState, openModal, modalHeader, field, readForm, toast, copyText, skeleton } from "./pro-ui.js";
 import { escapeHtml } from "./pro-data.js";
+import { BUILTIN_TEMPLATES, listCustomTemplates, deleteTemplate, freshContent } from "./audit-templates.js";
 
 const state = { q: "", status: "", client: "" };
 
@@ -97,21 +98,42 @@ export async function renderAudits(root, { openId = null } = {}) {
     });
   }
 
-  function newProject() {
+  async function newProject() {
+    let customs = [];
+    try { customs = await listCustomTemplates(); } catch { /* sans audits.sql à jour : pas de modèles perso */ }
+    let chosen = "blank";
     const { overlay, close } = openModal(`${modalHeader("Nouveau projet")}
       <form data-form>
         ${field("Titre de l'audit *", `<input type="text" name="title" maxlength="160" required placeholder="Ex : Audit SEO, Salon Éclat">`)}
         ${field("Nom du client", `<input type="text" name="client_name" maxlength="160" placeholder="Ex : Salon Éclat">`)}
+        <div class="field"><label class="field-label">Modèle</label><div class="aud-tpls" data-tpls></div></div>
         <div class="error-msg" data-error></div>
         <div class="modal-actions"><button type="button" class="btn ghost" data-close>Annuler</button><button type="submit" class="btn primary">Créer</button></div>
-      </form>`, { maxWidth: 480 });
-    const form = overlay.querySelector("[data-form]");
+      </form>`, { maxWidth: 560 });
+    const form = overlay.querySelector("[data-form]"), tpls = overlay.querySelector("[data-tpls]");
+    const drawTpls = () => {
+      tpls.innerHTML = [...BUILTIN_TEMPLATES.map((t) => ({ key: t.key, label: t.label, hint: t.hint })), ...customs.map((t) => ({ key: "c:" + t.id, label: t.title, hint: "Mon modèle", custom: t.id }))]
+        .map((t) => `<div class="aud-tpl${chosen === t.key ? " on" : ""}" data-key="${escapeHtml(t.key)}" role="radio" aria-checked="${chosen === t.key}" tabindex="0"><strong>${escapeHtml(t.label)}</strong><span>${escapeHtml(t.hint)}</span>${t.custom ? `<button type="button" class="aud-tpl-x" data-del="${t.custom}" aria-label="Supprimer ce modèle">✕</button>` : ""}</div>`).join("");
+      tpls.querySelectorAll(".aud-tpl").forEach((el) => {
+        const pick = () => { chosen = el.dataset.key; drawTpls(); };
+        el.addEventListener("click", (e) => { if (!e.target.closest("[data-del]")) pick(); });
+        el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+      });
+      tpls.querySelectorAll("[data-del]").forEach((x) => x.addEventListener("click", async () => {
+        const ok = await window.confirmDialog("Supprimer ce modèle ?", { danger: true, confirmLabel: "Supprimer" });
+        if (!ok) return;
+        try { await deleteTemplate(x.dataset.del); customs = customs.filter((c) => c.id !== x.dataset.del); if (chosen === "c:" + x.dataset.del) chosen = "blank"; drawTpls(); } catch { toast("Suppression impossible.", "error"); }
+      }));
+    };
+    drawTpls();
     form.title.focus();
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const v = readForm(form);
       if (!v.title) { overlay.querySelector("[data-error]").textContent = "Donne un titre à ton audit."; return; }
-      try { const a = await createAudit({ title: v.title, client_name: v.client_name }); close(); open(a.id); }
+      const builtin = BUILTIN_TEMPLATES.find((t) => t.key === chosen), custom = customs.find((c) => "c:" + c.id === chosen);
+      const content = freshContent(builtin ? builtin.content() : custom ? custom.content : BUILTIN_TEMPLATES[0].content());
+      try { const a = await createAudit({ title: v.title, client_name: v.client_name, content }); close(); open(a.id); }
       catch (err) { overlay.querySelector("[data-error]").textContent = isMissingTable(err) ? MISSING_MESSAGE : "Création impossible, réessaie."; }
     });
   }
