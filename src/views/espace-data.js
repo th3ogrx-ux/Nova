@@ -12,6 +12,78 @@ export const METRICS = [
   { key: "visites_site", label: "Visites du site" }
 ];
 
+// ---------- Types de clients, réseaux et parties de l'espace ----------
+export const TYPES = [
+  { key: "marque", label: "Marque" },
+  { key: "mannequin", label: "Mannequin" },
+  { key: "createur", label: "Créateur de contenu" },
+  { key: "local", label: "Commerce local (Google)" },
+  { key: "autre", label: "Autre" }
+];
+export const RESEAUX = [
+  { key: "instagram", label: "Instagram", color: "var(--warm-1)" },
+  { key: "tiktok", label: "TikTok", color: "#d4a24c" },
+  { key: "linkedin", label: "LinkedIn", color: "#9fb4c7" }
+];
+export const SECTIONS = [
+  { key: "reseaux", label: "Statistiques des réseaux (abonnés, vues, engagement)" },
+  { key: "calendrier", label: "Calendrier de contenu" },
+  { key: "collabs", label: "Campagnes et collaborations" },
+  { key: "chiffres", label: "Chiffres Google (appels, itinéraires…)" },
+  { key: "avis", label: "Avis Google" }
+];
+// Réglages proposés à la création selon le type de client.
+export const TYPE_DEFAULTS = {
+  marque: { sections: ["reseaux", "calendrier", "collabs"], reseaux: ["instagram", "tiktok", "linkedin"] },
+  mannequin: { sections: ["reseaux", "calendrier", "collabs"], reseaux: ["instagram", "tiktok"] },
+  createur: { sections: ["reseaux", "calendrier", "collabs"], reseaux: ["instagram", "tiktok"] },
+  autre: { sections: ["reseaux", "calendrier"], reseaux: ["instagram"] },
+  local: { sections: ["chiffres", "avis"], reseaux: [] }
+};
+export const SOCIAL_FIELDS = [
+  { key: "abonnes", label: "Abonnés (total en fin de mois)" },
+  { key: "vues", label: "Vues" },
+  { key: "portee", label: "Portée (comptes touchés)" },
+  { key: "interactions", label: "Interactions (likes, commentaires, partages)" },
+  { key: "publications", label: "Publications" }
+];
+export const POST_FORMATS = [
+  { key: "post", label: "Post" }, { key: "reel", label: "Reel" }, { key: "story", label: "Story" },
+  { key: "video", label: "Vidéo" }, { key: "carrousel", label: "Carrousel" }, { key: "article", label: "Article" }
+];
+export const COLLAB_STATUTS = [
+  { key: "negociation", label: "Négociation" }, { key: "signe", label: "Signé" }, { key: "en_cours", label: "En cours" },
+  { key: "publie", label: "Publié" }, { key: "paye", label: "Payé" }
+];
+export const COLLAB_NATURES = [
+  { key: "collab", label: "Collaboration" }, { key: "campagne", label: "Campagne" }, { key: "shooting", label: "Shooting" },
+  { key: "evenement", label: "Événement" }, { key: "autre", label: "Autre" }
+];
+const pick = (list, key) => (list.find((x) => x.key === key) || {}).label || key;
+export const typeLabel = (k) => pick(TYPES, k);
+export const reseauLabel = (k) => pick(RESEAUX, k);
+export const formatLabel = (k) => pick(POST_FORMATS, k);
+export const statutLabel = (k) => pick(COLLAB_STATUTS, k);
+export const natureLabel = (k) => pick(COLLAB_NATURES, k);
+
+// Les clients créés avant les réseaux sociaux gardent leur espace Google tel quel.
+export function sectionsOf(business) {
+  const all = SECTIONS.map((s) => s.key);
+  const chosen = business && Array.isArray(business.sections) ? business.sections.filter((k) => all.includes(k)) : null;
+  return chosen || ["chiffres", "avis"];
+}
+export function reseauxOf(business) {
+  const all = RESEAUX.map((r) => r.key);
+  return business && Array.isArray(business.reseaux) ? business.reseaux.filter((k) => all.includes(k)) : [];
+}
+// Taux d'engagement en % : interactions ÷ portée (sinon ÷ vues). null si on ne peut pas le calculer.
+export function engagementRate(row) {
+  if (!row) return null;
+  const base = row.portee || row.vues;
+  return base ? Math.round(((row.interactions || 0) / base) * 1000) / 10 : null;
+}
+export const formatEuro = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(Number(n) || 0);
+
 export function enabledMetrics(business) {
   const all = METRICS.map((m) => m.key);
   const chosen = business && Array.isArray(business.metriques) ? business.metriques.filter((k) => all.includes(k)) : [];
@@ -56,11 +128,16 @@ export function variation(current, previous) {
 
 // Charge tout ce qu'il faut pour afficher le tableau de bord d'un commerce.
 export async function loadEspaceData(businessId) {
-  const [business, stats, reviews, tasks] = await Promise.all([
+  // Les nouvelles tables (réseaux, calendrier, collaborations) viennent de espace-reseaux.sql : absentes = listes vides.
+  const optional = (q) => q.then((r) => (r.error ? [] : r.data || []), () => []);
+  const [business, stats, reviews, tasks, socialStats, posts, collabs] = await Promise.all([
     supabase.from("espace_businesses").select("*").eq("id", businessId).maybeSingle(), // "*" : fonctionne aussi avant l'ajout de la colonne "metriques"
     supabase.from("espace_monthly_stats").select("mois, appels, itineraires, vues_fiche, visites_site").eq("business_id", businessId).order("mois", { ascending: false }).limit(12),
     supabase.from("espace_reviews").select("id, auteur, note, texte, date, repondu, reponse").eq("business_id", businessId).order("date", { ascending: false }),
-    supabase.from("espace_tasks").select("id, titre, statut, mois").eq("business_id", businessId).gte("mois", currentMonthKey())
+    supabase.from("espace_tasks").select("id, titre, statut, mois").eq("business_id", businessId).gte("mois", currentMonthKey()),
+    optional(supabase.from("espace_social_stats").select("mois, reseau, abonnes, vues, portee, interactions, publications").eq("business_id", businessId).order("mois", { ascending: false }).limit(72)),
+    optional(supabase.from("espace_posts").select("id, date_prevue, reseau, format, titre, legende, visuel_url, statut").eq("business_id", businessId).order("date_prevue").limit(300)),
+    optional(supabase.from("espace_collabs").select("id, marque, nature, statut, montant, date_prevue, notes").eq("business_id", businessId).order("created_at", { ascending: false }).limit(200))
   ]);
   const error = business.error || stats.error || reviews.error || tasks.error;
   if (error) throw error;
@@ -68,7 +145,8 @@ export async function loadEspaceData(businessId) {
     business: business.data,
     stats: stats.data || [],
     reviews: reviews.data || [],
-    tasks: tasks.data || []
+    tasks: tasks.data || [],
+    socialStats, posts, collabs
   };
 }
 

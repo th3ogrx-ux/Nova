@@ -166,3 +166,9 @@ Publication : lien privé du type `/a/xK9f2mQpZr7T` (12 caractères aléatoires)
 - « En ligne » = l'appli est ouverte (un signal toutes les minutes, `touch_presence`).
 
 Installation : `equipe.sql` (SQL Editor), puis redéployer les fonctions `espace-admin` et `audit-public` (Edge Functions).
+
+## Espace client « réseaux sociaux »
+
+Un client peut être une **marque, un mannequin, un créateur** ou un commerce local. À la création (et dans sa fiche, onglet « Infos & accès »), tu choisis son type, ses réseaux (Instagram, TikTok, LinkedIn) et ce qu'il voit : **statistiques des réseaux** (abonnés et croissance, vues, portée, engagement, publications), **calendrier de contenu**, **campagnes et collaborations** (revenus encaissés / à encaisser), et pour les commerces locaux les chiffres et avis Google (comme avant). Les clients existants gardent leur espace Google tel quel.
+
+Installation : coller `espace-reseaux.sql` dans Supabase (SQL Editor > Run). Les chiffres se saisissent à la main chaque mois dans la fiche client (onglet « Réseaux »), comme les chiffres Google.

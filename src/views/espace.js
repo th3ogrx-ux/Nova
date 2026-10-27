@@ -1,4 +1,4 @@
-// Espace client : tableau de bord de visibilité Google d'un commerce.
+// Espace client : tableau de bord d'un client (réseaux sociaux, calendrier de contenu, collaborations, et Google pour les commerces locaux).
 // - Client : voit uniquement SON commerce (la base de données filtre).
 // - Admin  : "Aperçu client" — choisit un commerce et voit ce que le client verra.
 // Lecture seule : aucune modification ici (la saisie des chiffres est côté admin).
@@ -6,8 +6,9 @@ import { supabase } from "../supabase.js";
 import { getCurrentRole, getCurrentBusinessId } from "../session.js";
 import { readCache, writeCache, sameData } from "../data-cache.js";
 import {
-  escapeHtml, loadEspaceData, summarize, monthLabel, formatDate, formatNumber, formatRating, variation, reviewSeries, statSeries, METRICS, enabledMetrics
+  escapeHtml, loadEspaceData, summarize, monthLabel, formatDate, formatNumber, formatRating, variation, reviewSeries, statSeries, METRICS, enabledMetrics, sectionsOf, typeLabel
 } from "./espace-data.js";
+import { socialHtml, drawSocialCharts, calendarHtml, collabsHtml } from "./espace-social.js";
 import { renderReviewsChart, renderCallsChart, SERIES_COLORS } from "./espace-charts.js";
 
 // Période des graphiques (6 ou 12 mois), gardée d'une visite à l'autre.
@@ -150,59 +151,70 @@ function chartSeries(business) {
 
 function dashboardHtml(data) {
   const { business, reviews, tasks } = data;
+  const sections = sectionsOf(business);
+  const has = (k) => sections.includes(k);
   const s = summarize(data);
   const latest = s.latest;
-  const subtitle = [business.secteur, business.ville].filter(Boolean).join(" · ");
+  const subtitle = [business.type && business.type !== "local" ? typeLabel(business.type) : null, business.secteur, business.ville].filter(Boolean).join(" · ");
   const enabled = enabledMetrics(business);
   const callSeries = chartSeries(business);
   const monthTitle = latest ? monthLabel(latest.mois) : null;
   const prev = s.previous;
+  const googleTiles = has("avis") || has("chiffres");
+  const hasCharts = (has("avis") ? 1 : 0) + (has("chiffres") && callSeries.length ? 1 : 0);
+  const rangeHtml = `<div class="espace-range" role="group" aria-label="Période des graphiques">
+      <span>Évolution sur</span>
+      <button type="button" class="btn btn-sm ${chartRange === 6 ? "primary" : "ghost"}" data-range="6">6 mois</button>
+      <button type="button" class="btn btn-sm ${chartRange === 12 ? "primary" : "ghost"}" data-range="12">12 mois</button>
+    </div>`;
 
   return `
     <h1 class="page-title">${escapeHtml(business.nom)}</h1>
     ${subtitle ? `<p style="color:var(--light-text-dim);font-size:14px;margin-bottom:20px;">${escapeHtml(subtitle)}</p>` : ""}
 
+    ${has("reseaux") ? socialHtml(data, rangeHtml) : ""}
+    ${has("calendrier") ? calendarHtml(data) : ""}
+    ${has("collabs") ? collabsHtml(data) : ""}
+
+    ${googleTiles ? `
+    ${has("reseaux") || has("calendrier") || has("collabs") ? `<h2 class="espace-h2">Google</h2>` : ""}
     <div class="stat-grid espace-grid" style="margin-bottom:24px;">
-      ${statTile("Note moyenne",
+      ${has("avis") ? statTile("Note moyenne",
         s.average === null ? "—" : `<span data-count="${s.average}" data-decimals="1">${formatRating(s.average)}</span><span class="espace-star-big"> ★</span>`,
-        `<span class="espace-delta">${s.count} avis${s.toAnswerCount ? ` · <b style="color:var(--warning);">${s.toAnswerCount} à répondre</b>` : ""}</span>`)}
-      ${latest ? METRICS.filter((m) => enabled.includes(m.key)).map((m) =>
+        `<span class="espace-delta">${s.count} avis${s.toAnswerCount ? ` · <b style="color:var(--warning);">${s.toAnswerCount} à répondre</b>` : ""}</span>`) : ""}
+      ${has("chiffres") && latest ? METRICS.filter((m) => enabled.includes(m.key)).map((m) =>
         statTile(m.label, `<span data-count="${latest[m.key]}">${formatNumber(latest[m.key])}</span>`, deltaHtml(latest[m.key], prev && prev[m.key]))).join("") : ""}
     </div>
-    ${latest
+    ${has("chiffres") ? (latest
       ? `<p class="espace-month-note">Chiffres de <b>${escapeHtml(monthTitle)}</b></p>`
-      : `<p class="espace-month-note">Les premiers chiffres du mois arrivent bientôt.</p>`}
+      : `<p class="espace-month-note">Les premiers chiffres du mois arrivent bientôt.</p>`) : ""}` : ""}
 
-    <div class="espace-range" role="group" aria-label="Période des graphiques">
-      <span>Évolution sur</span>
-      <button type="button" class="btn btn-sm ${chartRange === 6 ? "primary" : "ghost"}" data-range="6">6 mois</button>
-      <button type="button" class="btn btn-sm ${chartRange === 12 ? "primary" : "ghost"}" data-range="12">12 mois</button>
-    </div>
-    <div class="espace-charts${callSeries.length ? "" : " single"}">
-      <div class="card espace-card" style="padding:20px;">
+    ${hasCharts ? rangeHtml : ""}
+    ${hasCharts ? `<div class="espace-charts${hasCharts === 2 ? "" : " single"}">
+      ${has("avis") ? `<div class="card espace-card" style="padding:20px;">
         <div class="panel-title">Note et avis</div>
         <div id="espace-chart-reviews" class="espace-chart"></div>
-      </div>
-      <div class="card espace-card" style="padding:20px;">
-        <div class="panel-title" id="espace-chart-calls-title">${escapeHtml(callSeries.map((s) => s.label).join(" et ") || "Chiffres")}</div>
+      </div>` : ""}
+      ${has("chiffres") && callSeries.length ? `<div class="card espace-card" style="padding:20px;">
+        <div class="panel-title" id="espace-chart-calls-title">${escapeHtml(callSeries.map((x) => x.label).join(" et ") || "Chiffres")}</div>
         <div id="espace-chart-calls" class="espace-chart"></div>
-      </div>
-    </div>
+      </div>` : ""}
+    </div>` : ""}
 
-    <div class="card espace-card" style="padding:20px;margin-bottom:24px;">
+    ${has("avis") ? `<div class="card espace-card" style="padding:20px;margin-bottom:24px;">
       <div class="panel-title">Demander des avis</div>
       ${reviewRequestHtml(business)}
-    </div>
+    </div>` : ""}
 
     <div class="card espace-card" style="padding:20px;margin-bottom:24px;">
       <div class="panel-title">Tâches ce mois-ci</div>
       ${tasksHtml(tasks)}
     </div>
 
-    <div class="card espace-card" style="padding:20px;">
+    ${has("avis") ? `<div class="card espace-card" style="padding:20px;">
       <div class="panel-title">Avis (${reviews.length})</div>
       ${reviews.length ? reviews.slice().sort((a, b) => Number(a.repondu) - Number(b.repondu) || b.date.localeCompare(a.date)).map(reviewHtml).join("") : `<p style="color:var(--light-text-dim);font-size:13.5px;">Aucun avis pour l'instant.</p>`}
-    </div>
+    </div>` : ""}
   `;
 }
 
@@ -223,8 +235,8 @@ export async function renderEspace(root) {
       body.innerHTML = `
         <h1 class="page-title">Aperçu client</h1>
         <div class="card espace-card" style="padding:20px;"><p style="color:var(--light-text-dim);font-size:14px;">${error
-          ? "Impossible de charger les commerces."
-          : "Aucun commerce pour l'instant. Colle espace-demo.sql dans Supabase pour voir des exemples."}</p></div>`;
+          ? "Impossible de charger les clients."
+          : "Aucun client pour l'instant. Crée-en un dans la page Clients."}</p></div>`;
       return;
     }
     const saved = (() => { try { return localStorage.getItem("zenoa-espace-apercu"); } catch { return null; } })();
@@ -232,7 +244,7 @@ export async function renderEspace(root) {
     picker.innerHTML = `
       <div class="espace-preview-bar">
         <span>👁 Aperçu client — ce que voit le client, en lecture seule</span>
-        <select id="espace-business" aria-label="Commerce affiché">${list.map((b) => `<option value="${b.id}"${b.id === businessId ? " selected" : ""}>${escapeHtml(b.nom)}</option>`).join("")}</select>
+        <select id="espace-business" aria-label="Client affiché">${list.map((b) => `<option value="${b.id}"${b.id === businessId ? " selected" : ""}>${escapeHtml(b.nom)}</option>`).join("")}</select>
       </div>`;
     // "Voir comme le client" depuis la fiche d'un client (page Clients).
     const onPreview = (e) => {
@@ -251,16 +263,17 @@ export async function renderEspace(root) {
   if (!businessId) {
     body.innerHTML = `
       <h1 class="page-title">Mon espace</h1>
-      <div class="card espace-card" style="padding:20px;"><p style="color:var(--light-text-dim);font-size:14px;">Ton commerce n'est pas encore rattaché à ce compte. Contacte Zenoa.</p></div>`;
+      <div class="card espace-card" style="padding:20px;"><p style="color:var(--light-text-dim);font-size:14px;">Ton espace n'est pas encore rattaché à ce compte. Contacte Zenoa.</p></div>`;
     return;
   }
 
   function drawCharts(data) {
-    renderReviewsChart(body.querySelector("#espace-chart-reviews"), reviewSeries(data.reviews, chartRange));
+    const reviewsBox = body.querySelector("#espace-chart-reviews");
+    if (reviewsBox) renderReviewsChart(reviewsBox, reviewSeries(data.reviews, chartRange));
+    const callsBox = body.querySelector("#espace-chart-calls");
     const series = chartSeries(data.business);
-    const callsCard = body.querySelector("#espace-chart-calls").closest(".card");
-    callsCard.hidden = !series.length;
-    if (series.length) renderCallsChart(body.querySelector("#espace-chart-calls"), statSeries(data.stats, chartRange), series);
+    if (callsBox && series.length) renderCallsChart(callsBox, statSeries(data.stats, chartRange), series);
+    drawSocialCharts(body, data, chartRange);
   }
 
   // Les graphiques se redessinent quand la largeur change (rotation du
@@ -268,7 +281,7 @@ export async function renderEspace(root) {
   let currentData = null;
   let drawnWidth = 0;
   new ResizeObserver(() => {
-    const box = body.querySelector("#espace-chart-reviews");
+    const box = body.querySelector(".espace-chart");
     if (!currentData || !box) return;
     const w = box.clientWidth;
     if (w > 0 && Math.abs(w - drawnWidth) >= 24) { drawnWidth = w; drawCharts(currentData); }
@@ -278,7 +291,7 @@ export async function renderEspace(root) {
     currentData = data;
     body.innerHTML = dashboardHtml(data);
     body.querySelectorAll("[data-count]").forEach((el) => countUp(el, Number(el.dataset.count), { decimals: Number(el.dataset.decimals || 0) }));
-    drawnWidth = body.querySelector("#espace-chart-reviews").clientWidth;
+    const firstChart = body.querySelector(".espace-chart"); drawnWidth = firstChart ? firstChart.clientWidth : 0;
     drawCharts(data);
     body.querySelectorAll("[data-range]").forEach((btn) => btn.addEventListener("click", () => {
       chartRange = Number(btn.dataset.range);
@@ -289,7 +302,7 @@ export async function renderEspace(root) {
       });
       drawCharts(data);
     }));
-    setupQr(body, data.business).catch((err) => console.error("[Espace] QR code :", err));
+    if (sectionsOf(data.business).includes("avis")) setupQr(body, data.business).catch((err) => console.error("[Espace] QR code :", err));
   }
 
   // Dernières données connues tout de suite, puis données à jour.

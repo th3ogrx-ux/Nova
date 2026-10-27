@@ -30,3 +30,25 @@
 .eq-opt { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid rgba(255,255,255,.14); border-radius: var(--radius-md); cursor: pointer; }
 .eq-opt input { accent-color: var(--warm-1); }
 .icon-btn[hidden] { display: none !important; }
+
+/* Espace client : réseaux, calendrier, collaborations */
+.espace-h2 { font-family: var(--font-heading); font-size: 22px; margin: 28px 0 14px; }
+.espace-handle { font-size: 12.5px; font-weight: 500; color: var(--light-text-dim); text-transform: none; letter-spacing: 0; margin-left: 6px; }
+.espace-post { display: flex; gap: 14px; padding: 12px 0; border-top: 1px solid var(--light-border); }
+.espace-post:first-of-type { border-top: 0; }
+.espace-post.done { opacity: .75; }
+.espace-post-date { flex: none; width: 92px; font-size: 13px; font-weight: 700; text-transform: capitalize; color: var(--warm-1); }
+.espace-post-main { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.espace-post-main p { margin: 0; font-size: 13.5px; color: var(--light-text-dim); overflow-wrap: anywhere; }
+.espace-post-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.espace-post-link { font-size: 13px; color: var(--warm-1); }
+@media (max-width: 560px) { .espace-post { flex-direction: column; gap: 4px; } .espace-post-date { width: auto; } }
+.espace-collab { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--light-border); flex-wrap: wrap; }
+.espace-collab:first-of-type { border-top: 0; }
+.espace-collab-main { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.espace-collab-main p { margin: 4px 0 0; font-size: 13px; color: var(--light-text-dim); }
+.espace-collab-amount { min-width: 80px; text-align: right; }
+.soc-set { border: 1px solid var(--light-border); border-radius: var(--radius-md); padding: 8px 14px 4px; margin: 10px 0; min-width: 0; }
+.soc-set legend { padding: 0 8px; font-weight: 700; font-size: 13px; }
+.soc-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important; }
+@media (max-width: 640px) { .soc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } .soc-grid .stat-tile-value { font-size: 24px; } }

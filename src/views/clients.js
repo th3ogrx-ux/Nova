@@ -4,15 +4,20 @@
 import { supabase } from "../supabase.js";
 import { openModal } from "../modal.js";
 import { callAdmin, notifyEspaceChanged } from "./espace-admin-api.js";
-import { escapeHtml, formatDate, formatRating, monthLabel, currentMonthKey, METRICS, enabledMetrics } from "./espace-data.js";
+import { escapeHtml, formatDate, formatRating, monthLabel, currentMonthKey, METRICS, enabledMetrics, TYPES, RESEAUX, SECTIONS, TYPE_DEFAULTS, sectionsOf, reseauxOf, typeLabel, formatNumber } from "./espace-data.js";
+import { tabReseaux, tabCalendrier, tabCollabs, isMissing as isSocialMissing, MISSING as SOCIAL_MISSING } from "./clients-social.js";
 import { dueInfo, addOneMonth, daysUntil, dateKeyOf } from "./due.js";
 
-const TABS = [
-  { id: "chiffres", label: "Chiffres du mois" },
-  { id: "avis", label: "Avis" },
-  { id: "taches", label: "Tâches" },
-  { id: "infos", label: "Infos & accès" }
-];
+// Les onglets dépendent des parties choisies pour ce client (réseaux, calendrier, collaborations, Google).
+const TAB_LABELS = { reseaux: "Réseaux", calendrier: "Calendrier", collabs: "Collabs", chiffres: "Chiffres Google", avis: "Avis Google" };
+function tabsFor(biz) {
+  const sections = sectionsOf(biz);
+  return [
+    ...["reseaux", "calendrier", "collabs", "chiffres", "avis"].filter((k) => sections.includes(k)).map((k) => ({ id: k, label: TAB_LABELS[k] })),
+    { id: "taches", label: "Tâches" },
+    { id: "infos", label: "Infos & accès" }
+  ];
+}
 const STATUTS = [
   { key: "a_venir", label: "À venir" },
   { key: "en_cours", label: "En cours" },
@@ -43,6 +48,37 @@ function metricChecks(selected) {
 }
 const readMetrics = (form) => [...form.querySelectorAll('input[name="metrique"]:checked')].map((i) => i.value);
 const sameMetrics = (a, b) => a.length === b.length && a.every((k) => b.includes(k));
+
+
+// Type de client, réseaux suivis et parties de l'espace (création et fiche d'un client).
+function typeFields(b = { type: "marque", ...TYPE_DEFAULTS.marque }) {
+  const sections = sectionsOf(b), reseaux = reseauxOf(b);
+  return `
+    ${field("Type de client", `<select name="type">${TYPES.map((t) => `<option value="${t.key}"${t.key === (b.type || "local") ? " selected" : ""}>${t.label}</option>`).join("")}</select>`)}
+    <div class="field"><label class="field-label">Réseaux suivis</label><div class="metric-checks" role="group" aria-label="Réseaux suivis">${RESEAUX.map((r) => `
+      <label class="crm-check"><input type="checkbox" name="reseau" value="${r.key}"${reseaux.includes(r.key) ? " checked" : ""}> ${r.label}</label>`).join("")}</div></div>
+    <div class="field"><label class="field-label">Ce que le client voit dans son espace</label><div class="metric-checks" role="group" aria-label="Parties de l'espace">${SECTIONS.map((x) => `
+      <label class="crm-check"><input type="checkbox" name="section" value="${x.key}"${sections.includes(x.key) ? " checked" : ""}> ${x.label}</label>`).join("")}</div></div>`;
+}
+const readTypeFields = (form) => ({
+  type: form.type.value,
+  reseaux: [...form.querySelectorAll('input[name="reseau"]:checked')].map((i) => i.value),
+  sections: [...form.querySelectorAll('input[name="section"]:checked')].map((i) => i.value)
+});
+// Changer le type propose les réglages habituels ; les chiffres Google ne s'affichent que si cette partie est cochée.
+function wireTypeFields(form, { applyDefaults = true } = {}) {
+  const metrics = form.querySelector("#metrics-wrap");
+  const sync = () => { if (metrics) metrics.hidden = !form.querySelector('input[name="section"][value="chiffres"]').checked; };
+  form.type.addEventListener("change", () => {
+    if (!applyDefaults) return;
+    const d = TYPE_DEFAULTS[form.type.value] || TYPE_DEFAULTS.autre;
+    form.querySelectorAll('input[name="reseau"]').forEach((i) => { i.checked = d.reseaux.includes(i.value); });
+    form.querySelectorAll('input[name="section"]').forEach((i) => { i.checked = d.sections.includes(i.value); });
+    sync();
+  });
+  form.querySelectorAll('input[name="section"]').forEach((i) => i.addEventListener("change", sync));
+  sync();
+}
 
 // Texte du rappel "prochaine mise à jour des chiffres".
 function dueLabel(info, key) {
@@ -79,7 +115,7 @@ function safeHttpUrl(value) {
 
 // ---------- Fenêtre "identifiants à transmettre" ----------
 function showCredentials({ title, email, tempPassword, note, onClose }) {
-  const message = `Bonjour,\n\nVoici votre accès à Zenoa Espace, pour suivre la visibilité Google de votre commerce :\n${location.origin}\n\nEmail : ${email}\nMot de passe temporaire : ${tempPassword}\n\nVous choisirez votre propre mot de passe à la première connexion.`;
+  const message = `Bonjour,\n\nVoici votre accès à Zenoa Espace, pour suivre vos réseaux sociaux, votre calendrier de contenu et vos collaborations :\n${location.origin}\n\nEmail : ${email}\nMot de passe temporaire : ${tempPassword}\n\nVous choisirez votre propre mot de passe à la première connexion.`;
   const { overlay, close, onClose: whenClosed } = openModal(`
     <h2 style="font-size:16px;font-weight:700;letter-spacing:normal;text-transform:none;margin:0 0 6px;">${escapeHtml(title)}</h2>
     <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px;line-height:1.5;">
@@ -108,17 +144,18 @@ export async function renderClients(root) {
   root.innerHTML = `<div id="clients-app"></div>`;
   const app = root.querySelector("#clients-app");
   let selected = null;     // commerce ouvert (objet) ou null = liste
-  let tab = "chiffres";
+  let tab = "infos";
 
   // =================== LISTE ===================
   async function showList() {
     selected = null;
     app.innerHTML = `<h1 class="page-title">Clients</h1><p style="color:var(--light-text-dim);font-size:14px;">Chargement…</p>`;
-    const [biz, reviews, unread, stats] = await Promise.all([
+    const [biz, reviews, unread, stats, socialStats] = await Promise.all([
       supabase.from("espace_businesses").select("*").order("nom"), // "*" : fonctionne aussi avant l'ajout de la colonne "metriques"
       supabase.from("espace_reviews").select("business_id, note, repondu").limit(5000),
       supabase.from("espace_messages").select("business_id").eq("lu", false).eq("auteur", "client").limit(5000),
-      supabase.from("espace_monthly_stats").select("business_id, updated_at").order("updated_at", { ascending: false }).limit(5000)
+      supabase.from("espace_monthly_stats").select("business_id, updated_at").order("updated_at", { ascending: false }).limit(5000),
+      supabase.from("espace_social_stats").select("business_id, mois, abonnes, updated_at").order("mois", { ascending: false }).limit(5000).then((r) => (r.error ? { data: [] } : r), () => ({ data: [] }))
     ]);
     const failed = biz.error || reviews.error || unread.error || stats.error;
     if (failed) {
@@ -128,13 +165,18 @@ export async function renderClients(root) {
     const rows = (biz.data || []).map((b) => {
       const rs = (reviews.data || []).filter((r) => r.business_id === b.id);
       const lastStat = (stats.data || []).find((s) => s.business_id === b.id);
+      const lastSocial = (socialStats.data || []).find((s) => s.business_id === b.id);
+      // Abonnés : total du dernier mois saisi, tous réseaux confondus.
+      const followers = lastSocial ? (socialStats.data || []).filter((s) => s.business_id === b.id && s.mois === lastSocial.mois).reduce((sum, s) => sum + s.abonnes, 0) : null;
+      const lastUpdate = [lastStat && lastStat.updated_at, lastSocial && lastSocial.updated_at].filter(Boolean).sort().pop() || null;
       return {
+        followers,
         b,
         count: rs.length,
         avg: rs.length ? rs.reduce((sum, r) => sum + r.note, 0) / rs.length : null,
         toAnswer: rs.filter((r) => !r.repondu).length,
         unread: (unread.data || []).filter((m) => m.business_id === b.id).length,
-        updated: lastStat ? lastStat.updated_at.slice(0, 10) : null,
+        updated: lastUpdate ? lastUpdate.slice(0, 10) : null,
         due: dueInfo(b.prochaine_maj || null)
       };
     });
@@ -147,17 +189,18 @@ export async function renderClients(root) {
 
     app.innerHTML = `
       <div class="clients-head">
-        <div><h1 class="page-title">Clients</h1><p class="clients-sub">${rows.length} commerce${rows.length > 1 ? "s" : ""}</p></div>
+        <div><h1 class="page-title">Clients</h1><p class="clients-sub">${rows.length} client${rows.length > 1 ? "s" : ""}</p></div>
         <button type="button" class="btn primary" id="client-new" style="margin:0;">+ Nouveau client</button>
       </div>
-      ${rows.length ? `<div class="clients-list">${rows.map(({ b, count, avg, toAnswer, unread: nu, updated, due }) => `
+      ${rows.length ? `<div class="clients-list">${rows.map(({ b, count, avg, toAnswer, unread: nu, updated, due, followers }) => `
         <button type="button" class="card client-row${due.urgent ? " due-urgent" : ""}${due.state === "late" ? " due-late" : ""}" data-id="${b.id}">
           <div class="client-main">
             <strong>${escapeHtml(b.nom)}${b.is_example ? ` <span class="status-pill neutral" style="margin-left:6px;">Exemple</span>` : ""}</strong>
-            <span>${escapeHtml([b.secteur, b.ville].filter(Boolean).join(" · ") || "—")}</span>
+            <span>${escapeHtml([b.type && b.type !== "local" ? typeLabel(b.type) : null, b.secteur, b.ville].filter(Boolean).join(" · ") || "—")}</span>
           </div>
-          <div class="client-metric"><em>Note moyenne</em>${avg === null ? "—" : `<b>${formatRating(avg)} <span style="color:#f4b740;">★</span></b><small>${count} avis</small>`}</div>
-          <div class="client-metric"><em>Avis à répondre</em><b class="${toAnswer ? "warn" : ""}">${toAnswer}</b></div>
+          ${sectionsOf(b).includes("reseaux") ? `<div class="client-metric"><em>Abonnés</em>${followers === null ? "—" : `<b>${formatNumber(followers)}</b>`}</div>` : ""}
+          ${sectionsOf(b).includes("avis") ? `<div class="client-metric"><em>Note moyenne</em>${avg === null ? "—" : `<b>${formatRating(avg)} <span style="color:#f4b740;">★</span></b><small>${count} avis</small>`}</div>
+          <div class="client-metric"><em>Avis à répondre</em><b class="${toAnswer ? "warn" : ""}">${toAnswer}</b></div>` : ""}
           <div class="client-metric"><em>Messages non lus</em><b class="${nu ? "alert" : ""}">${nu}</b></div>
           <div class="client-metric"><em>Prochaine saisie des chiffres</em><span class="due-pill ${due.state}">${escapeHtml(dueLabel(due, b.prochaine_maj))}</span></div>
           <div class="client-metric"><em>Dernière mise à jour</em><b style="font-size:13px;">${updated ? formatDate(updated) : "Jamais"}</b></div>
@@ -179,14 +222,15 @@ export async function renderClients(root) {
         <button type="button" class="icon-btn" data-close title="Fermer" style="width:30px;height:30px;">✕</button>
       </div>
       <form id="create-form">
-        ${field("Nom du commerce *", `<input type="text" name="nom" maxlength="150" required autocomplete="off">`)}
+        ${field("Nom du client *", `<input type="text" name="nom" maxlength="150" required autocomplete="off" placeholder="Nom de la marque, du mannequin…">`)}
+        ${typeFields()}
         <div class="crm-form-grid">
-          ${field("Secteur", `<input type="text" name="secteur" maxlength="80" placeholder="Barbier, plombier…" autocomplete="off">`)}
+          ${field("Secteur / univers", `<input type="text" name="secteur" maxlength="80" placeholder="Mode, beauté, sport…" autocomplete="off">`)}
           ${field("Ville", `<input type="text" name="ville" maxlength="80" autocomplete="off">`)}
         </div>
-        ${field("Email du contact *", `<input type="email" name="email" maxlength="200" required autocomplete="off" placeholder="contact@commerce.fr">`)}
+        ${field("Email du contact *", `<input type="email" name="email" maxlength="200" required autocomplete="off" placeholder="contact@exemple.fr">`)}
         ${field("Prochaine saisie de ses chiffres (rappel)", `<input type="date" name="prochaine_maj" min="${dateKeyOf(new Date())}">`)}
-        <div class="field"><label class="field-label" id="metrics-label">Chiffres à suivre pour ce client</label>${metricChecks(METRICS.map((m) => m.key))}
+        <div class="field" id="metrics-wrap"><label class="field-label" id="metrics-label">Chiffres Google à suivre pour ce client</label>${metricChecks(METRICS.map((m) => m.key))}
           <p style="font-size:12px;color:var(--text-dim);margin:4px 0 0;">Décoche ceux qui n'ont pas de sens pour ce commerce (ex. « Itinéraires » pour un électricien).</p></div>
         <p style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:6px;">
           Un compte est créé avec un mot de passe temporaire, que tu transmets au client. Il devra en choisir un à lui à sa première connexion.
@@ -194,14 +238,17 @@ export async function renderClients(root) {
         <div class="error-msg" id="create-error"></div>
         <div class="modal-actions"><button type="button" class="btn ghost" data-close>Annuler</button><button type="submit" class="btn primary" id="create-submit">Créer le client</button></div>
       </form>`);
+    wireTypeFields(overlay.querySelector("#create-form"));
     overlay.querySelector("#create-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const f = e.target;
       const errorEl = overlay.querySelector("#create-error");
       const btn = overlay.querySelector("#create-submit");
       errorEl.textContent = "";
+      const kind = readTypeFields(f);
+      if (!kind.sections.length) { errorEl.textContent = "Coche au moins une partie à montrer au client."; return; }
       const metrics = readMetrics(f);
-      if (!metrics.length) { errorEl.textContent = "Garde au moins un chiffre à suivre."; return; }
+      if (kind.sections.includes("chiffres") && !metrics.length) { errorEl.textContent = "Garde au moins un chiffre Google à suivre."; return; }
       btn.disabled = true;
       btn.textContent = "Création…";
       try {
@@ -209,11 +256,13 @@ export async function renderClients(root) {
         // Chiffres choisis pour ce client (tous cochés = réglage par défaut, rien à enregistrer).
         let note = null;
         const patch = {};
-        if (!sameMetrics(metrics, METRICS.map((m) => m.key))) patch.metriques = metrics;
+        if (kind.sections.includes("chiffres") && !sameMetrics(metrics, METRICS.map((m) => m.key))) patch.metriques = metrics;
+        // Type, réseaux et parties de l'espace : seulement s'ils diffèrent d'un client Google classique.
+        if (kind.type !== "local" || kind.reseaux.length || !sameMetrics(kind.sections, ["chiffres", "avis"])) { patch.type = kind.type; patch.reseaux = kind.reseaux; patch.sections = kind.sections; }
         if (f.prochaine_maj.value) patch.prochaine_maj = f.prochaine_maj.value;
         if (Object.keys(patch).length) {
           const { error: patchError } = await supabase.from("espace_businesses").update(patch).eq("id", res.business_id);
-          if (patchError) note = "Le client est créé, mais le choix des chiffres ou la date de rappel n'ont pas pu être enregistrés : colle espace-metriques.sql et espace-rappels.sql dans Supabase, puis règle-les dans sa fiche.";
+          if (patchError) note = "Le client est créé, mais certains réglages (type, réseaux, chiffres, rappel) n'ont pas pu être enregistrés : colle espace-reseaux.sql, espace-metriques.sql et espace-rappels.sql dans Supabase, puis règle-les dans sa fiche.";
           else refreshDueBadge();
         }
         close();
@@ -239,10 +288,12 @@ export async function renderClients(root) {
   // =================== FICHE CLIENT ===================
   function showSheet(business) {
     selected = business;
+    const TABS = tabsFor(business);
+    if (!TABS.some((t) => t.id === tab)) tab = TABS[0].id;
     app.innerHTML = `
       <button type="button" class="btn ghost btn-sm" id="back" style="margin-bottom:14px;">← Tous les clients</button>
       <div class="clients-head">
-        <div><h1 class="page-title" id="sheet-title">${escapeHtml(business.nom)}</h1><p class="clients-sub">${escapeHtml([business.secteur, business.ville].filter(Boolean).join(" · "))}</p></div>
+        <div><h1 class="page-title" id="sheet-title">${escapeHtml(business.nom)}</h1><p class="clients-sub">${escapeHtml([business.type && business.type !== "local" ? typeLabel(business.type) : null, business.secteur, business.ville].filter(Boolean).join(" · "))}</p></div>
         <button type="button" class="btn ghost btn-sm" id="preview" style="margin:0;">👁 Voir comme le client</button>
       </div>
       <div class="due-box" id="due-box">
@@ -312,11 +363,11 @@ export async function renderClients(root) {
 
   function drawTab() {
     const box = app.querySelector("#tab-body");
-    const draw = { chiffres: tabChiffres, avis: tabAvis, taches: tabTaches, infos: tabInfos }[tab];
+    const draw = { reseaux: tabReseaux, calendrier: tabCalendrier, collabs: tabCollabs, chiffres: tabChiffres, avis: tabAvis, taches: tabTaches, infos: tabInfos }[tab];
     box.innerHTML = `<p style="color:var(--light-text-dim);font-size:13.5px;">Chargement…</p>`;
     draw(box, selected).catch((err) => {
       console.error("[Clients]", err);
-      box.innerHTML = `<p class="error-msg">Impossible de charger cet onglet. Réessaie dans un instant.</p>`;
+      box.innerHTML = `<p class="error-msg">${isSocialMissing(err) ? SOCIAL_MISSING : "Impossible de charger cet onglet. Réessaie dans un instant."}</p>`;
     });
   }
 
@@ -560,12 +611,18 @@ export async function renderClients(root) {
   async function tabInfos(box, biz) {
     box.innerHTML = `
       <div class="card admin-card">
-        <div class="panel-title">Informations du commerce</div>
+        <div class="panel-title">Informations du client</div>
         <form id="info-form">
           <div class="crm-form-grid">
-            ${field("Nom du commerce *", `<input type="text" name="nom" maxlength="150" required value="${escapeHtml(biz.nom)}">`, { span: true })}
-            ${field("Secteur", `<input type="text" name="secteur" maxlength="80" value="${escapeHtml(biz.secteur || "")}">`)}
+            ${field("Nom du client *", `<input type="text" name="nom" maxlength="150" required value="${escapeHtml(biz.nom)}">`, { span: true })}
+            ${field("Secteur / univers", `<input type="text" name="secteur" maxlength="80" value="${escapeHtml(biz.secteur || "")}">`)}
             ${field("Ville", `<input type="text" name="ville" maxlength="80" value="${escapeHtml(biz.ville || "")}">`)}
+          </div>
+          ${typeFields(biz)}
+          <div class="crm-form-grid" id="comptes-grid">
+            ${RESEAUX.map((r) => field(`Compte ${r.label}`, `<input type="text" name="compte_${r.key}" maxlength="80" placeholder="@pseudo" value="${escapeHtml((biz.comptes || {})[r.key] || "")}">`)).join("")}
+          </div>
+          <div class="crm-form-grid" style="margin-top:10px;">
             ${field("Lien d'avis Google", `<input type="url" name="lien" maxlength="500" placeholder="https://search.google.com/local/writereview?placeid=…" value="${escapeHtml(biz.lien_avis_google || "")}">`, { span: true })}
           </div>
           <div class="admin-hint">Ce lien sert au QR code « Demander des avis » que voit le client.</div>
@@ -574,7 +631,7 @@ export async function renderClients(root) {
             ${field("Notes importantes (privées)", `<textarea name="notes_prospection" rows="4" maxlength="4000" placeholder="Repris de la prospection, modifiable à tout moment">${escapeHtml(biz.notes_prospection || "")}</textarea>`, { span: true })}
           </div>
           <div class="admin-hint">Ces notes ne sont visibles que par toi, jamais par le client.</div>
-          <div class="field" style="margin-top:10px;"><label class="field-label">Chiffres à suivre pour ce client</label>${metricChecks(enabledMetrics(biz))}
+          <div class="field" id="metrics-wrap" style="margin-top:10px;"><label class="field-label">Chiffres Google à suivre pour ce client</label>${metricChecks(enabledMetrics(biz))}
             <div class="admin-hint">Seuls les chiffres cochés sont affichés au client et à saisir chaque mois. Les autres ne sont pas supprimés : tu peux les ré-afficher quand tu veux.</div></div>
           <div id="info-msg" class="error-msg" style="min-height:18px;"></div>
           <button type="submit" class="btn primary" id="info-save">Enregistrer</button>
@@ -592,24 +649,33 @@ export async function renderClients(root) {
       </div>
       <div class="card admin-card" style="border-color:#d9534f4d;">
         <div class="panel-title" style="color:var(--danger);">Zone dangereuse</div>
-        <p style="font-size:13px;color:var(--light-text-dim);margin-bottom:12px;max-width:520px;">Supprime ce client, son compte, ses chiffres, ses avis, ses tâches et ses messages. Cette action est irréversible.</p>
+        <p style="font-size:13px;color:var(--light-text-dim);margin-bottom:12px;max-width:520px;">Supprime ce client, son compte, ses chiffres, ses statistiques, son calendrier, ses collaborations, ses avis, ses tâches et ses messages. Cette action est irréversible.</p>
         <button type="button" class="btn danger btn-sm" id="client-delete">Supprimer ce client</button>
       </div>`;
 
     const msg = box.querySelector("#info-msg");
+    wireTypeFields(box.querySelector("#info-form"), { applyDefaults: false }); // sur une fiche existante, changer le type ne touche pas aux cases
     box.querySelector("#info-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const f = e.target;
       setMsg(msg, "");
       const nom = f.nom.value.trim();
       const lien = f.lien.value.trim();
-      if (!nom) { setMsg(msg, "Le nom du commerce est obligatoire."); return; }
+      if (!nom) { setMsg(msg, "Le nom du client est obligatoire."); return; }
       if (lien && !safeHttpUrl(lien)) { setMsg(msg, "Le lien doit commencer par https://"); return; }
       const btn = box.querySelector("#info-save");
       const metrics = readMetrics(f);
-      if (!metrics.length) { setMsg(msg, "Garde au moins un chiffre à suivre."); return; }
+      const kind = readTypeFields(f);
+      if (!kind.sections.length) { setMsg(msg, "Coche au moins une partie à montrer au client."); return; }
+      if (kind.sections.includes("chiffres") && !metrics.length) { setMsg(msg, "Garde au moins un chiffre Google à suivre."); return; }
       const patch = { nom, secteur: f.secteur.value.trim() || null, ville: f.ville.value.trim() || null, lien_avis_google: lien || null };
       if (!sameMetrics(metrics, enabledMetrics(biz))) patch.metriques = metrics; // seulement si modifié
+      // Type, réseaux, parties de l'espace et pseudos : envoyés seulement s'ils changent (colonnes de espace-reseaux.sql).
+      const comptes = Object.fromEntries(RESEAUX.map((r) => [r.key, f[`compte_${r.key}`].value.trim()]).filter(([, v]) => v));
+      if (kind.type !== (biz.type || "local")) patch.type = kind.type;
+      if (!sameMetrics(kind.reseaux, reseauxOf(biz))) patch.reseaux = kind.reseaux;
+      if (!sameMetrics(kind.sections, sectionsOf(biz))) patch.sections = kind.sections;
+      if (JSON.stringify(comptes) !== JSON.stringify(biz.comptes || {})) patch.comptes = comptes;
       // Objectifs / notes : envoyés seulement s'ils changent (la colonne vient de prospection.sql).
       if (f.objectifs.value.trim() !== (biz.objectifs || "")) patch.objectifs = f.objectifs.value.trim() || null;
       if (f.notes_prospection.value.trim() !== (biz.notes_prospection || "")) patch.notes_prospection = f.notes_prospection.value.trim() || null;
@@ -617,16 +683,24 @@ export async function renderClients(root) {
       const { data: saved, error: saveError } = await supabase.from("espace_businesses").update(patch).eq("id", biz.id).select("*").single();
       btn.disabled = false;
       if (saveError) {
-        setMsg(msg, /metriques/i.test(saveError.message || "")
+        setMsg(msg, /\b(type|reseaux|sections|comptes)\b/i.test(saveError.message || "")
+          ? SOCIAL_MISSING
+          : /metriques/i.test(saveError.message || "")
           ? "Le choix des chiffres n'est pas encore installé : colle espace-metriques.sql dans Supabase (SQL Editor), puis réessaie."
           : "Enregistrement impossible : " + saveError.message);
         return;
       }
       selected = saved;
       Object.assign(biz, saved);
-      app.querySelector("#sheet-title").textContent = saved.nom;
-      app.querySelector(".clients-sub").textContent = [saved.secteur, saved.ville].filter(Boolean).join(" · ");
       notifyEspaceChanged();
+      if (patch.sections || patch.reseaux || patch.type) {
+        // Les onglets dépendent de ces réglages : on redessine la fiche.
+        showSheet(saved);
+        setTimeout(() => { const m = app.querySelector("#info-msg"); if (m) setMsg(m, "Informations enregistrées ✓", true); }, 500);
+        return;
+      }
+      app.querySelector("#sheet-title").textContent = saved.nom;
+      app.querySelector(".clients-sub").textContent = [saved.type && saved.type !== "local" ? typeLabel(saved.type) : null, saved.secteur, saved.ville].filter(Boolean).join(" · ");
       setMsg(msg, "Informations enregistrées ✓", true);
     });
 
@@ -634,7 +708,7 @@ export async function renderClients(root) {
     const accountBox = box.querySelector("#account-box");
     callAdmin("get_account", { business_id: biz.id }).then((acc) => {
       if (!acc.email) {
-        accountBox.innerHTML = `<p style="color:var(--light-text-dim);font-size:13.5px;">Aucun compte de connexion n'est rattaché à ce commerce (par exemple un exemple de démonstration).</p>`;
+        accountBox.innerHTML = `<p style="color:var(--light-text-dim);font-size:13.5px;">Aucun compte de connexion n'est rattaché à ce client (par exemple un exemple de démonstration).</p>`;
         return;
       }
       accountBox.innerHTML = `

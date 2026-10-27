@@ -10,6 +10,7 @@
 |---|---|---|---|---|---|---|
 | Espace client : suivi des avis | Montrer au client ses avis et sa note | Auteurs d'avis (clients du client) | Prénom ou pseudo, note, texte, date | Le client, Zenoa | Contrat + 12 mois | RLS, HTTPS, journal |
 | Espace client : chiffres | Suivi des vues, appels, itinéraires, etc. | Aucune personne identifiée | Chiffres agrégés par mois | Le client, Zenoa | Contrat + 12 mois | idem |
+| Réseaux sociaux : statistiques, calendrier, collaborations | Suivre la gestion des comptes et des partenariats du client | Aucune personne identifiée (chiffres agrégés) ; contacts de marques éventuels | Abonnés, vues, portée, interactions ; titres et légendes de contenus ; nom de marque partenaire, statut, montant | Le client, Zenoa | Contrat + 12 mois | idem |
 | Messagerie | Échanges client ↔ Zenoa | Contact du client | Nom du commerce, contenu des messages | Client, Zenoa | 24 mois (purge auto) | idem |
 | Comptes de connexion | Authentification | Contact du client | E-mail, mot de passe (haché), date de dernière connexion | Zenoa, Supabase | Contrat | Hachage par Supabase Auth, 2FA proposée |
 
