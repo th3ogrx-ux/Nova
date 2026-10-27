@@ -252,4 +252,39 @@ select tst.denied('anon : lit les rôles', $$select * from public.team_roles$$);
 select tst.denied('anon : appelle touch_presence', $$select public.touch_presence()$$);
 rollback;
 
+-- ---------- Espace réseaux sociaux : stats, calendrier, collaborations ----------
+insert into public.espace_social_stats (business_id, mois, reseau, abonnes) values (:'bizA', '2026-09-01', 'instagram', 1200), (:'bizB', '2026-09-01', 'tiktok', 50);
+insert into public.espace_posts (business_id, date_prevue, reseau, titre) values (:'bizA', '2026-11-02', 'instagram', 'Reel A'), (:'bizB', '2026-11-02', 'tiktok', 'Vidéo B');
+insert into public.espace_collabs (business_id, marque, montant) values (:'bizA', 'Marque A', 500), (:'bizB', 'Marque B', 900);
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'ca', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('client A : voit ses stats réseaux', (select count(*) from public.espace_social_stats), 1);
+select tst.eq('client A : voit son calendrier', (select count(*) from public.espace_posts), 1);
+select tst.eq('client A : voit ses collaborations', (select count(*) from public.espace_collabs), 1);
+select tst.eq('client A : ne voit pas celles de B', (select count(*) from public.espace_collabs where marque = 'Marque B'), 0);
+select tst.denied('client A : écrit un post', $$insert into public.espace_posts (business_id, date_prevue, reseau, titre) values ('10000000-0000-0000-0000-0000000000a1', '2026-12-01', 'instagram', 'x')$$);
+select tst.denied('client A : écrit une collab', $$insert into public.espace_collabs (business_id, marque) values ('10000000-0000-0000-0000-0000000000a1', 'x')$$);
+select tst.denied('client A : écrit des stats', $$insert into public.espace_social_stats (business_id, mois, reseau) values ('10000000-0000-0000-0000-0000000000a1', '2026-10-01', 'instagram')$$);
+select tst.n('client A : modifie une collab = 0 ligne', $$update public.espace_collabs set montant = 99999$$, 0);
+select tst.n('client A : supprime un post = 0 ligne', $$delete from public.espace_posts$$, 0);
+rollback;
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'adm', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('admin : voit toutes les collaborations', (select count(*) from public.espace_collabs), 2);
+select tst.eq('admin : voit tous les posts', (select count(*) from public.espace_posts), 2);
+select tst.n('admin : modifie une collab', $$update public.espace_collabs set statut = 'signe' where marque = 'Marque A'$$, 1);
+select tst.denied('admin : réseau inconnu refusé', $$insert into public.espace_posts (business_id, date_prevue, reseau, titre) values ('10000000-0000-0000-0000-0000000000a1', '2026-12-01', 'myspace', 'x')$$);
+select tst.denied('admin : type de client inconnu refusé', $$update public.espace_businesses set type = 'pirate'$$);
+select tst.denied('admin : section inconnue refusée', $$update public.espace_businesses set sections = array['hack']$$);
+select tst.eq('admin : export RGPD inclut les collaborations', jsonb_array_length(public.espace_export_business('10000000-0000-0000-0000-0000000000a1') -> 'collaborations')::bigint, 1);
+rollback;
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'m1', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('membre de l''équipe : ne voit pas les collaborations des clients', (select count(*) from public.espace_collabs), 0);
+rollback;
+begin; set local role anon;
+select tst.denied('anon : lit les collaborations', $$select * from public.espace_collabs$$);
+select tst.denied('anon : lit le calendrier', $$select * from public.espace_posts$$);
+rollback;
+
 \echo TOUS LES TESTS ISOLATION SONT PASSES
