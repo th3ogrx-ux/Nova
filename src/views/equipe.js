@@ -13,7 +13,7 @@ export async function renderEquipe(root) {
   let team = null, roles = [];
 
   async function load() {
-    try { [team, roles] = await Promise.all([loadTeam(), listRoles()]); }
+    try { [team, roles] = await Promise.all([loadTeam(), listRoles()]); team = { members: (team && team.members) || [], partners: (team && team.partners) || [] }; }
     catch (err) {
       console.error("[Équipe]", err);
       body.innerHTML = `<div class="card"><p class="error-msg" style="margin:0;">${escapeHtml(isMissing(err) ? MISSING_MESSAGE : err.message || "Impossible de charger l'équipe.")}</p></div>`;

@@ -57,12 +57,8 @@ réexécuter) :
 npm install -g supabase
 supabase login
 supabase link --project-ref mfdqxzccmzumxiichdqw
-supabase functions deploy osm-search
 ```
 
-- `osm-search` — recherche d'entreprises (Nominatim + Overpass),
-  complète les emails manquants en lisant le site web, calcule la
-  qualité du site. Gratuite, aucune clé API requise.
 
 ## Structure
 
@@ -120,7 +116,7 @@ Mise en place (Supabase) :
 5. `espace-rappels.sql` : date de la prochaine saisie des chiffres par client (rappel en couleur vive à 3 jours ou moins).
 6. Facultatif : la ligne `alter publication supabase_realtime ...` en bas de `espace.sql` pour des messages instantanés.
 
-Rôles : `admin` (toi : Clients, Aperçu client, Messages + Radar/Ressources), `client` (Mon espace, Messages),
+Rôles : `admin` (toi : Clients, Aperçu client, Messages, Suivi prospection, Audits…), `client` (Mon espace, Messages),
 `radar` (utilisateur Radar sans profil : l'appli comme avant). Les droits sont dans la base, pas dans le navigateur.
 
 Logo : remplace `public/sidebar-logo.png` (carré, fond noir) et `public/zenoa-icon.png` (fond transparent).
@@ -142,11 +138,6 @@ Page **Prospection** (admin uniquement) : tableau de bord (chiffres clés, enton
 
 Installation : coller **`prospection.sql`** dans Supabase (SQL Editor > Run) **après** `espace.sql` et `securite.sql`. Les données sont rattachées à ton compte et réservées à l'admin (voir `tests/sql/isolation.sql`).
 
-## Radar : cibles et critères
-
-- **Quoi** (dans l'ordre) : coiffeurs/barbiers, restaurants/snacks/pizzerias, artisans (électriciens, plombiers, chauffagistes).
-- **Filtrés automatiquement** : indépendants (pas de chaînes, pas plus de 10 employés), site absent ou ancien, e-mail trouvé (OpenStreetMap ou site du commerce). Fonction `supabase/functions/radar-daily` à redéployer après chaque mise à jour.
-- **À vérifier à la main** depuis la fiche Google (Google ne les donne pas gratuitement) : avis, note, photos, description, réponses, dernier avis. `radar-qualification.sql` ajoute les champs ; le Radar affiche « ✓ Qualifié » ou « ✗ Hors critères ».
 
 ## Module Audits
 
@@ -161,7 +152,7 @@ Publication : lien privé du type `/a/xK9f2mQpZr7T` (12 caractères aléatoires)
 ## Équipe, partenaires et rôles
 
 - **Bouton « Équipe »** (icône de deux personnes, à gauche des paramètres, admin seulement) : en haut **Mon équipe** (membres avec rôle, « En ligne » / « Vu il y a… », boutons Rôle, Mot de passe, Exclure), en bas **Mes partenaires** (tes clients, avec leur dernière activité). « + Ajouter un membre » crée le compte (mot de passe temporaire à changer à la première connexion).
-- **Paramètres > Rôles et permissions** : créer des rôles et cocher, pour chaque page (Tableau de bord, Radar, Suivi prospection, Calendrier, Audits), *Voir*, *Créer / modifier*, *Supprimer*. Clients, Messages, Équipe et Rôles restent réservés à l'admin.
+- **Paramètres > Rôles et permissions** : créer des rôles et cocher, pour chaque page (Tableau de bord, Suivi prospection, Calendrier, Audits), *Voir*, *Créer / modifier*, *Supprimer*. Clients, Messages, Équipe et Rôles restent réservés à l'admin.
 - Les membres travaillent sur **les données de l'admin**. Les droits sont appliqués par la base de données (`equipe.sql`, politiques « equipe … »), pas seulement par l'interface.
 - « En ligne » = l'appli est ouverte (un signal toutes les minutes, `touch_presence`).
 

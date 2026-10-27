@@ -609,8 +609,6 @@ select option { background-color: #150a0b; color: #f6efec; }
 #app[data-theme="dark"] .main select option { background-color: #150a0b; color: #f6efec; }
 .modal-box select { color-scheme: dark; }
 
-/* Zenoa Radar : bandeau "recherche des entreprises du jour" au-dessus de la liste */
-.radar-status { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--light-text-dim); margin: 0 0 12px; }
 
 /* ============================================================
    Habillage "luxe" : noir profond, rouge cramoisi, filets fins

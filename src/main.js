@@ -8,7 +8,6 @@ import { confirmDialog } from "./confirm-dialog.js";
 import { getSession, onAuthChange, renderAuthScreen, signOut } from "./auth.js";
 import { supabase, supabaseConfigured } from "./supabase.js";
 import { renderDashboard } from "./views/dashboard.js";
-import { renderRecherche } from "./views/recherche.js";
 import { renderAudits } from "./views/audits.js";
 import { renderEquipe } from "./views/equipe.js";
 import { renderProspection } from "./views/prospection.js";
@@ -52,7 +51,6 @@ if ("serviceWorker" in navigator) {
 const TEAM = ["admin", "team"];
 const VIEWS = {
   dashboard: { render: renderDashboard, title: "Tableau de bord", roles: ["admin", "radar", "team"], perm: "dashboard" },
-  recherche: { render: renderRecherche, title: "Radar", roles: ["admin", "radar", "team"], perm: "radar" },
   prospection: { render: renderProspection, title: "Suivi prospection", roles: TEAM, perm: "prospection" },
   calendrier: { render: renderCalendrier, title: "Calendrier", roles: TEAM, perm: "calendrier" },
   audits: { render: renderAudits, title: "Audits", roles: TEAM, perm: "audits" },
@@ -69,7 +67,7 @@ const canOpen = (name) => {
   if (!v || !v.roles.includes(getCurrentRole())) return false;
   return getCurrentRole() !== "team" || !v.perm || can(v.perm);
 };
-const TEAM_HOME = ["dashboard", "recherche", "prospection", "calendrier", "audits"];
+const TEAM_HOME = ["dashboard", "prospection", "calendrier", "audits"];
 const homeView = () => {
   const role = getCurrentRole();
   if (role === "client") return "espace";
@@ -120,7 +118,7 @@ window.addEventListener("error", () => {
 // sans écran "Chargement". Les autres pages sont préparées en arrière-plan
 // juste après l'ouverture de l'appli. Le Tableau de bord, qui résume les
 // autres pages, se remet à jour discrètement à chaque retour ; une page
-// préparée un autre jour aussi (ex. nouveaux prospects du Radar).
+// préparée un autre jour aussi (ex. nouvelles données saisies).
 const mainEl = document.querySelector(".main");
 const viewCache = new Map(); // nom -> { el, day, scrollTop }
 let currentView = null;

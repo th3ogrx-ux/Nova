@@ -32,8 +32,8 @@ Ce document résume les protections en place, les réglages à faire à la main 
 
 ### Supabase → Project Settings
 8. **General** : noter la **région** du projet (idéalement UE : Frankfurt, Paris…) et la reporter dans `public/legal/*.html`. Impossible à changer sans recréer le projet.
-9. **Edge Functions → Secrets** : ajouter `ALLOWED_ORIGINS` = `https://TON-DOMAINE.vercel.app` (limite le CORS), puis redéployer `espace-admin` et `radar-daily` (copier-coller des fichiers du dépôt).
-10. **Edge Functions** : si `osm-search` est déployée, la supprimer (inutilisée par l'appli).
+9. **Edge Functions → Secrets** : ajouter `ALLOWED_ORIGINS` = `https://TON-DOMAINE.vercel.app` (limite le CORS), puis redéployer `espace-admin` et `audit-public` (copier-coller des fichiers du dépôt).
+10. **Edge Functions** : supprimer `osm-search` et `radar-daily` si elles sont déployées (le Radar a été retiré de l'appli).
 11. **Backups** : voir `docs/SAUVEGARDES.md` (plan gratuit : pas de sauvegarde automatique → export manuel planifié).
 12. **API → Exposed schemas** : ne laisser que `public`.
 
@@ -77,7 +77,7 @@ Pour `test:sql`, il faut un PostgreSQL local : `PGHOST=… PGPORT=… PGUSER=pos
 - [ ] `securite.sql` exécuté sans erreur ; `select tablename from pg_tables where schemaname='public' and not rowsecurity;` → 0 ligne
 - [ ] « Allow new users to sign up » **désactivé** ; liste `auth.users` relue (aucun compte inconnu)
 - [ ] Mot de passe admin ≥ 12 caractères, unique, dans un gestionnaire de mots de passe
-- [ ] Fonctions Edge redéployées ; `ALLOWED_ORIGINS` défini ; `osm-search` supprimée
+- [ ] Fonctions Edge redéployées ; `ALLOWED_ORIGINS` défini ; `osm-search` et `radar-daily` supprimées
 - [ ] Région Supabase notée ; pages `public/legal/*.html` complétées et **relues par un juriste**
 - [ ] Contrat / DPA (accord de sous-traitance, art. 28 RGPD) signé avec chaque client dont tu traites les avis
 - [ ] Registre des traitements rempli (`docs/RGPD-registre-traitements.md`)
