@@ -5,30 +5,9 @@ import { emptyState, openModal, modalHeader, field, readForm, toast, friendlyErr
 import { openScriptModal } from "./pro-strategies.js";
 
 export function renderScripts(root, data, ctx) {
-  const groups = data.strategies.map((s) => ({ s, scripts: data.scripts.filter((x) => x.strategy_id === s.id) })).filter((g) => g.scripts.length);
   root.innerHTML = `
-    <section>
-      <div class="pro-panel-head pro-seq" style="--i:0"><h2 class="panel-title">Scripts</h2></div>
-      ${groups.length ? groups.map(({ s, scripts }, gi) => `
-        <details class="pro-sgroup pro-seq" style="--i:${gi + 1}" open>
-          <summary class="pro-sgroup-head"><span class="pro-sgroup-title">${escapeHtml(s.titre)}</span>${canauxChips(s, { max: 3 })}<span class="pro-count">${scripts.length}</span></summary>
-          <div class="pro-sgroup-bar"><button type="button" class="pro-link pro-sgroup-open" data-open="${s.id}">Ouvrir la stratégie →</button></div>
-          <div class="pro-bubbles">${scripts.map((sc) => {
-            const t = sum(data.logs.filter((l) => l.script_id === sc.id));
-            return `<div class="pro-msg">
-              <div class="pro-bubble out clamp" data-expand tabindex="0" role="button" aria-expanded="false" title="Cliquer pour lire tout le message">${escapeHtml(sc.texte).replace(/\n/g, "<br>")}</div>
-              <div class="pro-msg-foot"><span class="pro-vbadge">${sc.version}</span>
-                <span class="pro-msg-rate"><b>${t.envoyes ? fmtPct(rate(t.reponses, t.envoyes)) : "—"}</b> de réponses${t.envoyes ? ` · ${fmtInt(t.envoyes)} envoyés` : ""}</span>
-                <button type="button" class="btn ghost btn-sm" data-copy="${sc.id}">Copier</button>
-                <button type="button" class="icon-btn" data-edit-script="${sc.id}" aria-label="Modifier la version ${sc.version}">✎</button></div>
-            </div>`;
-          }).join("")}</div>
-        </details>`).join("")
-        : `<div class="card">${emptyState({ title: "Aucun script pour l'instant", text: "Les scripts se rangent par stratégie : ouvre une stratégie et écris son message (version A, puis B pour comparer).", cta: data.strategies.length ? "Voir mes stratégies" : "Créer une stratégie", action: "to-strat" })}</div>`}
-    </section>
-
     <section class="pro-offers-sec">
-      <div class="pro-panel-head pro-seq" style="--i:3"><h2 class="panel-title">Packs d'offre</h2><button type="button" class="btn primary btn-sm" data-action="new-offer">+ Ajouter un pack</button></div>
+      <div class="pro-panel-head pro-seq" style="--i:3"><h2 class="panel-title">Mes offres</h2><button type="button" class="btn primary btn-sm" data-action="new-offer">+ Ajouter une offre</button></div>
       ${data.offers.length ? `<div class="pro-pricing n${Math.min(data.offers.length, 4)}">${data.offers.map((o, i) => `
         <article class="card pro-price${o.populaire ? " pop" : ""} pro-seq" style="--i:${i + 4}">
           ${o.populaire ? `<span class="pro-ribbon">Le plus choisi</span>` : ""}
@@ -88,7 +67,7 @@ function offerListHtml(parts) {
   const close = () => { if (open) { out.push("</ul>"); open = false; } };
   parts.items.forEach((it) => {
     if (it.t === "h") { close(); out.push(`<h4 class="pro-price-sec">${escapeHtml(it.v)}</h4>`); }
-    else if (it.t === "plus") { close(); out.push(`<div class="pro-price-plus"><span class="pro-plus-badge">+</span><span>${escapeHtml(it.v)}</span></div>`); }
+    else if (it.t === "plus") { close(); { const [titre, prix, txt] = it.v.split("|").map((x) => x.trim()); out.push(`<div class="pro-price-plus"><span class="pro-plus-tag">En option</span><div class="pro-plus-row"><b>${escapeHtml(titre || "")}</b>${prix ? `<span class="pro-plus-price">${escapeHtml(prix)}</span>` : ""}</div>${txt ? `<p>${escapeHtml(txt)}</p>` : ""}</div>`); } }
     else { if (!open) { out.push("<ul>"); open = true; } out.push(`<li>${CHECK}<span>${escapeHtml(it.v)}</span></li>`); }
   });
   close();
@@ -178,7 +157,7 @@ function openOfferModal(offer, ctx) {
         ${field("Paiement", `<select name="periode"><option value="unique"${o.periode === "unique" ? " selected" : ""}>Une fois</option><option value="mois"${o.periode === "mois" ? " selected" : ""}>Par mois</option></select>`)}
       </div>
       ${field("Description", `<input type="text" name="description" maxlength="200" value="${escapeHtml(o.description || "")}" placeholder="Une phrase pour résumer le pack">`)}
-      ${field("Ce qui est inclus (un point par ligne · ## titre · + supplément · essai: prix du 1er mois)", `<textarea name="atouts" rows="8" maxlength="1000" placeholder="## Mise en place&#10;Site vitrine 5 pages&#10;+ Option vidéo : 100 € / mois&#10;essai: 120">${escapeHtml(o.atouts || "")}</textarea>`)}
+      ${field("Ce qui est inclus (un point par ligne · ## titre · + option : Titre | Prix | Texte · essai: prix du 1er mois)", `<textarea name="atouts" rows="8" maxlength="1000" placeholder="## Mise en place&#10;Site vitrine 5 pages&#10;+ Option vidéo | +100 € / mois | Une phrase&#10;essai: 120">${escapeHtml(o.atouts || "")}</textarea>`)}
       <div class="pro-phases-edit">
         <div class="pro-phases-edit-head"><span class="field-label" style="margin:0;">Étapes dans le temps (offre long terme)</span></div>
         <p class="pro-muted" style="margin:0 0 10px;">Pour une offre qui s'étale sur plusieurs mois : ex. 3 mois à 180 € pour la fiche Google, puis 3 mois de réseaux sociaux. Laisse vide pour une offre simple.</p>

@@ -52,7 +52,7 @@ if ("serviceWorker" in navigator) {
 const TEAM = ["admin", "team"];
 const VIEWS = {
   dashboard: { render: renderDashboard, title: "Tableau de bord", roles: ["admin", "radar", "team"], perm: "dashboard" },
-  prospection: { render: renderProspection, title: "Suivi prospection", roles: TEAM, perm: "prospection" },
+  prospection: { render: renderProspection, title: "Offres", roles: TEAM, perm: "prospection" },
   calendrier: { render: renderCalendrier, title: "Calendrier", roles: TEAM, perm: "calendrier" },
   audits: { render: renderAudits, title: "Audits", roles: TEAM, perm: "audits" },
   clients: { render: renderClients, title: "Mannequins", roles: ["admin"] },

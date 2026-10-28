@@ -4,7 +4,7 @@ import { callAdmin } from "./espace-admin-api.js";
 
 export const MODULES = [
   { key: "dashboard", label: "Tableau de bord", hint: "Les ventes et le chiffre d'affaires" },
-  { key: "prospection", label: "Suivi prospection", hint: "Suivi, stratégies, pipeline, scripts et offres, revue" },
+  { key: "prospection", label: "Offres", hint: "Voir et modifier les offres" },
   { key: "calendrier", label: "Calendrier", hint: "Les vidéos de contenu" },
   { key: "audits", label: "Audits", hint: "Créer, publier et suivre les audits" }
 ];
