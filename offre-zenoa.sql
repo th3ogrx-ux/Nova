@@ -14,14 +14,6 @@ begin
   insert into public.pro_offers (user_id, nom, prix, periode, description, atouts, populaire, position) values
   (v_admin, 'Gestion complète de mannequin', 300, 'mois',
    'On gère toute la partie business pour que tu te concentres sur ton métier. Premier mois d''essai à 120 €, puis 300 € par mois, sans engagement.',
-   E'MISE EN PLACE (une seule fois)\nPortfolio premium en ligne à ton nom : meilleures photos, mesures, contact\nProfil et bio refaits pour parler aux marques et aux agences\nMedia kit d''une page, prêt à envoyer\nAudit de tes photos : conseils pour un book propre (portraits, profil, plein pied, polaroids)\nCHAQUE MOIS\nInstagram : planification et publication de tes contenus\nTikTok : idées, légendes et horaires préparés, tu publies toi-même\n60 marques ciblées contactées, messages personnalisés\nPhotographes contactés pour des shootings (TFP ou tarif réduit)\nCandidatures aux agences : choix, dossier, envoi\nUn point chaque semaine : fait, réponses reçues, suite\nAccès à l''application Zenoa pour suivre ton dossier',
-   true, 0),
-  (v_admin, 'Option : contenu UGC', 100, 'mois',
-   'On contacte des marques pour des collabs UGC, on prépare le brief et le script de chaque vidéo, on gère les échanges. Tu tournes.',
-   E'Marques contactées pour des collabs UGC\nBrief et script de chaque vidéo préparés\nÉchanges avec les marques gérés par nous\nTu n''as qu''à tourner',
-   false, 1),
-  (v_admin, 'Option : LinkedIn', 50, 'mois',
-   'Gestion de ton profil et de ton réseau professionnel sur LinkedIn.',
-   E'Profil LinkedIn optimisé\nGestion et développement de ton réseau pro',
-   false, 2);
+   E'MISE EN PLACE (une seule fois)\nPortfolio premium en ligne à ton nom : meilleures photos, mesures, contact\nProfil et bio refaits pour parler aux marques et aux agences\nMedia kit d''une page, prêt à envoyer\nAudit de tes photos : conseils pour un book propre (portraits, profil, plein pied, polaroids)\nCHAQUE MOIS\nInstagram : planification et publication de tes contenus\nTikTok : idées, légendes et horaires préparés, tu publies toi-même\n60 marques ciblées contactées, messages personnalisés\nPhotographes contactés pour des shootings (TFP ou tarif réduit)\nCandidatures aux agences : choix, dossier, envoi\nUn point chaque semaine : fait, réponses reçues, suite\nAccès à l''application Zenoa pour suivre ton dossier\nEN PLUS (+100 € par mois) : contenu UGC, on contacte des marques, on prépare le brief et le script de chaque vidéo, on gère les échanges, tu tournes',
+   true, 0);
 end $$;
