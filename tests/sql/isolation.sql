@@ -287,4 +287,63 @@ select tst.denied('anon : lit les collaborations', $$select * from public.espace
 select tst.denied('anon : lit le calendrier', $$select * from public.espace_posts$$);
 rollback;
 
+-- ---------- Partenaires : annuaire, liens, comptes, notes privées ----------
+\set pu1 '00000000-0000-0000-0000-0000000000d1'
+insert into auth.users (id, email) values (:'pu1', 'photo@x.fr');
+insert into public.espace_partners (id, nom, categorie, statut, email, instagram, user_id) values
+  ('50000000-0000-0000-0000-000000000001', 'Studio Lumière', 'photographe', 'actif', 'studio@x.fr', '@studiolumiere', :'pu1'),
+  ('50000000-0000-0000-0000-000000000002', 'Maison Dior', 'marque', 'en_discussion', 'dior@x.fr', '@dior', null),
+  ('50000000-0000-0000-0000-000000000003', 'Nike', 'marque', 'contacte', null, null, null);
+insert into public.espace_partner_private (partner_id, tarif, notes) values ('50000000-0000-0000-0000-000000000001', '400 € la demi-journée', 'Très pro');
+insert into public.espace_partner_links (business_id, partner_id) values (:'bizA', '50000000-0000-0000-0000-000000000001'), (:'bizA', '50000000-0000-0000-0000-000000000002'), (:'bizB', '50000000-0000-0000-0000-000000000003');
+insert into public.espace_collabs (business_id, marque, partner_id) values (:'bizA', 'Shooting studio', '50000000-0000-0000-0000-000000000001'), (:'bizB', 'Autre shooting', '50000000-0000-0000-0000-000000000003');
+insert into public.espace_private (business_id, objectifs, notes) values (:'bizA', 'Signer 3 marques', 'Note privée A'), (:'bizB', 'x', 'Note privée B');
+
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'ca', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('mannequin A : voit ses 2 partenaires', (select count(*) from public.espace_partners), 2);
+select tst.eq('mannequin A : ne voit pas le partenaire de B', (select count(*) from public.espace_partners where nom = 'Nike'), 0);
+select tst.eq('mannequin A : voit ses liens', (select count(*) from public.espace_partner_links), 2);
+select tst.eq('mannequin A : aucune note privée de partenaire', (select count(*) from public.espace_partner_private), 0);
+select tst.eq('mannequin A : aucune note privée de lui-même', (select count(*) from public.espace_private), 0);
+select tst.denied('mannequin A : crée un partenaire', $$insert into public.espace_partners (nom) values ('x')$$);
+select tst.denied('mannequin A : crée un lien', $$insert into public.espace_partner_links (business_id, partner_id) values ('10000000-0000-0000-0000-0000000000a1', '50000000-0000-0000-0000-000000000003')$$);
+select tst.n('mannequin A : modifie un partenaire = 0 ligne', $$update public.espace_partners set nom = 'Pirate'$$, 0);
+rollback;
+
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'pu1', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('partenaire : voit sa fiche seulement', (select count(*) from public.espace_partners), 1);
+select tst.eq('partenaire : voit ses mannequins', (select count(*) from public.espace_businesses), 1);
+select tst.eq('partenaire : voit ses collaborations', (select count(*) from public.espace_collabs), 1);
+select tst.eq('partenaire : ne voit pas les avis, tâches, messages', (select count(*) from public.espace_reviews) + (select count(*) from public.espace_tasks) + (select count(*) from public.espace_messages), 0);
+select tst.eq('partenaire : ne voit pas ses tarifs', (select count(*) from public.espace_partner_private), 0);
+select tst.eq('partenaire : aucune note privée de mannequin', (select count(*) from public.espace_private), 0);
+select tst.eq('partenaire : ne voit pas les stats des mannequins', (select count(*) from public.espace_social_stats), 0);
+select tst.eq('partenaire : ne voit rien de la prospection', (select count(*) from public.pro_prospects), 0);
+select tst.denied('partenaire : écrit une collaboration', $$insert into public.espace_collabs (business_id, marque) values ('10000000-0000-0000-0000-0000000000a1', 'x')$$);
+select tst.denied('partenaire : se lie à un mannequin', $$insert into public.espace_partner_links (business_id, partner_id) values ('10000000-0000-0000-0000-0000000000b1', '50000000-0000-0000-0000-000000000001')$$);
+select tst.n('partenaire : modifie sa fiche = 0 ligne', $$update public.espace_partners set statut = 'inactif'$$, 0);
+select tst.eq('partenaire : espace_access_ok', public.espace_access_ok()::int, 1);
+select tst.eq('partenaire : pas espace_admin_ok', public.espace_admin_ok()::int, 0);
+rollback;
+
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'adm', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('admin : voit tous les partenaires', (select count(*) from public.espace_partners), 3);
+select tst.eq('admin : voit les tarifs', (select count(*) from public.espace_partner_private), 1);
+select tst.eq('admin : voit les notes privées', (select count(*) from public.espace_private), 2);
+select tst.denied('admin : catégorie inconnue refusée', $$insert into public.espace_partners (nom, categorie) values ('x', 'pirate')$$);
+select tst.n('admin : modifie le statut d''une collab (nouveau statut)', $$update public.espace_collabs set statut = 'a_contacter'$$, 4);
+select tst.eq('admin : export RGPD liste les partenaires liés', jsonb_array_length(public.espace_export_business('10000000-0000-0000-0000-0000000000a1') -> 'partenaires_lies')::bigint, 2);
+rollback;
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'m1', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('membre équipe : pas d''annuaire partenaires', (select count(*) from public.espace_partners), 0);
+rollback;
+begin; set local role anon;
+select tst.denied('anon : lit les partenaires', $$select * from public.espace_partners$$);
+select tst.denied('anon : lit les notes privées', $$select * from public.espace_private$$);
+rollback;
+
 \echo TOUS LES TESTS ISOLATION SONT PASSES

@@ -18,8 +18,9 @@ create or replace function public.espace_access_ok()
 returns boolean language plpgsql stable security definer set search_path = public as $$
 begin
   if exists (select 1 from public.espace_profiles where id = auth.uid() and role in ('admin', 'client')) then return true; end if;
-  if to_regclass('public.team_members') is null then return false; end if;
-  return exists (select 1 from public.team_members where user_id = auth.uid());
+  if to_regclass('public.team_members') is not null and exists (select 1 from public.team_members where user_id = auth.uid()) then return true; end if;
+  if to_regclass('public.espace_partners') is not null and exists (select 1 from public.espace_partners where user_id = auth.uid()) then return true; end if;
+  return false;
 end $$;
 revoke all on function public.espace_access_ok() from public;
 grant execute on function public.espace_access_ok() to authenticated;
