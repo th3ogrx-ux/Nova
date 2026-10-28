@@ -282,6 +282,36 @@ select tst.n('admin : marque lu', $$select public.team_mark_read('00000000-0000-
 rollback;
 delete from public.team_messages;
 
+-- ---------- Messages partenaires ----------
+\set pu '00000000-0000-0000-0000-0000000000f7'
+insert into auth.users (id, email) values (:'pu', 'part@x.fr');
+insert into public.espace_partners (nom, user_id) values ('Studio Test', :'pu');
+insert into public.partner_messages (partner_user_id, auteur, texte) values (:'pu', 'admin', 'Bonjour partenaire');
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'pu', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('partenaire : voit sa conversation', (select count(*) from public.partner_messages), 1);
+select tst.n('partenaire : répond', $$insert into public.partner_messages (partner_user_id, auteur, texte) values ('00000000-0000-0000-0000-0000000000f7', 'partenaire', 'Merci')$$, 1);
+select tst.denied('partenaire : se fait passer pour l''admin', $$insert into public.partner_messages (partner_user_id, auteur, texte) values ('00000000-0000-0000-0000-0000000000f7', 'admin', 'x')$$);
+select tst.denied('partenaire : écrit au nom d''un autre', $$insert into public.partner_messages (partner_user_id, auteur, texte) values ('00000000-0000-0000-0000-0000000000c1', 'partenaire', 'x')$$);
+select tst.n('partenaire : ne modifie pas', $$update public.partner_messages set texte = 'hack'$$, 0);
+select tst.eq('partenaire : ne voit pas les messages d''équipe', (select count(*) from public.team_messages), 0);
+select public.partner_mark_read();
+select tst.eq('partenaire : message admin lu', (select count(*) from public.partner_messages where auteur = 'admin' and lu), 1);
+rollback;
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'m1', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('membre : ne voit pas les messages partenaires', (select count(*) from public.partner_messages), 0);
+rollback;
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'ca', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('client : ne voit pas les messages partenaires', (select count(*) from public.partner_messages), 0);
+rollback;
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'adm', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('admin : lit les messages partenaires', (select count(*) from public.partner_messages), 1);
+rollback;
+delete from public.partner_messages; delete from public.espace_partners where user_id = :'pu';
+
 begin; set local role anon;
 select tst.denied('anon : lit les rôles', $$select * from public.team_roles$$);
 select tst.denied('anon : appelle touch_presence', $$select public.touch_presence()$$);
@@ -323,7 +353,7 @@ select tst.denied('anon : lit le calendrier', $$select * from public.espace_post
 rollback;
 
 -- ---------- Partenaires : annuaire, liens, comptes, notes privées ----------
-\set pu1 '00000000-0000-0000-0000-0000000000d1'
+\set pu1 '00000000-0000-0000-0000-0000000000e7'
 insert into auth.users (id, email) values (:'pu1', 'photo@x.fr');
 insert into public.espace_partners (id, nom, categorie, statut, email, instagram, user_id) values
   ('50000000-0000-0000-0000-000000000001', 'Studio Lumière', 'photographe', 'actif', 'studio@x.fr', '@studiolumiere', :'pu1'),

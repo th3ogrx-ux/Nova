@@ -19,9 +19,9 @@ export function onMessagesTick(fn) { tickListeners.add(fn); return () => tickLis
 
 export async function refreshUnread() {
   if (!role) return;
-  const other = role === "client" ? "admin" : role === "team" ? "admin" : "client";
+  const other = role === "admin" ? "client" : "admin";
   let total = 0;
-  if (role !== "team") {
+  if (role === "admin" || role === "client") {
     const { count: c, error } = await supabase
       .from("espace_messages")
       .select("id", { count: "exact", head: true })
@@ -30,13 +30,11 @@ export async function refreshUnread() {
     if (error) return;
     total += c || 0;
   }
-  // Messages de l'équipe (conversation admin <-> membre) : table facultative (equipe-messages.sql).
-  if (role === "admin" || role === "team") {
-    const { count: t, error } = await supabase
-      .from("team_messages")
-      .select("id", { count: "exact", head: true })
-      .eq("lu", false)
-      .eq("auteur", role === "admin" ? "membre" : "admin");
+  // Conversations équipe et partenaires (equipe-messages.sql) : tables facultatives, ignorées si absentes.
+  const extra = role === "admin" ? [["team_messages", "membre"], ["partner_messages", "partenaire"]]
+    : role === "team" ? [["team_messages", "admin"]] : role === "partner" ? [["partner_messages", "admin"]] : [];
+  for (const [table, auteur] of extra) {
+    const { count: t, error } = await supabase.from(table).select("id", { count: "exact", head: true }).eq("lu", false).eq("auteur", auteur);
     if (!error) total += t || 0;
   }
   count = total;
@@ -63,6 +61,7 @@ export function startUnreadWatch(userRole) {
       .channel("espace-messages")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "espace_messages" }, tick)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "team_messages" }, tick)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "partner_messages" }, tick)
       .subscribe();
   } catch { /* temps réel indisponible : l'actualisation périodique suffit */ }
 }

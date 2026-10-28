@@ -954,3 +954,8 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 .msg-row.theirs { align-items: flex-end; }
 .msg-head .msg-av { margin-left: 0; color: #fff; font-size: 14px; }
 .msg-head .msg-tag { margin-left: 6px; }
+.msg-tabs { display: flex; gap: 4px; padding: 10px 10px 8px; border-bottom: 1px solid var(--light-border); position: sticky; top: 0; background: var(--light-card-bg, inherit); z-index: 1; }
+.msg-tab { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 6px; border-radius: 999px; border: 1px solid transparent; background: none; color: var(--light-text-dim); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.msg-tab:hover { color: var(--light-text); }
+.msg-tab.on { color: var(--light-text); background: rgba(225, 29, 46, .14); border-color: rgba(225, 29, 46, .5); }
+.msg-tab .msg-unread { margin: 0; }

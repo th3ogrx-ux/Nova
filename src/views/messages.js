@@ -14,9 +14,13 @@ const MESSAGE_COLUMNS = "id, business_id, auteur, texte, created_at, lu";
 
 // Messages de l'équipe : on les range comme ceux des mannequins (conversation « t:<id du membre> »,
 // le membre joue le rôle du « client », l'admin reste « admin »).
-const TEAM_COLUMNS = "id, member_id, auteur, texte, created_at, lu";
-const normTeam = (r) => ({ id: r.id, business_id: "t:" + r.member_id, auteur: r.auteur === "membre" ? "client" : "admin", texte: r.texte, created_at: r.created_at, lu: r.lu });
-const isTeamConv = (id) => typeof id === "string" && id.startsWith("t:");
+const CONVS = {
+  t: { table: "team_messages", key: "member_id", staff: "membre", rpc: "team_mark_read", arg: "p_member_id", tag: "Équipe" },
+  p: { table: "partner_messages", key: "partner_user_id", staff: "partenaire", rpc: "partner_mark_read", arg: "p_partner_id", tag: "Partenaire" }
+};
+const convKind = (id) => (typeof id === "string" && id[1] === ":" && CONVS[id[0]]) ? id[0] : null;
+const colsOf = (k) => `id, ${CONVS[k].key}, auteur, texte, created_at, lu`;
+const normConv = (k) => (r) => ({ id: r.id, business_id: k + ":" + r[CONVS[k].key], auteur: r.auteur === CONVS[k].staff ? "client" : "admin", texte: r.texte, created_at: r.created_at, lu: r.lu });
 
 const initialOf = (name) => (String(name || "?").trim().charAt(0) || "?").toUpperCase();
 // Pastille ronde : photo de profil si on l'a, sinon l'initiale. « star » = le logo Zenoa (côté équipe).
@@ -50,7 +54,8 @@ function shortAgo(iso) {
 export async function renderMessages(root) {
   const role = getCurrentRole();
   const isAdmin = role === "admin";
-  const isMember = role === "team";
+  const isMember = role === "team" || role === "partner";
+  const memberKind = role === "partner" ? "p" : "t";
   const other = isAdmin ? "client" : "admin"; // l'auteur dont on reçoit les messages
   const mine = isAdmin ? "admin" : "client";
 
@@ -58,9 +63,10 @@ export async function renderMessages(root) {
   const app = root.querySelector("#msg-app");
 
   let businesses = [];          // admin : tous les commerces
+  let partners = [];            // admin : partenaires qui ont un compte
   let members = [];             // admin : membres de l'équipe
   let selectedId = isAdmin ? null : isMember ? null : getCurrentBusinessId();
-  if (isMember) { const u = await getCurrentUser(); selectedId = u ? "t:" + u.id : null; }
+  if (isMember) { const u = await getCurrentUser(); selectedId = u ? memberKind + ":" + u.id : null; }
   let all = [];                 // messages (client : sa conversation ; admin : toutes)
   let dividerBeforeId = null;   // "Nouveaux messages" : premier message non lu à l'ouverture
   let sending = false;
@@ -80,17 +86,19 @@ export async function renderMessages(root) {
       if (error) throw error;
       list = data || [];
     }
-    if (isAdmin || isMember) {
-      // Table facultative (equipe-messages.sql) : si elle manque, on ignore simplement les messages d'équipe.
-      const { data, error } = await supabase.from("team_messages").select(TEAM_COLUMNS).order("created_at", { ascending: true }).limit(2000);
+    for (const k of isAdmin ? ["t", "p"] : isMember ? [memberKind] : []) {
+      // Tables facultatives (equipe-messages.sql) : si elles manquent, on ignore ces conversations.
+      const { data, error } = await supabase.from(CONVS[k].table).select(colsOf(k)).order("created_at", { ascending: true }).limit(2000);
       if (isMember && error) throw error;
-      if (!error) list = list.concat((data || []).map(normTeam)).sort((a, b) => a.created_at.localeCompare(b.created_at));
+      if (!error) list = list.concat((data || []).map(normConv(k)));
     }
+    list.sort((a, b) => a.created_at.localeCompare(b.created_at));
     return list;
   }
 
   // La personne à qui on parle : côté admin, la conversation ouverte ; côté mannequin ou membre, Zenoa.
-  const personOf = (id) => businesses.concat(members).find((x) => x.id === id) || null;
+  const everyone = () => businesses.concat(members, partners);
+  const personOf = (id) => everyone().find((x) => x.id === id) || null;
   const otherPerson = () => (isAdmin ? personOf(selectedId) : ZENOA_PERSON);
 
   const threadOf = (id) => all.filter((m) => m.business_id === id);
@@ -103,8 +111,9 @@ export async function renderMessages(root) {
     if (!selectedId || !isVisible()) return;
     const unread = threadOf(selectedId).filter((m) => m.auteur === other && !m.lu);
     if (!unread.length) return;
-    const { error } = isTeamConv(selectedId)
-      ? await supabase.rpc("team_mark_read", { p_member_id: isAdmin ? selectedId.slice(2) : null })
+    const k = convKind(selectedId);
+    const { error } = k
+      ? await supabase.rpc(CONVS[k].rpc, { [CONVS[k].arg]: isAdmin ? selectedId.slice(2) : null })
       : await supabase.rpc("espace_mark_read", { p_business_id: isAdmin ? selectedId : null });
     if (error) return;
     unread.forEach((m) => { m.lu = true; });
@@ -183,9 +192,10 @@ export async function renderMessages(root) {
       input.value = ""; grow();
       renderThread();
       let data, error;
-      if (isTeamConv(selectedId)) {
-        const res = await supabase.from("team_messages").insert({ member_id: selectedId.slice(2), auteur: isAdmin ? "admin" : "membre", texte }).select(TEAM_COLUMNS).single();
-        error = res.error; data = res.data ? normTeam(res.data) : null;
+      const k = convKind(selectedId);
+      if (k) {
+        const res = await supabase.from(CONVS[k].table).insert({ [CONVS[k].key]: selectedId.slice(2), auteur: isAdmin ? "admin" : CONVS[k].staff, texte }).select(colsOf(k)).single();
+        error = res.error; data = res.data ? normConv(k)(res.data) : null;
       } else {
         const res = await supabase.from("espace_messages").insert({ business_id: selectedId, auteur: mine, texte }).select(MESSAGE_COLUMNS).single();
         error = res.error; data = res.data;
@@ -208,7 +218,7 @@ export async function renderMessages(root) {
   function drawClient() {
     app.innerHTML = `
       <div class="card msg-card">
-        <div class="msg-head">${avatarHtml(ZENOA_PERSON, " md")}<strong>${isMember ? "Conversation avec l'admin" : "Conversation avec Zenoa"}</strong><span>${isMember ? "Ton message arrive directement chez le fondateur." : "On te répond rapidement."}</span></div>
+        <div class="msg-head">${avatarHtml(ZENOA_PERSON, " md")}<strong>${role === "team" ? "Conversation avec l'admin" : "Conversation avec Zenoa"}</strong><span>${role === "team" ? "Ton message arrive directement chez le fondateur." : "On te répond rapidement."}</span></div>
         <div id="msg-thread" class="msg-thread" role="log" tabindex="0" aria-label="Conversation"></div>
         ${composerHtml()}
       </div>`;
@@ -217,8 +227,11 @@ export async function renderMessages(root) {
   }
 
   // ---------- Admin : boîte de réception ----------
-  function conversations() {
-    return businesses.concat(members).map((b) => {
+  const TABS = [{ k: "m", label: "Mannequins" }, { k: "t", label: "Équipe" }, { k: "p", label: "Partenaires" }];
+  const kindOf = (b) => b.kind || "m";
+  let tab = "m";
+  function conversations(onlyTab = tab) {
+    return everyone().filter((b) => kindOf(b) === onlyTab).map((b) => {
       const list = threadOf(b.id);
       const last = list[list.length - 1] || null;
       return { b, last, unread: list.filter((m) => m.auteur === "client" && !m.lu).length };
@@ -228,15 +241,18 @@ export async function renderMessages(root) {
   function renderList() {
     const box = app.querySelector("#msg-list");
     if (!box) return;
+    const bar = app.querySelector("#msg-tabs");
+    if (bar) bar.innerHTML = TABS.map((t) => { const n = conversations(t.k).reduce((a, c) => a + c.unread, 0); return `<button type="button" class="msg-tab${t.k === tab ? " on" : ""}" data-tab="${t.k}" role="tab" aria-selected="${t.k === tab}">${t.label}${n ? `<span class="msg-unread">${n}</span>` : ""}</button>`; }).join("");
+    if (bar) bar.querySelectorAll("[data-tab]").forEach((x) => x.addEventListener("click", () => { tab = x.dataset.tab; renderList(); }));
     box.innerHTML = conversations().map(({ b, last, unread }) => `
       <button type="button" class="msg-conv${b.id === selectedId ? " active" : ""}" data-id="${b.id}">
         ${avatarHtml(b)}<div class="msg-conv-main">
-        <div class="msg-conv-top"><strong>${escapeHtml(b.nom)}${b.team ? ` <span class="msg-tag">Équipe</span>` : ""}</strong>${last ? `<span>${escapeHtml(shortAgo(last.created_at))}</span>` : ""}</div>
+        <div class="msg-conv-top"><strong>${escapeHtml(b.nom)}${b.kind ? ` <span class="msg-tag">${CONVS[b.kind].tag}</span>` : ""}</strong>${last ? `<span>${escapeHtml(shortAgo(last.created_at))}</span>` : ""}</div>
         <div class="msg-conv-bottom">
           <span class="msg-conv-preview">${last ? `${last.auteur === "admin" ? "Vous : " : ""}${escapeHtml(last.texte)}` : "Aucun message"}</span>
           ${unread ? `<span class="msg-unread" aria-label="${unread} non lu${unread > 1 ? "s" : ""}">${unread}</span>` : ""}
         </div></div>
-      </button>`).join("") || `<p class="msg-empty">Aucune conversation pour l'instant.</p>`;
+      </button>`).join("") || `<p class="msg-empty">${tab === "p" ? "Aucun partenaire avec un compte pour l'instant. Crée son accès depuis la page Partenaires." : tab === "t" ? "Aucun membre dans l'équipe pour l'instant." : "Aucun mannequin pour l'instant."}</p>`;
     box.querySelectorAll(".msg-conv").forEach((btn) => btn.addEventListener("click", () => select(btn.dataset.id)));
   }
 
@@ -244,12 +260,12 @@ export async function renderMessages(root) {
     selectedId = id;
     const unread = threadOf(id).filter((m) => m.auteur === "client" && !m.lu);
     dividerBeforeId = unread.length ? unread[0].id : null;
-    const b = businesses.concat(members).find((x) => x.id === id);
+    const b = everyone().find((x) => x.id === id);
     app.querySelector(".msg-admin").classList.add("show-thread");
     app.querySelector("#msg-pane").innerHTML = `
       <div class="msg-head">
         <button type="button" class="icon-btn msg-back" id="msg-back" aria-label="Retour aux conversations">‹</button>
-        ${avatarHtml(b, " md")}<strong>${escapeHtml(b ? b.nom : "Conversation")}${b && b.team ? ` <span class="msg-tag">Équipe</span>` : ""}</strong>
+        ${avatarHtml(b, " md")}<strong>${escapeHtml(b ? b.nom : "Conversation")}${b && b.kind ? ` <span class="msg-tag">${CONVS[b.kind].tag}</span>` : ""}</strong>
       </div>
       <div id="msg-thread" class="msg-thread" role="log" tabindex="0" aria-label="Conversation"></div>
       ${composerHtml()}`;
@@ -263,11 +279,14 @@ export async function renderMessages(root) {
   function drawAdmin() {
     app.innerHTML = `
       <div class="card msg-card msg-admin">
-        <div class="msg-list-col"><div id="msg-list" class="msg-list"></div></div>
+        <div class="msg-list-col"><div id="msg-tabs" class="msg-tabs" role="tablist"></div><div id="msg-list" class="msg-list"></div></div>
         <div class="msg-pane-col" id="msg-pane"><p class="msg-empty">Choisis une conversation.</p></div>
       </div>`;
     renderList();
     if (!window.matchMedia("(max-width: 760px)").matches) {
+      const withUnread = TABS.find((t) => conversations(t.k).some((c) => c.unread));
+      if (withUnread) tab = withUnread.k;
+      renderList();
       const first = conversations().find((c) => c.unread) || conversations()[0];
       if (first) select(first.b.id);
     }
@@ -276,8 +295,8 @@ export async function renderMessages(root) {
   // ---------- Démarrage + actualisation ----------
   try {
     const jobs = [fetchAll()];
-    if (isAdmin) { jobs.push(supabase.from("espace_businesses").select("id, nom").order("nom")); jobs.push(loadTeam().catch(() => null)); }
-    const [messages, bizRes, teamRes] = await Promise.all(jobs);
+    if (isAdmin) { jobs.push(supabase.from("espace_businesses").select("id, nom").order("nom")); jobs.push(loadTeam().catch(() => null)); jobs.push(supabase.from("espace_partners").select("id, nom, user_id").not("user_id", "is", null).order("nom")); }
+    const [messages, bizRes, teamRes, partRes] = await Promise.all(jobs);
     all = messages;
     if (isAdmin) {
       if (bizRes.error) throw bizRes.error;
@@ -285,7 +304,8 @@ export async function renderMessages(root) {
       // Photos de profil (comptes des mannequins et des membres) : fournies par la fonction espace-admin ; sinon initiales.
       const avatarOf = Object.fromEntries(((teamRes && teamRes.mannequins) || []).map((m) => [m.business_id, m.avatar_url || null]));
       businesses = businesses.map((b) => ({ ...b, avatar_url: avatarOf[b.id] || null }));
-      members = ((teamRes && teamRes.members) || []).map((m) => ({ id: "t:" + m.user_id, nom: m.pseudo || m.email || "Membre", avatar_url: m.avatar_url || null, team: true }));
+      partners = ((partRes && partRes.data) || []).map((x) => ({ id: "p:" + x.user_id, nom: x.nom, avatar_url: null, kind: "p" }));
+      members = ((teamRes && teamRes.members) || []).map((m) => ({ id: "t:" + m.user_id, nom: m.pseudo || m.email || "Membre", avatar_url: m.avatar_url || null, kind: "t" }));
     }
   } catch (err) {
     console.error("[Messages]", err);
