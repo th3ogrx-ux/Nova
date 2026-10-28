@@ -26,10 +26,10 @@
 
 .sidebar-logo {
   position: absolute;
-  top: calc(1px + env(safe-area-inset-top));
-  left: 14px;
-  width: 56px;
-  height: 56px;
+  top: calc(9px + env(safe-area-inset-top));
+  left: 20px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
   pointer-events: none;
   z-index: 5;
@@ -37,7 +37,7 @@
 .sidebar-brand-text {
   position: absolute;
   top: calc(29px + env(safe-area-inset-top));
-  left: 80px;
+  left: 70px;
   transform: translateY(-50%);
   font-family: var(--font-brand);
   font-weight: 900;
@@ -164,7 +164,7 @@
   }
   .mobile-brand { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-brand); font-weight: 900; font-size: 17px; letter-spacing: .08em;
     background: linear-gradient(180deg, #f6efec 0%, #e11d2e 55%, #6e0a14 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .mobile-brand img { width: 32px; height: 32px; object-fit: contain; }
+  .mobile-brand img { width: 24px; height: 24px; object-fit: contain; }
   .mobile-topbar .icon-btn { width: 44px; height: 44px; color: #fff; border-color: rgba(246, 239, 236, .18); }
 
   .sidebar {

@@ -15,7 +15,7 @@ export function renderForcePassword(container, onDone) {
   container.innerHTML = `
     <div class="auth-screen">
       <div class="card auth-card">
-        <img class="auth-star" src="/zenoa-icon.png" alt="" width="56" height="56">
+        <img class="auth-star" src="/zenoa-icon.png" alt="" width="36" height="36">
         <span class="metal-title auth-logo">ZENOA</span>
         <h1 class="auth-title">Choisis ton mot de passe</h1>
         <p style="font-size:13.5px;color:var(--text-dim);text-align:center;line-height:1.6;margin-bottom:18px;">

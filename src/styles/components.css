@@ -940,4 +940,4 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 .zs-opt.disabled { opacity: .4; cursor: not-allowed; }
 .zs-pop::-webkit-scrollbar { width: 8px; }
 @media (prefers-reduced-motion: reduce) { .zs-pop { animation: none; } }
-.auth-star { display: block; width: 56px; height: 56px; margin: 0 auto 14px; }
+.auth-star { display: block; width: 36px; height: 36px; margin: 0 auto 14px; }

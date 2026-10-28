@@ -264,7 +264,7 @@ function showLoading() {
   screenAuth.innerHTML = `
     <div class="auth-screen">
       <div class="card auth-card" style="text-align:center;">
-        <img class="auth-star" src="/zenoa-icon.png" alt="" width="56" height="56">
+        <img class="auth-star" src="/zenoa-icon.png" alt="" width="36" height="36">
         <span class="metal-title auth-logo">ZENOA AGENCY</span>
         <p style="font-size:13.5px;color:var(--text-dim);line-height:1.6;" id="loading-msg">Chargement…</p>
       </div>
@@ -418,7 +418,7 @@ function showNoAccess() {
   screenAuth.innerHTML = `
     <div class="auth-screen">
       <div class="card auth-card">
-        <img class="auth-star" src="/zenoa-icon.png" alt="" width="56" height="56">
+        <img class="auth-star" src="/zenoa-icon.png" alt="" width="36" height="36">
         <span class="metal-title auth-logo">ZENOA</span>
         <h1 class="auth-title">Accès non autorisé</h1>
         <p style="font-size:13.5px;color:var(--text-dim);text-align:center;line-height:1.6;margin-bottom:18px;">
@@ -457,7 +457,7 @@ function showFatalError(message) {
   screenAuth.innerHTML = `
     <div class="auth-screen">
       <div class="card auth-card">
-        <img class="auth-star" src="/zenoa-icon.png" alt="" width="56" height="56">
+        <img class="auth-star" src="/zenoa-icon.png" alt="" width="36" height="36">
         <span class="metal-title auth-logo">ZENOA AGENCY</span>
         <h1 class="auth-title" style="color:var(--danger);">Oups, un problème</h1>
         <p style="font-size:13.5px;color:var(--text-dim);text-align:center;line-height:1.6;">${message}</p>
