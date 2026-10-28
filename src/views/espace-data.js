@@ -1,45 +1,20 @@
-// Espace clients : lecture des données d'un commerce et petits calculs.
-// Toutes les requêtes passent par la sécurité de la base (RLS, espace.sql) :
-// un client ne reçoit que SON commerce, quoi que demande ce code.
+// Espace mannequin : lecture des données d'un mannequin et petits calculs.
+// Toutes les requêtes passent par la sécurité de la base (RLS) : un mannequin ne reçoit que SES données,
+// un partenaire que ses mannequins et ses collaborations, quoi que demande ce code.
 import { supabase } from "../supabase.js";
 
-// Chiffres que l'admin peut choisir d'afficher pour un client (ex. un électricien
-// n'a pas besoin des "Itinéraires"). Par défaut : tous.
-export const METRICS = [
-  { key: "appels", label: "Appels" },
-  { key: "itineraires", label: "Itinéraires" },
-  { key: "vues_fiche", label: "Vues de la fiche" },
-  { key: "visites_site", label: "Visites du site" }
-];
+export function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str == null ? "" : String(str);
+  return div.innerHTML;
+}
 
-// ---------- Types de clients, réseaux et parties de l'espace ----------
-export const TYPES = [
-  { key: "marque", label: "Marque" },
-  { key: "mannequin", label: "Mannequin" },
-  { key: "createur", label: "Créateur de contenu" },
-  { key: "local", label: "Commerce local (Google)" },
-  { key: "autre", label: "Autre" }
-];
+// ---------- Réseaux, statistiques, calendrier, collaborations, partenaires ----------
 export const RESEAUX = [
   { key: "instagram", label: "Instagram", color: "var(--warm-1)" },
   { key: "tiktok", label: "TikTok", color: "#d4a24c" },
   { key: "linkedin", label: "LinkedIn", color: "#9fb4c7" }
 ];
-export const SECTIONS = [
-  { key: "reseaux", label: "Statistiques des réseaux (abonnés, vues, engagement)" },
-  { key: "calendrier", label: "Calendrier de contenu" },
-  { key: "collabs", label: "Campagnes et collaborations" },
-  { key: "chiffres", label: "Chiffres Google (appels, itinéraires…)" },
-  { key: "avis", label: "Avis Google" }
-];
-// Réglages proposés à la création selon le type de client.
-export const TYPE_DEFAULTS = {
-  marque: { sections: ["reseaux", "calendrier", "collabs"], reseaux: ["instagram", "tiktok", "linkedin"] },
-  mannequin: { sections: ["reseaux", "calendrier", "collabs"], reseaux: ["instagram", "tiktok"] },
-  createur: { sections: ["reseaux", "calendrier", "collabs"], reseaux: ["instagram", "tiktok"] },
-  autre: { sections: ["reseaux", "calendrier"], reseaux: ["instagram"] },
-  local: { sections: ["chiffres", "avis"], reseaux: [] }
-};
 export const SOCIAL_FIELDS = [
   { key: "abonnes", label: "Abonnés (total en fin de mois)" },
   { key: "vues", label: "Vues" },
@@ -51,27 +26,33 @@ export const POST_FORMATS = [
   { key: "post", label: "Post" }, { key: "reel", label: "Reel" }, { key: "story", label: "Story" },
   { key: "video", label: "Vidéo" }, { key: "carrousel", label: "Carrousel" }, { key: "article", label: "Article" }
 ];
+// Suivi d'une collaboration, de la recherche au paiement (les colonnes du suivi par mannequin).
 export const COLLAB_STATUTS = [
-  { key: "negociation", label: "Négociation" }, { key: "signe", label: "Signé" }, { key: "en_cours", label: "En cours" },
-  { key: "publie", label: "Publié" }, { key: "paye", label: "Payé" }
+  { key: "a_contacter", label: "À contacter" }, { key: "contacte", label: "Contactée" }, { key: "reponse", label: "Réponse reçue" },
+  { key: "negociation", label: "Négociation" }, { key: "signe", label: "Signée" }, { key: "en_cours", label: "En cours" },
+  { key: "publie", label: "Publiée" }, { key: "paye", label: "Payée" }, { key: "refuse", label: "Refusée" }
 ];
 export const COLLAB_NATURES = [
   { key: "collab", label: "Collaboration" }, { key: "campagne", label: "Campagne" }, { key: "shooting", label: "Shooting" },
   { key: "evenement", label: "Événement" }, { key: "autre", label: "Autre" }
 ];
+export const PARTNER_CATEGORIES = [
+  { key: "marque", label: "Marque" }, { key: "photographe", label: "Photographe" }, { key: "monteur", label: "Monteur vidéo" },
+  { key: "videaste", label: "Vidéaste" }, { key: "agence", label: "Agence" }, { key: "styliste", label: "Styliste" },
+  { key: "maquilleur", label: "Maquilleur" }, { key: "autre", label: "Autre" }
+];
+export const PARTNER_STATUTS = [
+  { key: "a_contacter", label: "À contacter" }, { key: "contacte", label: "Contacté" }, { key: "en_discussion", label: "En discussion" },
+  { key: "actif", label: "Actif" }, { key: "inactif", label: "Inactif" }
+];
 const pick = (list, key) => (list.find((x) => x.key === key) || {}).label || key;
-export const typeLabel = (k) => pick(TYPES, k);
 export const reseauLabel = (k) => pick(RESEAUX, k);
 export const formatLabel = (k) => pick(POST_FORMATS, k);
 export const statutLabel = (k) => pick(COLLAB_STATUTS, k);
 export const natureLabel = (k) => pick(COLLAB_NATURES, k);
+export const categorieLabel = (k) => pick(PARTNER_CATEGORIES, k);
+export const partnerStatutLabel = (k) => pick(PARTNER_STATUTS, k);
 
-// Les clients créés avant les réseaux sociaux gardent leur espace Google tel quel.
-export function sectionsOf(business) {
-  const all = SECTIONS.map((s) => s.key);
-  const chosen = business && Array.isArray(business.sections) ? business.sections.filter((k) => all.includes(k)) : null;
-  return chosen || ["chiffres", "avis"];
-}
 export function reseauxOf(business) {
   const all = RESEAUX.map((r) => r.key);
   return business && Array.isArray(business.reseaux) ? business.reseaux.filter((k) => all.includes(k)) : [];
@@ -84,41 +65,25 @@ export function engagementRate(row) {
 }
 export const formatEuro = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(Number(n) || 0);
 
-export function enabledMetrics(business) {
-  const all = METRICS.map((m) => m.key);
-  const chosen = business && Array.isArray(business.metriques) ? business.metriques.filter((k) => all.includes(k)) : [];
-  return chosen.length ? chosen : all;
-}
-
-export function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str == null ? "" : String(str);
-  return div.innerHTML;
-}
-
+// ---------- Dates ----------
 // "2026-09-01" -> Date locale du 1er septembre (évite le décalage de fuseau).
 export function monthDate(key) {
   const [y, m] = key.split("-").map(Number);
   return new Date(y, m - 1, 1);
 }
-
 export function monthLabel(key) {
   const label = monthDate(key).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
-
 export function currentMonthKey() {
   const d = new Date();
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-01";
 }
-
 export function formatDate(key) {
   const [y, m, d] = key.split("-");
   return `${d}/${m}/${y}`;
 }
-
 export const formatNumber = (n) => new Intl.NumberFormat("fr-FR").format(n);
-export const formatRating = (n) => n.toFixed(1).replace(".", ",");
 
 // Variation en % entre deux mois (null si le mois précédent est inconnu ou nul).
 export function variation(current, previous) {
@@ -126,48 +91,11 @@ export function variation(current, previous) {
   return Math.round(((current - previous) / previous) * 100);
 }
 
-// Charge tout ce qu'il faut pour afficher le tableau de bord d'un commerce.
-export async function loadEspaceData(businessId) {
-  // Les nouvelles tables (réseaux, calendrier, collaborations) viennent de espace-reseaux.sql : absentes = listes vides.
-  const optional = (q) => q.then((r) => (r.error ? [] : r.data || []), () => []);
-  const [business, stats, reviews, tasks, socialStats, posts, collabs] = await Promise.all([
-    supabase.from("espace_businesses").select("*").eq("id", businessId).maybeSingle(), // "*" : fonctionne aussi avant l'ajout de la colonne "metriques"
-    supabase.from("espace_monthly_stats").select("mois, appels, itineraires, vues_fiche, visites_site").eq("business_id", businessId).order("mois", { ascending: false }).limit(12),
-    supabase.from("espace_reviews").select("id, auteur, note, texte, date, repondu, reponse").eq("business_id", businessId).order("date", { ascending: false }),
-    supabase.from("espace_tasks").select("id, titre, statut, mois").eq("business_id", businessId).gte("mois", currentMonthKey()),
-    optional(supabase.from("espace_social_stats").select("mois, reseau, abonnes, vues, portee, interactions, publications").eq("business_id", businessId).order("mois", { ascending: false }).limit(72)),
-    optional(supabase.from("espace_posts").select("id, date_prevue, reseau, format, titre, legende, visuel_url, statut").eq("business_id", businessId).order("date_prevue").limit(300)),
-    optional(supabase.from("espace_collabs").select("id, marque, nature, statut, montant, date_prevue, notes").eq("business_id", businessId).order("created_at", { ascending: false }).limit(200))
-  ]);
-  const error = business.error || stats.error || reviews.error || tasks.error;
-  if (error) throw error;
-  return {
-    business: business.data,
-    stats: stats.data || [],
-    reviews: reviews.data || [],
-    tasks: tasks.data || [],
-    socialStats, posts, collabs
-  };
-}
-
-// Synthèse : note moyenne, chiffres du dernier mois saisi et variation vs le mois d'avant.
-export function summarize(data) {
-  const { reviews, stats } = data;
-  const average = reviews.length ? reviews.reduce((sum, r) => sum + r.note, 0) / reviews.length : null;
-  const latest = stats[0] || null;
-  const previous = stats[1] || null;
-  const toAnswer = reviews.filter((r) => !r.repondu);
-  return { average, count: reviews.length, latest, previous, toAnswerCount: toAnswer.length };
-}
-
-// ---------- Séries pour les graphiques ----------
 const monthKeyOf = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-01";
-
 export function shortMonth(key) {
   const label = monthDate(key).toLocaleDateString("fr-FR", { month: "short" }).replace(".", "");
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
-
 // Les `count` derniers mois, du plus ancien au mois en cours.
 export function lastMonthKeys(count) {
   const now = new Date();
@@ -176,23 +104,23 @@ export function lastMonthKeys(count) {
   return keys;
 }
 
-// Avis reçus dans chaque mois + note moyenne CUMULÉE à la fin du mois
-// (celle que voit le public sur Google) ; null tant qu'il n'y a aucun avis.
-export function reviewSeries(reviews, count) {
-  return lastMonthKeys(count).map((mois) => {
-    const [y, m] = mois.split("-").map(Number);
-    const monthEnd = monthKeyOf(new Date(y, m, 1)); // 1er du mois suivant
-    const upTo = reviews.filter((r) => r.date < monthEnd);
-    const inMonth = reviews.filter((r) => r.date >= mois && r.date < monthEnd);
-    return {
-      mois,
-      count: inMonth.length,
-      average: upTo.length ? upTo.reduce((s, r) => s + r.note, 0) / upTo.length : null
-    };
-  });
-}
+// ---------- Chargement ----------
+const PARTNER_COLS = "id, nom, categorie, statut, contact_nom, email, telephone, instagram, site";
 
-// Chiffres mensuels saisis, du plus ancien au plus récent, limités aux `count` derniers.
-export function statSeries(stats, count) {
-  return stats.slice().sort((a, b) => a.mois.localeCompare(b.mois)).slice(-count);
+// Tout ce qu'il faut pour afficher l'espace d'un mannequin.
+export async function loadEspaceData(businessId) {
+  // Les tables « réseaux » et « partenaires » viennent de espace-reseaux.sql / partenaires.sql : absentes = listes vides.
+  const optional = (q) => q.then((r) => (r.error ? [] : r.data || []), () => []);
+  const [business, tasks, socialStats, posts, collabs, links] = await Promise.all([
+    supabase.from("espace_businesses").select("*").eq("id", businessId).maybeSingle(),
+    supabase.from("espace_tasks").select("id, titre, statut, mois").eq("business_id", businessId).gte("mois", currentMonthKey()),
+    optional(supabase.from("espace_social_stats").select("mois, reseau, abonnes, vues, portee, interactions, publications").eq("business_id", businessId).order("mois", { ascending: false }).limit(72)),
+    optional(supabase.from("espace_posts").select("id, date_prevue, reseau, format, titre, legende, visuel_url, statut").eq("business_id", businessId).order("date_prevue").limit(300)),
+    optional(supabase.from("espace_collabs").select("id, marque, nature, statut, montant, date_prevue, notes, partner_id").eq("business_id", businessId).order("created_at", { ascending: false }).limit(200)),
+    optional(supabase.from("espace_partner_links").select("partner_id").eq("business_id", businessId))
+  ]);
+  if (business.error || tasks.error) throw business.error || tasks.error;
+  const ids = links.map((l) => l.partner_id);
+  const partners = ids.length ? await optional(supabase.from("espace_partners").select(PARTNER_COLS).in("id", ids).order("nom")) : [];
+  return { business: business.data, tasks: tasks.data || [], socialStats, posts, collabs, partners };
 }

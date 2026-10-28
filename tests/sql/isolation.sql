@@ -255,7 +255,7 @@ rollback;
 -- ---------- Espace réseaux sociaux : stats, calendrier, collaborations ----------
 insert into public.espace_social_stats (business_id, mois, reseau, abonnes) values (:'bizA', '2026-09-01', 'instagram', 1200), (:'bizB', '2026-09-01', 'tiktok', 50);
 insert into public.espace_posts (business_id, date_prevue, reseau, titre) values (:'bizA', '2026-11-02', 'instagram', 'Reel A'), (:'bizB', '2026-11-02', 'tiktok', 'Vidéo B');
-insert into public.espace_collabs (business_id, marque, montant) values (:'bizA', 'Marque A', 500), (:'bizB', 'Marque B', 900);
+insert into public.espace_collabs (business_id, marque, montant, statut) values (:'bizA', 'Marque A', 500, 'signe'), (:'bizB', 'Marque B', 900, 'signe');
 begin; set local role authenticated;
 select set_config('request.jwt.claim.sub', :'ca', true), set_config('request.jwt.claim.aal', 'aal1', true);
 select tst.eq('client A : voit ses stats réseaux', (select count(*) from public.espace_social_stats), 1);
@@ -296,12 +296,14 @@ insert into public.espace_partners (id, nom, categorie, statut, email, instagram
   ('50000000-0000-0000-0000-000000000003', 'Nike', 'marque', 'contacte', null, null, null);
 insert into public.espace_partner_private (partner_id, tarif, notes) values ('50000000-0000-0000-0000-000000000001', '400 € la demi-journée', 'Très pro');
 insert into public.espace_partner_links (business_id, partner_id) values (:'bizA', '50000000-0000-0000-0000-000000000001'), (:'bizA', '50000000-0000-0000-0000-000000000002'), (:'bizB', '50000000-0000-0000-0000-000000000003');
-insert into public.espace_collabs (business_id, marque, partner_id) values (:'bizA', 'Shooting studio', '50000000-0000-0000-0000-000000000001'), (:'bizB', 'Autre shooting', '50000000-0000-0000-0000-000000000003');
+insert into public.espace_collabs (business_id, marque, partner_id, statut) values (:'bizA', 'Shooting studio', '50000000-0000-0000-0000-000000000001', 'en_cours'), (:'bizB', 'Autre shooting', '50000000-0000-0000-0000-000000000003', 'en_cours');
+insert into public.espace_collabs (business_id, marque, statut) values (:'bizA', 'Marque en recherche', 'a_contacter'), (:'bizA', 'Marque refusée', 'refuse');
 insert into public.espace_private (business_id, objectifs, notes) values (:'bizA', 'Signer 3 marques', 'Note privée A'), (:'bizB', 'x', 'Note privée B');
 
 begin; set local role authenticated;
 select set_config('request.jwt.claim.sub', :'ca', true), set_config('request.jwt.claim.aal', 'aal1', true);
 select tst.eq('mannequin A : voit ses 2 partenaires', (select count(*) from public.espace_partners), 2);
+select tst.eq('mannequin A : ne voit pas les étapes de recherche', (select count(*) from public.espace_collabs where statut in ('a_contacter', 'refuse')), 0);
 select tst.eq('mannequin A : ne voit pas le partenaire de B', (select count(*) from public.espace_partners where nom = 'Nike'), 0);
 select tst.eq('mannequin A : voit ses liens', (select count(*) from public.espace_partner_links), 2);
 select tst.eq('mannequin A : aucune note privée de partenaire', (select count(*) from public.espace_partner_private), 0);
@@ -334,7 +336,7 @@ select tst.eq('admin : voit tous les partenaires', (select count(*) from public.
 select tst.eq('admin : voit les tarifs', (select count(*) from public.espace_partner_private), 1);
 select tst.eq('admin : voit les notes privées', (select count(*) from public.espace_private), 2);
 select tst.denied('admin : catégorie inconnue refusée', $$insert into public.espace_partners (nom, categorie) values ('x', 'pirate')$$);
-select tst.n('admin : modifie le statut d''une collab (nouveau statut)', $$update public.espace_collabs set statut = 'a_contacter'$$, 4);
+select tst.n('admin : modifie le statut d''une collab (nouveau statut)', $$update public.espace_collabs set statut = 'a_contacter'$$, 6);
 select tst.eq('admin : export RGPD liste les partenaires liés', jsonb_array_length(public.espace_export_business('10000000-0000-0000-0000-0000000000a1') -> 'partenaires_lies')::bigint, 2);
 rollback;
 begin; set local role authenticated;

@@ -10,6 +10,7 @@ import { supabase, supabaseConfigured } from "./supabase.js";
 import { renderDashboard } from "./views/dashboard.js";
 import { renderAudits } from "./views/audits.js";
 import { renderEquipe } from "./views/equipe.js";
+import { renderPartenaires } from "./views/partenaires.js";
 import { renderProspection } from "./views/prospection.js";
 import { renderCalendrier } from "./views/calendrier.js";
 import { renderEspace } from "./views/espace.js";
@@ -54,11 +55,12 @@ const VIEWS = {
   prospection: { render: renderProspection, title: "Suivi prospection", roles: TEAM, perm: "prospection" },
   calendrier: { render: renderCalendrier, title: "Calendrier", roles: TEAM, perm: "calendrier" },
   audits: { render: renderAudits, title: "Audits", roles: TEAM, perm: "audits" },
-  clients: { render: renderClients, title: "Clients", roles: ["admin"] },
-  espace: { render: renderEspace, title: "Mon espace", roles: ["client", "admin"] },
+  clients: { render: renderClients, title: "Mannequins", roles: ["admin"] },
+  partenaires: { render: renderPartenaires, title: "Partenaires", roles: ["admin"] },
+  espace: { render: renderEspace, title: "Mon espace", roles: ["client", "admin", "partner"] },
   messages: { render: renderMessages, title: "Messages", roles: ["client", "admin"] },
   equipe: { render: renderEquipe, title: "Équipe", roles: ["admin"] },
-  settings: { render: renderSettings, title: "Paramètres", roles: ["admin", "radar", "client", "team"] },
+  settings: { render: renderSettings, title: "Paramètres", roles: ["admin", "radar", "client", "team", "partner"] },
 };
 
 // Un membre de l'équipe n'ouvre que les pages dont son rôle coche « voir ».
@@ -70,7 +72,7 @@ const canOpen = (name) => {
 const TEAM_HOME = ["dashboard", "prospection", "calendrier", "audits"];
 const homeView = () => {
   const role = getCurrentRole();
-  if (role === "client") return "espace";
+  if (role === "client" || role === "partner") return "espace";
   if (role === "team") return TEAM_HOME.find(canOpen) || "settings";
   return "dashboard";
 };
@@ -91,9 +93,9 @@ function applyRoleToNav() {
   // Boutons « Équipe » (à gauche des paramètres) : toi seulement.
   ["team-btn", "team-btn-mobile"].forEach((id) => { document.getElementById(id).hidden = role !== "admin"; });
   // Pour toi (admin), cette page est un aperçu de ce que voient tes clients.
-  document.getElementById("my-role-display").textContent = role === "admin" ? "Fondateur Zenoa" : role === "team" ? (getRoleName() || "Membre de l'équipe") : "";
+  document.getElementById("my-role-display").textContent = role === "admin" ? "Fondateur Zenoa" : role === "team" ? (getRoleName() || "Membre de l'équipe") : role === "partner" ? "Partenaire" : "";
   const espaceLabel = document.getElementById("espace-nav-label");
-  espaceLabel.textContent = role === "admin" ? "Aperçu client" : "Mon espace";
+  espaceLabel.textContent = role === "admin" ? "Aperçu mannequin" : "Mon espace";
   if (role === "admin") espaceLabel.dataset.short = "Aperçu"; else delete espaceLabel.dataset.short; // nom court dans la barre du téléphone
 }
 
@@ -178,7 +180,7 @@ function switchView(name) {
     el.classList.toggle("active", el.dataset.view === name);
   });
   markActiveNav(name);
-  document.title = (name === "espace" && getCurrentRole() === "admin" ? "Aperçu client" : view.title) + " — Zenoa Agency";
+  document.title = (name === "espace" && getCurrentRole() === "admin" ? "Aperçu mannequin" : view.title) + " — Zenoa Agency";
 
   const previous = currentView && viewCache.get(currentView);
   if (previous) previous.scrollTop = mainEl.scrollTop;
@@ -215,7 +217,7 @@ window.addEventListener("zenoa:espace-changed", () => {
 });
 
 // Une fiche client vient d'être créée depuis le suivi de prospection.
-window.addEventListener("zenoa:client-created", () => { ["clients", "espace", "messages"].forEach(refreshInBackground); });
+window.addEventListener("zenoa:client-created", () => { ["clients", "partenaires", "espace", "messages"].forEach(refreshInBackground); });
 
 function clearViews() {
   viewCache.forEach((e) => e.el.remove());

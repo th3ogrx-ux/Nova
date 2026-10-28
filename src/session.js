@@ -5,6 +5,7 @@
 //   "admin"  : toi (désigné dans espace.sql) — Radar, Prospection + gestion des clients
 //   "client" : un client de l'espace — uniquement son espace (voir src/views/espace.js)
 //   "team"   : membre de l'équipe (créé par l'admin) : il travaille sur les données de l'admin, selon les cases cochées dans son rôle
+//   "partner": partenaire (marque, photographe, monteur…) avec un compte : voit seulement ses mannequins et ses collaborations
 //   "none"   : compte SANS profil (client supprimé, inscription inconnue...) — aucun accès
 //   "radar"  : uniquement tant que l'espace clients n'est pas installé (espace.sql pas encore collé) : l'appli comme avant
 import { supabase } from "./supabase.js";
@@ -16,13 +17,14 @@ let currentBusinessId = null;
 let currentPerms = {};     // droits d'un membre : { radar: { view, edit, delete }, ... }
 let currentOwnerId = null; // propriétaire des données partagées (l'admin)
 let currentRoleName = null;
+let currentPartner = null; // { id, nom } pour un partenaire
 
 export function setCurrentUser(user) {
   current = user || null;
   if (!user) {
     currentRole = "radar";
     currentBusinessId = null;
-    currentPerms = {}; currentOwnerId = null; currentRoleName = null;
+    currentPerms = {}; currentOwnerId = null; currentRoleName = null; currentPartner = null;
   }
 }
 
@@ -36,6 +38,8 @@ export const getCurrentRole = () => currentRole;
 export const getCurrentBusinessId = () => currentBusinessId;
 export const isClient = () => currentRole === "client";
 export const isTeam = () => currentRole === "team";
+export const isPartner = () => currentRole === "partner";
+export const getPartner = () => currentPartner;
 export const getRoleName = () => currentRoleName;
 
 // Vrai si la personne a le droit (module : radar, prospection, calendrier, audits, dashboard ; niveau : view, edit, delete).
@@ -57,6 +61,14 @@ function applyRole(role, businessId, extra = {}) {
   currentPerms = extra.perms || {};
   currentOwnerId = extra.ownerId || null;
   currentRoleName = extra.roleName || null;
+  currentPartner = extra.partner || null;
+}
+
+// Partenaire avec compte ? (la base ne renvoie que SA propre fiche)
+async function loadPartnerRole() {
+  const { data, error } = await supabase.from("espace_partners").select("id, nom").limit(1);
+  if (error || !data || !data.length) return null;
+  return { partner: { id: data[0].id, nom: data[0].nom } };
 }
 
 // Membre de l'équipe ? (comptes créés par l'admin : pas de profil espace, mais une ligne dans team_members)
@@ -85,6 +97,13 @@ export async function loadRole(userId) {
       if (team) {
         applyRole("team", null, team);
         writeCache(cacheKey, { role: "team", businessId: null, ...team });
+        return { ok: true };
+      }
+      let partner = null;
+      try { partner = await loadPartnerRole(); } catch { partner = null; }
+      if (partner) {
+        applyRole("partner", null, partner);
+        writeCache(cacheKey, { role: "partner", businessId: null, ...partner });
         return { ok: true };
       }
       applyRole("none", null);

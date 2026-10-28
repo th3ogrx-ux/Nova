@@ -112,8 +112,14 @@ create policy "partenaire lit ses liens" on public.espace_partner_links for sele
 drop policy if exists "partenaire lit ses mannequins" on public.espace_businesses;
 create policy "partenaire lit ses mannequins" on public.espace_businesses for select to authenticated
   using (id in (select l.business_id from public.espace_partner_links l where l.partner_id = public.my_partner_id()));
+-- Les étapes de recherche (à contacter, contactée, réponse reçue, refusée) restent internes : le mannequin et le partenaire
+-- ne voient une collaboration qu'à partir de la négociation.
+drop policy if exists "client lit les siennes" on public.espace_collabs;
+create policy "client lit les siennes" on public.espace_collabs for select to authenticated
+  using (business_id = public.espace_my_business() and statut in ('negociation', 'signe', 'en_cours', 'publie', 'paye'));
 drop policy if exists "partenaire lit ses collabs" on public.espace_collabs;
-create policy "partenaire lit ses collabs" on public.espace_collabs for select to authenticated using (partner_id = public.my_partner_id());
+create policy "partenaire lit ses collabs" on public.espace_collabs for select to authenticated
+  using (partner_id = public.my_partner_id() and statut in ('negociation', 'signe', 'en_cours', 'publie', 'paye'));
 
 -- ---------- Export RGPD : inclut partenaires liés et notes privées ----------
 create or replace function public.espace_export_business(p_business_id uuid)
