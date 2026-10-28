@@ -4,12 +4,19 @@
 // Les droits sont dans la base (espace.sql) : un client ne lit et n'écrit que
 // dans SA conversation, et ne peut écrire qu'en son nom.
 import { supabase } from "../supabase.js";
-import { getCurrentRole, getCurrentBusinessId } from "../session.js";
+import { getCurrentRole, getCurrentBusinessId, getCurrentUser } from "../session.js";
+import { loadTeam } from "./equipe-data.js";
 import { refreshUnread, onMessagesTick } from "../espace-unread.js";
 import { escapeHtml } from "./espace-data.js";
 
 const MAX_LENGTH = 4000;
 const MESSAGE_COLUMNS = "id, business_id, auteur, texte, created_at, lu";
+
+// Messages de l'équipe : on les range comme ceux des mannequins (conversation « t:<id du membre> »,
+// le membre joue le rôle du « client », l'admin reste « admin »).
+const TEAM_COLUMNS = "id, member_id, auteur, texte, created_at, lu";
+const normTeam = (r) => ({ id: r.id, business_id: "t:" + r.member_id, auteur: r.auteur === "membre" ? "client" : "admin", texte: r.texte, created_at: r.created_at, lu: r.lu });
+const isTeamConv = (id) => typeof id === "string" && id.startsWith("t:");
 
 const timeOf = (iso) => new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 const dayKey = (iso) => { const d = new Date(iso); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
@@ -34,6 +41,7 @@ function shortAgo(iso) {
 export async function renderMessages(root) {
   const role = getCurrentRole();
   const isAdmin = role === "admin";
+  const isMember = role === "team";
   const other = isAdmin ? "client" : "admin"; // l'auteur dont on reçoit les messages
   const mine = isAdmin ? "admin" : "client";
 
@@ -41,7 +49,9 @@ export async function renderMessages(root) {
   const app = root.querySelector("#msg-app");
 
   let businesses = [];          // admin : tous les commerces
-  let selectedId = isAdmin ? null : getCurrentBusinessId();
+  let members = [];             // admin : membres de l'équipe
+  let selectedId = isAdmin ? null : isMember ? null : getCurrentBusinessId();
+  if (isMember) { const u = await getCurrentUser(); selectedId = u ? "t:" + u.id : null; }
   let all = [];                 // messages (client : sa conversation ; admin : toutes)
   let dividerBeforeId = null;   // "Nouveaux messages" : premier message non lu à l'ouverture
   let sending = false;
@@ -53,11 +63,21 @@ export async function renderMessages(root) {
 
   // ---------- Données ----------
   async function fetchAll() {
-    let query = supabase.from("espace_messages").select(MESSAGE_COLUMNS).order("created_at", { ascending: true }).limit(2000);
-    if (!isAdmin) query = query.eq("business_id", selectedId);
-    const { data, error } = await query;
-    if (error) throw error;
-    return data || [];
+    let list = [];
+    if (!isMember) {
+      let query = supabase.from("espace_messages").select(MESSAGE_COLUMNS).order("created_at", { ascending: true }).limit(2000);
+      if (!isAdmin) query = query.eq("business_id", selectedId);
+      const { data, error } = await query;
+      if (error) throw error;
+      list = data || [];
+    }
+    if (isAdmin || isMember) {
+      // Table facultative (equipe-messages.sql) : si elle manque, on ignore simplement les messages d'équipe.
+      const { data, error } = await supabase.from("team_messages").select(TEAM_COLUMNS).order("created_at", { ascending: true }).limit(2000);
+      if (isMember && error) throw error;
+      if (!error) list = list.concat((data || []).map(normTeam)).sort((a, b) => a.created_at.localeCompare(b.created_at));
+    }
+    return list;
   }
 
   const threadOf = (id) => all.filter((m) => m.business_id === id);
@@ -70,7 +90,9 @@ export async function renderMessages(root) {
     if (!selectedId || !isVisible()) return;
     const unread = threadOf(selectedId).filter((m) => m.auteur === other && !m.lu);
     if (!unread.length) return;
-    const { error } = await supabase.rpc("espace_mark_read", { p_business_id: isAdmin ? selectedId : null });
+    const { error } = isTeamConv(selectedId)
+      ? await supabase.rpc("team_mark_read", { p_member_id: isAdmin ? selectedId.slice(2) : null })
+      : await supabase.rpc("espace_mark_read", { p_business_id: isAdmin ? selectedId : null });
     if (error) return;
     unread.forEach((m) => { m.lu = true; });
     if (isAdmin) renderList();
@@ -146,8 +168,14 @@ export async function renderMessages(root) {
       all.push(pending);
       input.value = ""; grow();
       renderThread();
-      const { data, error } = await supabase.from("espace_messages")
-        .insert({ business_id: selectedId, auteur: mine, texte }).select(MESSAGE_COLUMNS).single();
+      let data, error;
+      if (isTeamConv(selectedId)) {
+        const res = await supabase.from("team_messages").insert({ member_id: selectedId.slice(2), auteur: isAdmin ? "admin" : "membre", texte }).select(TEAM_COLUMNS).single();
+        error = res.error; data = res.data ? normTeam(res.data) : null;
+      } else {
+        const res = await supabase.from("espace_messages").insert({ business_id: selectedId, auteur: mine, texte }).select(MESSAGE_COLUMNS).single();
+        error = res.error; data = res.data;
+      }
       sending = false;
       all = all.filter((m) => m !== pending);
       if (error || !data) {
@@ -166,7 +194,7 @@ export async function renderMessages(root) {
   function drawClient() {
     app.innerHTML = `
       <div class="card msg-card">
-        <div class="msg-head"><strong>Conversation avec Zenoa</strong><span>On te répond rapidement.</span></div>
+        <div class="msg-head"><strong>${isMember ? "Conversation avec l'admin" : "Conversation avec Zenoa"}</strong><span>${isMember ? "Ton message arrive directement chez le fondateur." : "On te répond rapidement."}</span></div>
         <div id="msg-thread" class="msg-thread" role="log" tabindex="0" aria-label="Conversation"></div>
         ${composerHtml()}
       </div>`;
@@ -176,7 +204,7 @@ export async function renderMessages(root) {
 
   // ---------- Admin : boîte de réception ----------
   function conversations() {
-    return businesses.map((b) => {
+    return businesses.concat(members).map((b) => {
       const list = threadOf(b.id);
       const last = list[list.length - 1] || null;
       return { b, last, unread: list.filter((m) => m.auteur === "client" && !m.lu).length };
@@ -188,12 +216,12 @@ export async function renderMessages(root) {
     if (!box) return;
     box.innerHTML = conversations().map(({ b, last, unread }) => `
       <button type="button" class="msg-conv${b.id === selectedId ? " active" : ""}" data-id="${b.id}">
-        <div class="msg-conv-top"><strong>${escapeHtml(b.nom)}</strong>${last ? `<span>${escapeHtml(shortAgo(last.created_at))}</span>` : ""}</div>
+        <div class="msg-conv-top"><strong>${escapeHtml(b.nom)}${b.team ? ` <span class="msg-tag">Équipe</span>` : ""}</strong>${last ? `<span>${escapeHtml(shortAgo(last.created_at))}</span>` : ""}</div>
         <div class="msg-conv-bottom">
           <span class="msg-conv-preview">${last ? `${last.auteur === "admin" ? "Vous : " : ""}${escapeHtml(last.texte)}` : "Aucun message"}</span>
           ${unread ? `<span class="msg-unread" aria-label="${unread} non lu${unread > 1 ? "s" : ""}">${unread}</span>` : ""}
         </div>
-      </button>`).join("") || `<p class="msg-empty">Aucun commerce pour l'instant.</p>`;
+      </button>`).join("") || `<p class="msg-empty">Aucune conversation pour l'instant.</p>`;
     box.querySelectorAll(".msg-conv").forEach((btn) => btn.addEventListener("click", () => select(btn.dataset.id)));
   }
 
@@ -201,7 +229,7 @@ export async function renderMessages(root) {
     selectedId = id;
     const unread = threadOf(id).filter((m) => m.auteur === "client" && !m.lu);
     dividerBeforeId = unread.length ? unread[0].id : null;
-    const b = businesses.find((x) => x.id === id);
+    const b = businesses.concat(members).find((x) => x.id === id);
     app.querySelector(".msg-admin").classList.add("show-thread");
     app.querySelector("#msg-pane").innerHTML = `
       <div class="msg-head">
@@ -233,12 +261,13 @@ export async function renderMessages(root) {
   // ---------- Démarrage + actualisation ----------
   try {
     const jobs = [fetchAll()];
-    if (isAdmin) jobs.push(supabase.from("espace_businesses").select("id, nom").order("nom"));
-    const [messages, bizRes] = await Promise.all(jobs);
+    if (isAdmin) { jobs.push(supabase.from("espace_businesses").select("id, nom").order("nom")); jobs.push(loadTeam().catch(() => null)); }
+    const [messages, bizRes, teamRes] = await Promise.all(jobs);
     all = messages;
     if (isAdmin) {
       if (bizRes.error) throw bizRes.error;
       businesses = bizRes.data || [];
+      members = ((teamRes && teamRes.members) || []).map((m) => ({ id: "t:" + m.user_id, nom: m.pseudo || m.email || "Membre", team: true }));
     }
   } catch (err) {
     console.error("[Messages]", err);

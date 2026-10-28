@@ -19,14 +19,27 @@ export function onMessagesTick(fn) { tickListeners.add(fn); return () => tickLis
 
 export async function refreshUnread() {
   if (!role) return;
-  const other = role === "admin" ? "client" : "admin";
-  const { count: c, error } = await supabase
-    .from("espace_messages")
-    .select("id", { count: "exact", head: true })
-    .eq("lu", false)
-    .eq("auteur", other);
-  if (error) return;
-  count = c || 0;
+  const other = role === "client" ? "admin" : role === "team" ? "admin" : "client";
+  let total = 0;
+  if (role !== "team") {
+    const { count: c, error } = await supabase
+      .from("espace_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("lu", false)
+      .eq("auteur", other);
+    if (error) return;
+    total += c || 0;
+  }
+  // Messages de l'équipe (conversation admin <-> membre) : table facultative (equipe-messages.sql).
+  if (role === "admin" || role === "team") {
+    const { count: t, error } = await supabase
+      .from("team_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("lu", false)
+      .eq("auteur", role === "admin" ? "membre" : "admin");
+    if (!error) total += t || 0;
+  }
+  count = total;
   countListeners.forEach((fn) => fn(count));
 }
 
@@ -49,6 +62,7 @@ export function startUnreadWatch(userRole) {
     channel = supabase
       .channel("espace-messages")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "espace_messages" }, tick)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "team_messages" }, tick)
       .subscribe();
   } catch { /* temps réel indisponible : l'actualisation périodique suffit */ }
 }

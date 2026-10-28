@@ -58,7 +58,7 @@ const VIEWS = {
   clients: { render: renderClients, title: "Mannequins", roles: ["admin"] },
   partenaires: { render: renderPartenaires, title: "Partenaires", roles: ["admin"] },
   espace: { render: renderEspace, title: "Mon espace", roles: ["client", "admin", "partner"] },
-  messages: { render: renderMessages, title: "Messages", roles: ["client", "admin"] },
+  messages: { render: renderMessages, title: "Messages", roles: ["client", "admin", "team"] },
   equipe: { render: renderEquipe, title: "Équipe", roles: ["admin"] },
   settings: { render: renderSettings, title: "Paramètres", roles: ["admin", "radar", "client", "team", "partner"] },
 };
@@ -367,7 +367,7 @@ async function showAppInner(session) {
   viewCache.get(home).ready.then(prepareOtherViews);
 }
 
-const role_isMessaging = () => getCurrentRole() === "client" || getCurrentRole() === "admin";
+const role_isMessaging = () => ["client", "admin", "team"].includes(getCurrentRole());
 
 // Pastille du menu "Messages" : nombre de messages non lus.
 onUnread((count) => {

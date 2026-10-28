@@ -253,6 +253,35 @@ select tst.eq('client : ne voit aucun rôle', (select count(*) from public.team_
 select tst.denied('client : touche à l''équipe', $$insert into public.team_members (user_id) values ('00000000-0000-0000-0000-0000000000f1')$$);
 select tst.eq('client : ne voit pas les prospects', (select count(*) from public.pro_prospects), 0);
 rollback;
+-- ---------- Messages de l'équipe ----------
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'adm', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.n('admin écrit à un membre', $$insert into public.team_messages (member_id, auteur, texte) values ('00000000-0000-0000-0000-0000000000c1', 'admin', 'Salut')$$, 1);
+select tst.n('admin écrit à un autre membre', $$insert into public.team_messages (member_id, auteur, texte) values ('00000000-0000-0000-0000-0000000000c2', 'admin', 'Hello')$$, 1);
+commit;
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'m1', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('membre : ne voit que sa conversation', (select count(*) from public.team_messages), 1);
+select tst.n('membre : répond dans sa conversation', $$insert into public.team_messages (member_id, auteur, texte) values ('00000000-0000-0000-0000-0000000000c1', 'membre', 'Salut !')$$, 1);
+select tst.denied('membre : écrit chez un autre membre', $$insert into public.team_messages (member_id, auteur, texte) values ('00000000-0000-0000-0000-0000000000c2', 'membre', 'x')$$);
+select tst.denied('membre : se fait passer pour l''admin', $$insert into public.team_messages (member_id, auteur, texte) values ('00000000-0000-0000-0000-0000000000c1', 'admin', 'x')$$);
+select tst.n('membre : ne peut pas modifier un message', $$update public.team_messages set texte = 'hack'$$, 0);
+select tst.n('membre : ne peut pas supprimer un message', $$delete from public.team_messages$$, 0);
+select public.team_mark_read();
+select tst.eq('membre : message admin marqué lu', (select count(*) from public.team_messages where auteur = 'admin' and lu), 1);
+rollback;
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'ca', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('client : ne voit pas les messages d''équipe', (select count(*) from public.team_messages), 0);
+select tst.denied('client : écrit un message d''équipe', $$insert into public.team_messages (member_id, auteur, texte) values ('00000000-0000-0000-0000-0000000000c1', 'membre', 'x')$$);
+rollback;
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'adm', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('admin : lit les messages d''équipe (2 + 1 répondu non, rollback)', (select count(*) from public.team_messages), 2);
+select tst.n('admin : marque lu', $$select public.team_mark_read('00000000-0000-0000-0000-0000000000c1')$$, 1);
+rollback;
+delete from public.team_messages;
+
 begin; set local role anon;
 select tst.denied('anon : lit les rôles', $$select * from public.team_roles$$);
 select tst.denied('anon : appelle touch_presence', $$select public.touch_presence()$$);
