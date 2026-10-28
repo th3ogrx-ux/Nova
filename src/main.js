@@ -213,7 +213,7 @@ function prepareOtherViews() {
 let espaceRefreshTimer = null;
 window.addEventListener("zenoa:espace-changed", () => {
   clearTimeout(espaceRefreshTimer);
-  espaceRefreshTimer = setTimeout(() => { refreshInBackground("espace"); refreshInBackground("messages"); }, 600);
+  espaceRefreshTimer = setTimeout(() => { refreshInBackground("espace"); refreshInBackground("messages"); refreshInBackground("partenaires"); refreshInBackground("equipe"); }, 600);
 });
 
 // Une fiche client vient d'être créée depuis le suivi de prospection.

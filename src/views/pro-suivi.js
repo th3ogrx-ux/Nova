@@ -55,14 +55,16 @@ export function renderSuivi(root, data, ctx) {
     card.querySelector('[data-act="sold"]').addEventListener("click", async (e) => {
       const btn = e.currentTarget; btn.disabled = true;
       const v = flush();
-      const { error } = await supabase.from("espace_businesses").insert({ nom: p.nom, objectifs: v.objectifs, notes_prospection: v.notes });
+      const { data: created, error } = await supabase.from("espace_businesses").insert({ nom: p.nom, type: "mannequin", sections: ["reseaux", "calendrier", "collabs"] }).select("id").single();
       if (error) {
         btn.disabled = false;
-        toast(/objectifs|notes_prospection/i.test(error.message || "") ? "Colle de nouveau prospection.sql dans Supabase (SQL Editor), puis réessaie." : friendlyError(error), "error");
+        toast(/type|sections/i.test(error.message || "") ? "Colle espace-reseaux.sql dans Supabase (SQL Editor), puis réessaie." : friendlyError(error), "error");
         return;
       }
+      // Objectifs et notes : table réservée à l'admin (le mannequin ne peut pas les lire).
+      if (v.objectifs || v.notes) await supabase.from("espace_private").upsert({ business_id: created.id, objectifs: v.objectifs, notes: v.notes }, { onConflict: "business_id" });
       window.dispatchEvent(new CustomEvent("zenoa:client-created"));
-      await remove("Vendu 🎉 Fiche client créée (onglet Clients) avec tes notes");
+      await remove("Vendu 🎉 Fiche mannequin créée (page Mannequins) avec tes notes");
     });
   });
 }

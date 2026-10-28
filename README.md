@@ -102,25 +102,9 @@ jamais les données).
 - [x] Étape 5 — Maquettes de sites vitrine
 - [x] Étape 6 — Tableau de bord
 
-## Espace clients (suivi de visibilité Google)
+## Espace mannequin
 
-Espace pour les clients de l'agence : chaque commerce voit sa note, ses avis, ses chiffres Google, ses tâches
-et écrit à l'admin ; l'admin saisit les données depuis la page « Clients ». Même site, même connexion que Radar.
-
-Mise en place (Supabase) :
-1. `espace.sql` : tables `espace_*` + règles de sécurité (RLS) + désignation de l'admin (remplacer l'email dans le fichier).
-2. `espace-demo.sql` (facultatif) : 2 commerces d'exemple (barbier, plombier). Suppression : `delete from public.espace_businesses where is_example;`
-3. Fonction Edge `espace-admin` (`supabase/functions/espace-admin/index.ts`) : création des comptes clients. À coller dans
-   Supabase > Edge Functions > Via Editor, nom exact `espace-admin`.
-4. `espace-metriques.sql` : choix des chiffres à suivre par client (ex. pas d'« Itinéraires » pour un électricien).
-5. `espace-rappels.sql` : date de la prochaine saisie des chiffres par client (rappel en couleur vive à 3 jours ou moins).
-6. Facultatif : la ligne `alter publication supabase_realtime ...` en bas de `espace.sql` pour des messages instantanés.
-
-Rôles : `admin` (toi : Clients, Aperçu client, Messages, Suivi prospection, Audits…), `client` (Mon espace, Messages),
-`radar` (utilisateur Radar sans profil : l'appli comme avant). Les droits sont dans la base, pas dans le navigateur.
-
-Logo : remplace `public/sidebar-logo.png` (carré, fond noir) et `public/zenoa-icon.png` (fond transparent).
-Couleurs et thème : `src/styles/tokens.css`.
+Chaque mannequin a un espace (créé par l'admin) : **statistiques** Instagram / TikTok / LinkedIn, **calendrier de contenu**, **collaborations** (revenus encaissés / à encaisser) et **ses partenaires**. L'admin saisit les chiffres chaque mois dans la page **Mannequins** ; le suivi des collaborations se fait en colonnes (à contacter → négociation → signée → payée) et les étapes de recherche restent internes.
 
 ## Sécurité et RGPD
 
@@ -158,8 +142,8 @@ Publication : lien privé du type `/a/xK9f2mQpZr7T` (12 caractères aléatoires)
 
 Installation : `equipe.sql` (SQL Editor), puis redéployer les fonctions `espace-admin` et `audit-public` (Edge Functions).
 
-## Espace client « réseaux sociaux »
+## Partenaires (marques, photographes, monteurs…)
 
-Un client peut être une **marque, un mannequin, un créateur** ou un commerce local. À la création (et dans sa fiche, onglet « Infos & accès »), tu choisis son type, ses réseaux (Instagram, TikTok, LinkedIn) et ce qu'il voit : **statistiques des réseaux** (abonnés et croissance, vues, portée, engagement, publications), **calendrier de contenu**, **campagnes et collaborations** (revenus encaissés / à encaisser), et pour les commerces locaux les chiffres et avis Google (comme avant). Les clients existants gardent leur espace Google tel quel.
+La page **Partenaires** est un annuaire : catégorie, statut (à contacter → actif), contacts, tarif et notes **privés**, mannequins associés. Un partenaire peut avoir un **compte à accès limité** (ses mannequins et ses collaborations). Chaque mannequin voit ses partenaires (nom, métier, statut, contacts).
 
-Installation : coller `espace-reseaux.sql` dans Supabase (SQL Editor > Run). Les chiffres se saisissent à la main chaque mois dans la fiche client (onglet « Réseaux »), comme les chiffres Google.
+Installation (dans cet ordre, une fois) : `espace-reseaux.sql`, `equipe.sql`, puis `partenaires.sql` (SQL Editor), et redéployer la fonction `espace-admin`. `nettoyage-clients.sql` est optionnel : il supprime les anciens clients qui ne sont pas des mannequins.

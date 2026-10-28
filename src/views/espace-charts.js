@@ -1,6 +1,6 @@
 // Graphiques de l'espace client, dessinés en SVG (même technique que le
 // Tableau de bord, aucune bibliothèque). Les couleurs viennent du thème.
-import { escapeHtml, shortMonth, monthLabel, formatNumber, formatRating } from "./espace-data.js";
+import { escapeHtml, shortMonth, monthLabel, formatNumber } from "./espace-data.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 // Dimensions réelles du conteneur : le dessin n'est jamais "réduit", donc les
@@ -66,63 +66,7 @@ function legend(items) {
   return `<div class="espace-legend">${items.map((i) => `<span><i style="background:${i.color};${i.round ? "border-radius:50%;" : ""}"></i>${escapeHtml(i.label)}</span>`).join("")}</div>`;
 }
 
-// Graphique 1 : barres = avis reçus dans le mois ; courbe = note moyenne (cumulée).
-export function renderReviewsChart(container, series) {
-  size(container);
-  const hasAny = series.some((s) => s.average !== null);
-  if (!hasAny) {
-    container.innerHTML = `<p class="espace-empty">Pas encore assez d'avis pour tracer une courbe.</p>`;
-    return;
-  }
-  const months = series.map((s) => s.mois);
-  const { svg, xCenter, slot, baseline, innerH } = frame("Évolution de la note moyenne et du nombre d'avis par mois", months);
-
-  // Axe de gauche : note de 1 à 5. Axe de droite : nombre d'avis.
-  const yRating = (v) => baseline - ((v - 1) / 4) * innerH;
-  const countScale = niceScale(Math.max(2, ...series.map((s) => s.count)), 4);
-  const yCount = (v) => baseline - (v / countScale.max) * innerH;
-
-  [1, 2, 3, 4, 5].forEach((v) => gridLine(svg, yRating(v), String(v), "left"));
-  countScale.ticks.filter((v) => Number.isInteger(v)).forEach((v) => {
-    const t = el("text", { x: W - PAD.right + 8, y: yCount(v) + 3.5, class: "espace-axis" }, svg);
-    t.textContent = String(v);
-  });
-
-  const barW = Math.min(34, slot * 0.5);
-  series.forEach((s, i) => {
-    if (!s.count) return;
-    const y = yCount(s.count);
-    const bar = el("rect", { x: xCenter(i) - barW / 2, y, width: barW, height: baseline - y, rx: 4, fill: "var(--warm-1)", opacity: "0.35", class: "espace-bar" }, svg);
-    bar.style.animationDelay = `${i * 60}ms`;
-    const tip = el("title", {}, bar);
-    tip.textContent = `${monthLabel(s.mois)} : ${s.count} avis reçu${s.count > 1 ? "s" : ""}`;
-  });
-
-  const points = series.map((s, i) => (s.average === null ? null : { x: xCenter(i), y: yRating(s.average), s })).filter(Boolean);
-  const line = el("polyline", {
-    points: points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" "),
-    fill: "none", stroke: GOLD, "stroke-width": 2.5, "stroke-linecap": "round", "stroke-linejoin": "round", class: "espace-line", pathLength: 1
-  }, svg);
-  line.setAttribute("aria-hidden", "true");
-  points.forEach((p, i) => {
-    const dot = el("circle", { cx: p.x, cy: p.y, r: 4, fill: GOLD, stroke: "var(--light-card-bg)", "stroke-width": 2, class: "espace-dot" }, svg);
-    dot.style.animationDelay = `${300 + i * 50}ms`;
-    el("title", {}, dot).textContent = `${monthLabel(p.s.mois)} : note ${formatRating(p.s.average)} / 5`;
-    if (i === points.length - 1 || (points.length <= 7 && W >= 400)) {
-      const t = el("text", { x: p.x, y: p.y - 10, "text-anchor": "middle", class: "espace-point-label" }, svg);
-      t.textContent = formatRating(p.s.average);
-    }
-  });
-
-  container.innerHTML = "";
-  container.appendChild(svg);
-  container.insertAdjacentHTML("beforeend", legend([
-    { label: "Note moyenne (échelle de gauche)", color: GOLD, round: true },
-    { label: "Avis reçus dans le mois (échelle de droite)", color: "var(--warm-1)" }
-  ]));
-}
-
-// Graphique 2 : un ou plusieurs chiffres mensuels, mois par mois.
+// Graphique : un ou plusieurs chiffres mensuels, mois par mois (une courbe par réseau).
 // `series` : [{ key, label, color }] (les chiffres choisis pour ce client).
 export const SERIES_COLORS = { appels: "var(--warm-1)", itineraires: GOLD, vues_fiche: "#e8b4a0", visites_site: "#9fb4c7" };
 

@@ -1,5 +1,6 @@
 // Page « Équipe » (bouton à gauche des paramètres) : mes membres en haut, mes partenaires (clients) en bas, avec leur activité.
 import { loadTeam, listRoles, createMember, removeMember, resetMemberPassword, setMemberRole, lastActivity, latest, isMissing, MISSING_MESSAGE } from "./equipe-data.js";
+import { categorieLabel, partnerStatutLabel } from "./espace-data.js";
 import { openModal, modalHeader, field, toast, copyText, emptyState, skeleton } from "./pro-ui.js";
 import { escapeHtml } from "./pro-data.js";
 
@@ -13,7 +14,7 @@ export async function renderEquipe(root) {
   let team = null, roles = [];
 
   async function load() {
-    try { [team, roles] = await Promise.all([loadTeam(), listRoles()]); team = { members: (team && team.members) || [], partners: (team && team.partners) || [] }; }
+    try { [team, roles] = await Promise.all([loadTeam(), listRoles()]); team = { members: (team && team.members) || [], mannequins: (team && team.mannequins) || [], partners: (team && team.partners) || [] }; }
     catch (err) {
       console.error("[Équipe]", err);
       body.innerHTML = `<div class="card"><p class="error-msg" style="margin:0;">${escapeHtml(isMissing(err) ? MISSING_MESSAGE : err.message || "Impossible de charger l'équipe.")}</p></div>`;
@@ -26,7 +27,7 @@ export async function renderEquipe(root) {
   const presenceHtml = (iso) => { const a = lastActivity(iso); return `<span class="eq-presence${a.online ? " on" : ""}"><i aria-hidden="true"></i>${a.text}</span>`; };
 
   function draw() {
-    const m = team.members, p = team.partners;
+    const m = team.members, mq = team.mannequins, p = team.partners;
     body.innerHTML = `
       <section class="card eq-section" aria-labelledby="eq-h1">
         <h2 class="panel-title" id="eq-h1">Mon équipe <span class="eq-count">${m.length}</span></h2>
@@ -40,13 +41,22 @@ export async function renderEquipe(root) {
           </div>`).join("") : emptyState({ title: "Personne dans ton équipe pour l'instant", text: "Ajoute un membre : l'appli crée son compte, tu choisis son rôle.", cta: "Ajouter un membre", action: "add2" })}</div>
       </section>
       <section class="card eq-section" aria-labelledby="eq-h2">
-        <h2 class="panel-title" id="eq-h2">Mes partenaires <span class="eq-count">${p.length}</span></h2>
-        ${p.length ? p.map((x) => `
+        <h2 class="panel-title" id="eq-h2">Mes mannequins <span class="eq-count">${mq.length}</span></h2>
+        ${mq.length ? mq.map((x) => `
           <div class="eq-row eq-partner">
             <span class="eq-avatar alt">${escapeHtml(initial(x.nom))}</span>
             <div class="eq-who"><strong>${escapeHtml(x.nom)}</strong><span class="pro-muted">${escapeHtml(x.email || "")}</span></div>
             ${presenceHtml(latest(x.last_seen, x.last_sign_in_at))}
-          </div>`).join("") : `<p class="pro-muted" style="margin:0;">Tes clients apparaîtront ici dès que tu en auras créé.</p>`}
+          </div>`).join("") : `<p class="pro-muted" style="margin:0;">Tes mannequins apparaîtront ici dès que tu en auras créé.</p>`}
+      </section>
+      <section class="card eq-section" aria-labelledby="eq-h3">
+        <h2 class="panel-title" id="eq-h3">Mes partenaires <span class="eq-count">${p.length}</span></h2>
+        ${p.length ? p.map((x) => `
+          <div class="eq-row eq-partner">
+            <span class="eq-avatar alt">${escapeHtml(initial(x.nom))}</span>
+            <div class="eq-who"><strong>${escapeHtml(x.nom)}</strong><span class="pro-muted">${escapeHtml(categorieLabel(x.categorie))} · ${escapeHtml(partnerStatutLabel(x.statut))}</span></div>
+            ${x.has_account ? presenceHtml(latest(x.last_seen, x.last_sign_in_at)) : `<span class="pro-muted" style="font-size:12.5px;min-width:130px;">Pas de compte</span>`}
+          </div>`).join("") : `<p class="pro-muted" style="margin:0;">Ajoute des partenaires dans la page Partenaires.</p>`}
       </section>`;
     body.querySelector('[data-action="add2"]')?.addEventListener("click", addMember);
     body.querySelectorAll(".eq-row[data-id]").forEach((row) => {

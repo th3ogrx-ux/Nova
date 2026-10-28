@@ -2,7 +2,7 @@
 // Lecture seule côté client ; la saisie se fait dans la fiche client (clients.js).
 import {
   escapeHtml, RESEAUX, reseauxOf, reseauLabel, formatLabel, statutLabel, natureLabel, engagementRate, formatEuro,
-  formatNumber, formatDate, monthLabel, variation, lastMonthKeys
+  formatNumber, formatDate, monthLabel, variation, lastMonthKeys, categorieLabel, partnerStatutLabel
 } from "./espace-data.js";
 import { renderCallsChart } from "./espace-charts.js";
 
@@ -91,16 +91,19 @@ export function calendarHtml(data) {
 }
 
 // ---------- Campagnes et collaborations ----------
+// Les étapes de recherche (à contacter, contactée, réponse, refusée) restent internes à l'agence.
+export const VISIBLE_STATUTS = ["negociation", "signe", "en_cours", "publie", "paye"];
 const STATUT_PILL = { negociation: "neutral", signe: "blue", en_cours: "warning", publie: "blue", paye: "ok" };
-export function collabsHtml(data) {
-  const list = data.collabs;
+export function collabsHtml(data, { title = "Campagnes et collaborations" } = {}) {
+  const list = data.collabs.filter((c) => VISIBLE_STATUTS.includes(c.statut));
   const paid = list.filter((c) => c.statut === "paye").reduce((s, c) => s + Number(c.montant || 0), 0);
   const pending = list.filter((c) => ["signe", "en_cours", "publie"].includes(c.statut)).reduce((s, c) => s + Number(c.montant || 0), 0);
   const active = list.filter((c) => c.statut !== "negociation").length;
+  const nPaid = list.filter((c) => c.statut === "paye").length;
   return `
-    <h2 class="espace-h2">Campagnes et collaborations</h2>
+    <h2 class="espace-h2">${escapeHtml(title)}</h2>
     <div class="stat-grid espace-grid" style="margin-bottom:16px;">
-      ${tile("Revenus encaissés", formatEuro(paid), `<span class="espace-delta">${list.filter((c) => c.statut === "paye").length} payée${list.filter((c) => c.statut === "paye").length > 1 ? "s" : ""}</span>`)}
+      ${tile("Revenus encaissés", formatEuro(paid), `<span class="espace-delta">${nPaid} payée${nPaid > 1 ? "s" : ""}</span>`)}
       ${tile("À encaisser", formatEuro(pending), `<span class="espace-delta">signées ou en cours</span>`)}
       ${tile("Collaborations", formatNumber(active), `<span class="espace-delta">${list.length - active ? `${list.length - active} en négociation` : "signées ou plus"}</span>`)}
     </div>
@@ -113,5 +116,29 @@ export function collabsHtml(data) {
           <span class="status-pill ${STATUT_PILL[c.statut] || "neutral"}">${escapeHtml(statutLabel(c.statut))}</span>
           <b class="espace-collab-amount">${c.montant != null ? escapeHtml(formatEuro(c.montant)) : "—"}</b>
         </article>`).join("") : empty("Aucune collaboration pour l'instant.")}
+    </div>`;
+}
+
+// ---------- Mes partenaires (photographes, monteurs, marques… associés au mannequin) ----------
+const PSTATUT_PILL = { actif: "ok", en_discussion: "blue", contacte: "neutral", a_contacter: "neutral", inactif: "neutral" };
+export function partnersHtml(data) {
+  const list = data.partners || [];
+  return `
+    <h2 class="espace-h2">Mes partenaires</h2>
+    <div class="card espace-card" style="padding:20px;margin-bottom:24px;">
+      ${list.length ? list.map((p) => {
+        const ig = p.instagram ? p.instagram.replace(/^@/, "") : "";
+        const site = p.site && safeUrl(/^https?:/i.test(p.site) ? p.site : "https://" + p.site);
+        return `<article class="espace-partner">
+          <div class="espace-partner-main"><strong>${escapeHtml(p.nom)}</strong><span class="pro-muted">${escapeHtml(categorieLabel(p.categorie))}${p.contact_nom ? " · " + escapeHtml(p.contact_nom) : ""}</span></div>
+          <span class="status-pill ${PSTATUT_PILL[p.statut] || "neutral"}">${escapeHtml(partnerStatutLabel(p.statut))}</span>
+          <div class="espace-partner-links">
+            ${p.email ? `<a href="mailto:${escapeHtml(p.email)}">${escapeHtml(p.email)}</a>` : ""}
+            ${p.telephone ? `<a href="tel:${escapeHtml(p.telephone.replace(/\s+/g, ""))}">${escapeHtml(p.telephone)}</a>` : ""}
+            ${ig ? `<a href="https://instagram.com/${encodeURIComponent(ig)}" target="_blank" rel="noopener noreferrer">@${escapeHtml(ig)}</a>` : ""}
+            ${site ? `<a href="${escapeHtml(site)}" target="_blank" rel="noopener noreferrer">Site ↗</a>` : ""}
+          </div>
+        </article>`;
+      }).join("") : empty("Tes partenaires (photographes, monteurs, marques…) apparaîtront ici.")}
     </div>`;
 }

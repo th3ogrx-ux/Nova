@@ -1,15 +1,13 @@
-// Espace client : tableau de bord d'un client (réseaux sociaux, calendrier de contenu, collaborations, et Google pour les commerces locaux).
-// - Client : voit uniquement SON commerce (la base de données filtre).
-// - Admin  : "Aperçu client" — choisit un commerce et voit ce que le client verra.
-// Lecture seule : aucune modification ici (la saisie des chiffres est côté admin).
+// Espace mannequin : réseaux sociaux, calendrier de contenu, collaborations et partenaires.
+// - Mannequin : voit uniquement SON espace (la base de données filtre).
+// - Admin     : "Aperçu mannequin" — choisit un mannequin et voit ce qu'il verra.
+// - Partenaire : voit son propre espace (voir espace-partner.js).
+// Lecture seule : aucune modification ici (la saisie se fait côté admin).
 import { supabase } from "../supabase.js";
 import { getCurrentRole, getCurrentBusinessId } from "../session.js";
 import { readCache, writeCache, sameData } from "../data-cache.js";
-import {
-  escapeHtml, loadEspaceData, summarize, monthLabel, formatDate, formatNumber, formatRating, variation, reviewSeries, statSeries, METRICS, enabledMetrics, sectionsOf, typeLabel
-} from "./espace-data.js";
-import { socialHtml, drawSocialCharts, calendarHtml, collabsHtml } from "./espace-social.js";
-import { renderReviewsChart, renderCallsChart, SERIES_COLORS } from "./espace-charts.js";
+import { escapeHtml, loadEspaceData, reseauxOf } from "./espace-data.js";
+import { socialHtml, drawSocialCharts, calendarHtml, collabsHtml, partnersHtml } from "./espace-social.js";
 
 // Période des graphiques (6 ou 12 mois), gardée d'une visite à l'autre.
 const RANGE_KEY = "zenoa-espace-periode";
@@ -20,61 +18,6 @@ const STATUS_COLUMNS = [
   { key: "en_cours", label: "En cours", color: "var(--warning)" },
   { key: "a_venir", label: "À venir", color: "var(--light-text-dim)" }
 ];
-
-const reducedMotion = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-function safeHttpUrl(value) {
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
-  } catch {
-    return null;
-  }
-}
-
-function stars(note) {
-  return `<span class="espace-stars" role="img" aria-label="${note} sur 5">${"★".repeat(note)}<span class="espace-stars-off">${"★".repeat(5 - note)}</span></span>`;
-}
-
-function deltaHtml(current, previous) {
-  const pct = variation(current, previous);
-  if (pct === null) return `<span class="espace-delta">—</span>`;
-  if (pct === 0) return `<span class="espace-delta">= stable</span>`;
-  const up = pct > 0;
-  return `<span class="espace-delta ${up ? "up" : "down"}">${up ? "▲ +" : "▼ "}${pct} %<span class="espace-delta-note"> vs mois précédent</span></span>`;
-}
-
-// Compteur qui monte de 0 à la valeur (désactivé si l'utilisateur limite les animations).
-function countUp(el, target, { decimals = 0 } = {}) {
-  const fmt = (v) => (decimals ? formatRating(v) : formatNumber(Math.round(v)));
-  if (reducedMotion() || !target) { el.textContent = fmt(target); return; }
-  const start = performance.now();
-  const duration = 700;
-  const step = (now) => {
-    const t = Math.min(1, (now - start) / duration);
-    el.textContent = fmt(target * (1 - Math.pow(1 - t, 3)));
-    if (t < 1) requestAnimationFrame(step);
-  };
-  requestAnimationFrame(step);
-}
-
-function statTile(label, valueHtml, subHtml) {
-  return `<div class="card stat-tile espace-tile"><div class="stat-tile-value">${valueHtml}</div><div class="stat-tile-label">${label}</div><div style="margin-top:8px;">${subHtml}</div></div>`;
-}
-
-function reviewHtml(r) {
-  return `
-    <article class="espace-review${r.repondu ? "" : " to-answer"}">
-      <div class="espace-review-head">
-        ${stars(r.note)}
-        <strong>${escapeHtml(r.auteur)}</strong>
-        <span class="espace-review-date">${formatDate(r.date)}</span>
-        ${r.repondu ? "" : `<span class="status-pill warning" style="margin-left:auto;">En attente de réponse</span>`}
-      </div>
-      ${r.texte ? `<p class="espace-review-text">${escapeHtml(r.texte)}</p>` : ""}
-      ${r.repondu && r.reponse ? `<div class="espace-reply"><span>Réponse du commerce</span>${escapeHtml(r.reponse)}</div>` : ""}
-    </article>`;
-}
 
 function tasksHtml(tasks) {
   if (!tasks.length) return `<p style="color:var(--light-text-dim);font-size:13.5px;">Aucune tâche prévue ce mois-ci.</p>`;
@@ -88,138 +31,34 @@ function tasksHtml(tasks) {
   }).join("")}</div>`;
 }
 
-function reviewRequestHtml(business) {
-  const link = business.lien_avis_google && safeHttpUrl(business.lien_avis_google);
-  if (!link) {
-    return `<p style="color:var(--light-text-dim);font-size:13.5px;">Le lien d'avis Google de ton commerce n'est pas encore renseigné. Contacte Zenoa pour l'ajouter.</p>`;
-  }
-  return `
-    <div class="espace-request">
-      <div class="espace-qr-box"><img id="espace-qr" alt="QR code du lien d'avis Google" width="168" height="168"></div>
-      <div style="flex:1;min-width:220px;">
-        <p style="font-size:13.5px;color:var(--light-text-dim);margin-bottom:12px;">
-          Montre ce QR code en caisse ou envoie le lien à tes clients satisfaits : ils laissent un avis en quelques secondes.
-        </p>
-        <input type="text" readonly id="espace-link" value="${escapeHtml(link)}" aria-label="Lien d'avis Google" style="font-size:13px;margin-bottom:12px;">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button type="button" class="btn primary btn-sm" id="espace-copy">Copier le lien</button>
-          <button type="button" class="btn ghost btn-sm" id="espace-download">Télécharger le QR (PNG)</button>
-        </div>
-        <div id="espace-copy-msg" style="font-size:12px;color:var(--ok);min-height:16px;margin-top:8px;"></div>
-      </div>
-    </div>`;
-}
-
-// QR code : bibliothèque chargée seulement quand on en a besoin.
-async function setupQr(root, business) {
-  const link = business.lien_avis_google && safeHttpUrl(business.lien_avis_google);
-  const img = root.querySelector("#espace-qr");
-  if (!link || !img) return;
-  const QRCode = (await import("qrcode")).default;
-  const opts = { margin: 2, color: { dark: "#0A0A0B", light: "#FFFFFF" } };
-  img.src = await QRCode.toDataURL(link, { ...opts, width: 336 });
-
-  root.querySelector("#espace-copy").addEventListener("click", async () => {
-    const msg = root.querySelector("#espace-copy-msg");
-    try {
-      await navigator.clipboard.writeText(link);
-    } catch {
-      const input = root.querySelector("#espace-link");
-      input.select();
-      document.execCommand("copy");
-    }
-    msg.textContent = "Lien copié ✓";
-    setTimeout(() => { msg.textContent = ""; }, 2500);
-  });
-
-  root.querySelector("#espace-download").addEventListener("click", async () => {
-    const png = await QRCode.toDataURL(link, { ...opts, width: 800 });
-    const a = document.createElement("a");
-    a.href = png;
-    a.download = "qr-avis-google-" + (business.nom || "commerce").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".png";
-    a.click();
-  });
-}
-
-// Courbes du 2e graphique : appels / itinéraires si choisis, sinon vues / visites.
-function chartSeries(business) {
-  const enabled = enabledMetrics(business);
-  let keys = ["appels", "itineraires"].filter((k) => enabled.includes(k));
-  if (!keys.length) keys = ["vues_fiche", "visites_site"].filter((k) => enabled.includes(k));
-  return keys.map((k) => ({ key: k, label: METRICS.find((m) => m.key === k).label, color: SERIES_COLORS[k] }));
-}
-
 function dashboardHtml(data) {
-  const { business, reviews, tasks } = data;
-  const sections = sectionsOf(business);
-  const has = (k) => sections.includes(k);
-  const s = summarize(data);
-  const latest = s.latest;
-  const subtitle = [business.type && business.type !== "local" ? typeLabel(business.type) : null, business.secteur, business.ville].filter(Boolean).join(" · ");
-  const enabled = enabledMetrics(business);
-  const callSeries = chartSeries(business);
-  const monthTitle = latest ? monthLabel(latest.mois) : null;
-  const prev = s.previous;
-  const googleTiles = has("avis") || has("chiffres");
-  const hasCharts = (has("avis") ? 1 : 0) + (has("chiffres") && callSeries.length ? 1 : 0);
+  const { business, tasks } = data;
+  const subtitle = [business.ville].filter(Boolean).join(" · ");
   const rangeHtml = `<div class="espace-range" role="group" aria-label="Période des graphiques">
       <span>Évolution sur</span>
       <button type="button" class="btn btn-sm ${chartRange === 6 ? "primary" : "ghost"}" data-range="6">6 mois</button>
       <button type="button" class="btn btn-sm ${chartRange === 12 ? "primary" : "ghost"}" data-range="12">12 mois</button>
     </div>`;
-
   return `
     <h1 class="page-title">${escapeHtml(business.nom)}</h1>
     ${subtitle ? `<p style="color:var(--light-text-dim);font-size:14px;margin-bottom:20px;">${escapeHtml(subtitle)}</p>` : ""}
-
-    ${has("reseaux") ? socialHtml(data, rangeHtml) : ""}
-    ${has("calendrier") ? calendarHtml(data) : ""}
-    ${has("collabs") ? collabsHtml(data) : ""}
-
-    ${googleTiles ? `
-    ${has("reseaux") || has("calendrier") || has("collabs") ? `<h2 class="espace-h2">Google</h2>` : ""}
-    <div class="stat-grid espace-grid" style="margin-bottom:24px;">
-      ${has("avis") ? statTile("Note moyenne",
-        s.average === null ? "—" : `<span data-count="${s.average}" data-decimals="1">${formatRating(s.average)}</span><span class="espace-star-big"> ★</span>`,
-        `<span class="espace-delta">${s.count} avis${s.toAnswerCount ? ` · <b style="color:var(--warning);">${s.toAnswerCount} à répondre</b>` : ""}</span>`) : ""}
-      ${has("chiffres") && latest ? METRICS.filter((m) => enabled.includes(m.key)).map((m) =>
-        statTile(m.label, `<span data-count="${latest[m.key]}">${formatNumber(latest[m.key])}</span>`, deltaHtml(latest[m.key], prev && prev[m.key]))).join("") : ""}
-    </div>
-    ${has("chiffres") ? (latest
-      ? `<p class="espace-month-note">Chiffres de <b>${escapeHtml(monthTitle)}</b></p>`
-      : `<p class="espace-month-note">Les premiers chiffres du mois arrivent bientôt.</p>`) : ""}` : ""}
-
-    ${hasCharts ? rangeHtml : ""}
-    ${hasCharts ? `<div class="espace-charts${hasCharts === 2 ? "" : " single"}">
-      ${has("avis") ? `<div class="card espace-card" style="padding:20px;">
-        <div class="panel-title">Note et avis</div>
-        <div id="espace-chart-reviews" class="espace-chart"></div>
-      </div>` : ""}
-      ${has("chiffres") && callSeries.length ? `<div class="card espace-card" style="padding:20px;">
-        <div class="panel-title" id="espace-chart-calls-title">${escapeHtml(callSeries.map((x) => x.label).join(" et ") || "Chiffres")}</div>
-        <div id="espace-chart-calls" class="espace-chart"></div>
-      </div>` : ""}
-    </div>` : ""}
-
-    ${has("avis") ? `<div class="card espace-card" style="padding:20px;margin-bottom:24px;">
-      <div class="panel-title">Demander des avis</div>
-      ${reviewRequestHtml(business)}
-    </div>` : ""}
-
+    ${reseauxOf(business).length ? socialHtml(data, rangeHtml) : ""}
+    ${calendarHtml(data)}
+    ${collabsHtml(data)}
+    ${partnersHtml(data)}
     <div class="card espace-card" style="padding:20px;margin-bottom:24px;">
       <div class="panel-title">Tâches ce mois-ci</div>
       ${tasksHtml(tasks)}
-    </div>
-
-    ${has("avis") ? `<div class="card espace-card" style="padding:20px;">
-      <div class="panel-title">Avis (${reviews.length})</div>
-      ${reviews.length ? reviews.slice().sort((a, b) => Number(a.repondu) - Number(b.repondu) || b.date.localeCompare(a.date)).map(reviewHtml).join("") : `<p style="color:var(--light-text-dim);font-size:13.5px;">Aucun avis pour l'instant.</p>`}
-    </div>` : ""}
-  `;
+    </div>`;
 }
 
 export async function renderEspace(root) {
-  const isAdmin = getCurrentRole() === "admin";
+  const role = getCurrentRole();
+  if (role === "partner") {
+    const m = await import("./espace-partner.js");
+    return m.renderPartnerSpace(root);
+  }
+  const isAdmin = role === "admin";
   root.innerHTML = `
     <div id="espace-picker"></div>
     <div id="espace-body"><p style="color:var(--light-text-dim);font-size:14px;">Chargement…</p></div>
@@ -227,26 +66,26 @@ export async function renderEspace(root) {
   const picker = root.querySelector("#espace-picker");
   const body = root.querySelector("#espace-body");
 
-  // Quel commerce afficher ? Client : le sien. Admin : celui qu'il choisit.
+  // Quel mannequin afficher ? Mannequin : le sien. Admin : celui qu'il choisit.
   let businessId = getCurrentBusinessId();
   if (isAdmin) {
     const { data: list, error } = await supabase.from("espace_businesses").select("id, nom, is_example").order("nom");
     if (error || !list || !list.length) {
       body.innerHTML = `
-        <h1 class="page-title">Aperçu client</h1>
+        <h1 class="page-title">Aperçu mannequin</h1>
         <div class="card espace-card" style="padding:20px;"><p style="color:var(--light-text-dim);font-size:14px;">${error
-          ? "Impossible de charger les clients."
-          : "Aucun client pour l'instant. Crée-en un dans la page Clients."}</p></div>`;
+          ? "Impossible de charger les mannequins."
+          : "Aucun mannequin pour l'instant. Crée-en un dans la page Mannequins."}</p></div>`;
       return;
     }
     const saved = (() => { try { return localStorage.getItem("zenoa-espace-apercu"); } catch { return null; } })();
     businessId = list.some((b) => b.id === saved) ? saved : list[0].id;
     picker.innerHTML = `
       <div class="espace-preview-bar">
-        <span>👁 Aperçu client — ce que voit le client, en lecture seule</span>
-        <select id="espace-business" aria-label="Client affiché">${list.map((b) => `<option value="${b.id}"${b.id === businessId ? " selected" : ""}>${escapeHtml(b.nom)}</option>`).join("")}</select>
+        <span>👁 Aperçu mannequin — ce que voit le mannequin, en lecture seule</span>
+        <select id="espace-business" aria-label="Mannequin affiché">${list.map((b) => `<option value="${b.id}"${b.id === businessId ? " selected" : ""}>${escapeHtml(b.nom)}</option>`).join("")}</select>
       </div>`;
-    // "Voir comme le client" depuis la fiche d'un client (page Clients).
+    // "Voir comme le mannequin" depuis sa fiche (page Mannequins).
     const onPreview = (e) => {
       if (!root.isConnected) { window.removeEventListener("zenoa:preview", onPreview); return; }
       const select = picker.querySelector("#espace-business");
@@ -267,54 +106,39 @@ export async function renderEspace(root) {
     return;
   }
 
-  function drawCharts(data) {
-    const reviewsBox = body.querySelector("#espace-chart-reviews");
-    if (reviewsBox) renderReviewsChart(reviewsBox, reviewSeries(data.reviews, chartRange));
-    const callsBox = body.querySelector("#espace-chart-calls");
-    const series = chartSeries(data.business);
-    if (callsBox && series.length) renderCallsChart(callsBox, statSeries(data.stats, chartRange), series);
-    drawSocialCharts(body, data, chartRange);
-  }
-
-  // Les graphiques se redessinent quand la largeur change (rotation du
-  // téléphone, fenêtre redimensionnée, page qui redevient visible).
+  // Les graphiques se redessinent quand la largeur change (rotation du téléphone, fenêtre redimensionnée).
   let currentData = null;
   let drawnWidth = 0;
   new ResizeObserver(() => {
     const box = body.querySelector(".espace-chart");
     if (!currentData || !box) return;
     const w = box.clientWidth;
-    if (w > 0 && Math.abs(w - drawnWidth) >= 24) { drawnWidth = w; drawCharts(currentData); }
+    if (w > 0 && Math.abs(w - drawnWidth) >= 24) { drawnWidth = w; drawSocialCharts(body, currentData, chartRange); }
   }).observe(body);
 
   function draw(data) {
     currentData = data;
     body.innerHTML = dashboardHtml(data);
-    body.querySelectorAll("[data-count]").forEach((el) => countUp(el, Number(el.dataset.count), { decimals: Number(el.dataset.decimals || 0) }));
     const firstChart = body.querySelector(".espace-chart"); drawnWidth = firstChart ? firstChart.clientWidth : 0;
-    drawCharts(data);
+    drawSocialCharts(body, data, chartRange);
     body.querySelectorAll("[data-range]").forEach((btn) => btn.addEventListener("click", () => {
       chartRange = Number(btn.dataset.range);
       try { localStorage.setItem(RANGE_KEY, String(chartRange)); } catch { /* pas grave */ }
-      body.querySelectorAll("[data-range]").forEach((b) => {
-        b.classList.toggle("primary", b === btn);
-        b.classList.toggle("ghost", b !== btn);
-      });
-      drawCharts(data);
+      body.querySelectorAll("[data-range]").forEach((b) => { b.classList.toggle("primary", b === btn); b.classList.toggle("ghost", b !== btn); });
+      drawSocialCharts(body, data, chartRange);
     }));
-    if (sectionsOf(data.business).includes("avis")) setupQr(body, data.business).catch((err) => console.error("[Espace] QR code :", err));
   }
 
   // Dernières données connues tout de suite, puis données à jour.
   async function show() {
     const id = businessId;
-    const cacheKey = "espace:" + id;
+    const cacheKey = "espace2:" + id;
     const cached = readCache(cacheKey);
     if (cached) draw(cached);
     try {
       const data = await loadEspaceData(id);
-      if (id !== businessId) return; // l'admin a changé de commerce entre-temps
-      if (!data.business) throw new Error("commerce introuvable");
+      if (id !== businessId) return; // l'admin a changé de mannequin entre-temps
+      if (!data.business) throw new Error("mannequin introuvable");
       writeCache(cacheKey, data);
       if (!cached || !sameData(cached, data)) draw(data);
     } catch (err) {

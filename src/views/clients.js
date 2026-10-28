@@ -1,23 +1,21 @@
-// Espace admin — gestion des clients : liste, création de compte, et fiche
-// client (chiffres du mois, avis, tâches, infos et accès). Réservé à l'admin :
+// Espace admin — gestion des mannequins : liste, création de compte, et fiche
+// (réseaux, calendrier, collaborations, partenaires, tâches, infos et accès). Réservé à l'admin :
 // les droits sont dans la base (espace.sql) et dans la fonction "espace-admin".
 import { supabase } from "../supabase.js";
 import { openModal } from "../modal.js";
 import { callAdmin, notifyEspaceChanged } from "./espace-admin-api.js";
-import { escapeHtml, formatDate, formatRating, monthLabel, currentMonthKey, METRICS, enabledMetrics, TYPES, RESEAUX, SECTIONS, TYPE_DEFAULTS, sectionsOf, reseauxOf, typeLabel, formatNumber } from "./espace-data.js";
-import { tabReseaux, tabCalendrier, tabCollabs, isMissing as isSocialMissing, MISSING as SOCIAL_MISSING } from "./clients-social.js";
+import { escapeHtml, formatDate, monthLabel, currentMonthKey, RESEAUX, reseauxOf, formatNumber } from "./espace-data.js";
+import { tabReseaux, tabCalendrier, tabCollabs, tabPartenaires, isMissing as isSocialMissing, MISSING as SOCIAL_MISSING } from "./clients-social.js";
 import { dueInfo, addOneMonth, daysUntil, dateKeyOf } from "./due.js";
 
-// Les onglets dépendent des parties choisies pour ce client (réseaux, calendrier, collaborations, Google).
-const TAB_LABELS = { reseaux: "Réseaux", calendrier: "Calendrier", collabs: "Collabs", chiffres: "Chiffres Google", avis: "Avis Google" };
-function tabsFor(biz) {
-  const sections = sectionsOf(biz);
-  return [
-    ...["reseaux", "calendrier", "collabs", "chiffres", "avis"].filter((k) => sections.includes(k)).map((k) => ({ id: k, label: TAB_LABELS[k] })),
-    { id: "taches", label: "Tâches" },
-    { id: "infos", label: "Infos & accès" }
-  ];
-}
+const TABS = [
+  { id: "reseaux", label: "Réseaux" },
+  { id: "calendrier", label: "Calendrier" },
+  { id: "collabs", label: "Collaborations" },
+  { id: "partenaires", label: "Partenaires" },
+  { id: "taches", label: "Tâches" },
+  { id: "infos", label: "Infos & accès" }
+];
 const STATUTS = [
   { key: "a_venir", label: "À venir" },
   { key: "en_cours", label: "En cours" },
@@ -38,47 +36,7 @@ function monthOptions(selected) {
 }
 
 const field = (label, inner, { span = false } = {}) => `<div class="field${span ? " crm-span-2" : ""}"><label class="field-label">${label}</label>${inner}</div>`;
-const numField = (name, label, value = "") => field(label, `<input type="number" name="${name}" min="0" max="100000000" step="1" inputmode="numeric" required value="${escapeHtml(value)}">`);
-const stars = (n) => `<span class="espace-stars" role="img" aria-label="${n} sur 5">${"★".repeat(n)}<span class="espace-stars-off">${"★".repeat(5 - n)}</span></span>`;
-
-// Cases "chiffres à suivre" (création et fiche d'un client).
-function metricChecks(selected) {
-  return `<div class="metric-checks" role="group" aria-label="Chiffres à suivre">${METRICS.map((m) => `
-    <label class="crm-check"><input type="checkbox" name="metrique" value="${m.key}"${selected.includes(m.key) ? " checked" : ""}> ${m.label}</label>`).join("")}</div>`;
-}
-const readMetrics = (form) => [...form.querySelectorAll('input[name="metrique"]:checked')].map((i) => i.value);
-const sameMetrics = (a, b) => a.length === b.length && a.every((k) => b.includes(k));
-
-
-// Type de client, réseaux suivis et parties de l'espace (création et fiche d'un client).
-function typeFields(b = { type: "marque", ...TYPE_DEFAULTS.marque }) {
-  const sections = sectionsOf(b), reseaux = reseauxOf(b);
-  return `
-    ${field("Type de client", `<select name="type">${TYPES.map((t) => `<option value="${t.key}"${t.key === (b.type || "local") ? " selected" : ""}>${t.label}</option>`).join("")}</select>`)}
-    <div class="field"><label class="field-label">Réseaux suivis</label><div class="metric-checks" role="group" aria-label="Réseaux suivis">${RESEAUX.map((r) => `
-      <label class="crm-check"><input type="checkbox" name="reseau" value="${r.key}"${reseaux.includes(r.key) ? " checked" : ""}> ${r.label}</label>`).join("")}</div></div>
-    <div class="field"><label class="field-label">Ce que le client voit dans son espace</label><div class="metric-checks" role="group" aria-label="Parties de l'espace">${SECTIONS.map((x) => `
-      <label class="crm-check"><input type="checkbox" name="section" value="${x.key}"${sections.includes(x.key) ? " checked" : ""}> ${x.label}</label>`).join("")}</div></div>`;
-}
-const readTypeFields = (form) => ({
-  type: form.type.value,
-  reseaux: [...form.querySelectorAll('input[name="reseau"]:checked')].map((i) => i.value),
-  sections: [...form.querySelectorAll('input[name="section"]:checked')].map((i) => i.value)
-});
-// Changer le type propose les réglages habituels ; les chiffres Google ne s'affichent que si cette partie est cochée.
-function wireTypeFields(form, { applyDefaults = true } = {}) {
-  const metrics = form.querySelector("#metrics-wrap");
-  const sync = () => { if (metrics) metrics.hidden = !form.querySelector('input[name="section"][value="chiffres"]').checked; };
-  form.type.addEventListener("change", () => {
-    if (!applyDefaults) return;
-    const d = TYPE_DEFAULTS[form.type.value] || TYPE_DEFAULTS.autre;
-    form.querySelectorAll('input[name="reseau"]').forEach((i) => { i.checked = d.reseaux.includes(i.value); });
-    form.querySelectorAll('input[name="section"]').forEach((i) => { i.checked = d.sections.includes(i.value); });
-    sync();
-  });
-  form.querySelectorAll('input[name="section"]').forEach((i) => i.addEventListener("change", sync));
-  sync();
-}
+const stars = () => "";
 
 // Texte du rappel "prochaine mise à jour des chiffres".
 function dueLabel(info, key) {
@@ -149,34 +107,25 @@ export async function renderClients(root) {
   // =================== LISTE ===================
   async function showList() {
     selected = null;
-    app.innerHTML = `<h1 class="page-title">Clients</h1><p style="color:var(--light-text-dim);font-size:14px;">Chargement…</p>`;
-    const [biz, reviews, unread, stats, socialStats] = await Promise.all([
-      supabase.from("espace_businesses").select("*").order("nom"), // "*" : fonctionne aussi avant l'ajout de la colonne "metriques"
-      supabase.from("espace_reviews").select("business_id, note, repondu").limit(5000),
+    app.innerHTML = `<h1 class="page-title">Mannequins</h1><p style="color:var(--light-text-dim);font-size:14px;">Chargement…</p>`;
+    const [biz, unread, socialStats] = await Promise.all([
+      supabase.from("espace_businesses").select("*").order("nom"),
       supabase.from("espace_messages").select("business_id").eq("lu", false).eq("auteur", "client").limit(5000),
-      supabase.from("espace_monthly_stats").select("business_id, updated_at").order("updated_at", { ascending: false }).limit(5000),
       supabase.from("espace_social_stats").select("business_id, mois, abonnes, updated_at").order("mois", { ascending: false }).limit(5000).then((r) => (r.error ? { data: [] } : r), () => ({ data: [] }))
     ]);
-    const failed = biz.error || reviews.error || unread.error || stats.error;
+    const failed = biz.error || unread.error;
     if (failed) {
       app.innerHTML = `<h1 class="page-title">Clients</h1><p class="error-msg">Impossible de charger les clients.</p>`;
       return;
     }
     const rows = (biz.data || []).map((b) => {
-      const rs = (reviews.data || []).filter((r) => r.business_id === b.id);
-      const lastStat = (stats.data || []).find((s) => s.business_id === b.id);
-      const lastSocial = (socialStats.data || []).find((s) => s.business_id === b.id);
+      const lastSocial = (socialStats.data || []).find((x) => x.business_id === b.id);
       // Abonnés : total du dernier mois saisi, tous réseaux confondus.
-      const followers = lastSocial ? (socialStats.data || []).filter((s) => s.business_id === b.id && s.mois === lastSocial.mois).reduce((sum, s) => sum + s.abonnes, 0) : null;
-      const lastUpdate = [lastStat && lastStat.updated_at, lastSocial && lastSocial.updated_at].filter(Boolean).sort().pop() || null;
+      const followers = lastSocial ? (socialStats.data || []).filter((x) => x.business_id === b.id && x.mois === lastSocial.mois).reduce((sum, x) => sum + x.abonnes, 0) : null;
       return {
-        followers,
-        b,
-        count: rs.length,
-        avg: rs.length ? rs.reduce((sum, r) => sum + r.note, 0) / rs.length : null,
-        toAnswer: rs.filter((r) => !r.repondu).length,
+        b, followers,
         unread: (unread.data || []).filter((m) => m.business_id === b.id).length,
-        updated: lastUpdate ? lastUpdate.slice(0, 10) : null,
+        updated: lastSocial ? lastSocial.updated_at.slice(0, 10) : null,
         due: dueInfo(b.prochaine_maj || null)
       };
     });
@@ -189,23 +138,21 @@ export async function renderClients(root) {
 
     app.innerHTML = `
       <div class="clients-head">
-        <div><h1 class="page-title">Clients</h1><p class="clients-sub">${rows.length} client${rows.length > 1 ? "s" : ""}</p></div>
-        <button type="button" class="btn primary" id="client-new" style="margin:0;">+ Nouveau client</button>
+        <div><h1 class="page-title">Mannequins</h1><p class="clients-sub">${rows.length} mannequin${rows.length > 1 ? "s" : ""}</p></div>
+        <button type="button" class="btn primary" id="client-new" style="margin:0;">+ Nouveau mannequin</button>
       </div>
-      ${rows.length ? `<div class="clients-list">${rows.map(({ b, count, avg, toAnswer, unread: nu, updated, due, followers }) => `
+      ${rows.length ? `<div class="clients-list">${rows.map(({ b, unread: nu, updated, due, followers }) => `
         <button type="button" class="card client-row${due.urgent ? " due-urgent" : ""}${due.state === "late" ? " due-late" : ""}" data-id="${b.id}">
           <div class="client-main">
             <strong>${escapeHtml(b.nom)}${b.is_example ? ` <span class="status-pill neutral" style="margin-left:6px;">Exemple</span>` : ""}</strong>
-            <span>${escapeHtml([b.type && b.type !== "local" ? typeLabel(b.type) : null, b.secteur, b.ville].filter(Boolean).join(" · ") || "—")}</span>
+            <span>${escapeHtml([b.ville, reseauxOf(b).map((n) => (b.comptes || {})[n]).filter(Boolean).join(" ")].filter(Boolean).join(" · ") || "—")}</span>
           </div>
-          ${sectionsOf(b).includes("reseaux") ? `<div class="client-metric"><em>Abonnés</em>${followers === null ? "—" : `<b>${formatNumber(followers)}</b>`}</div>` : ""}
-          ${sectionsOf(b).includes("avis") ? `<div class="client-metric"><em>Note moyenne</em>${avg === null ? "—" : `<b>${formatRating(avg)} <span style="color:#f4b740;">★</span></b><small>${count} avis</small>`}</div>
-          <div class="client-metric"><em>Avis à répondre</em><b class="${toAnswer ? "warn" : ""}">${toAnswer}</b></div>` : ""}
+          <div class="client-metric"><em>Abonnés</em>${followers === null ? "—" : `<b>${formatNumber(followers)}</b>`}</div>
           <div class="client-metric"><em>Messages non lus</em><b class="${nu ? "alert" : ""}">${nu}</b></div>
           <div class="client-metric"><em>Prochaine saisie des chiffres</em><span class="due-pill ${due.state}">${escapeHtml(dueLabel(due, b.prochaine_maj))}</span></div>
           <div class="client-metric"><em>Dernière mise à jour</em><b style="font-size:13px;">${updated ? formatDate(updated) : "Jamais"}</b></div>
         </button>`).join("")}</div>`
-        : `<div class="card" style="padding:20px;"><p style="color:var(--light-text-dim);font-size:14px;">Aucun client pour l'instant. Clique sur « + Nouveau client » pour créer le premier.</p></div>`}
+        : `<div class="card" style="padding:20px;"><p style="color:var(--light-text-dim);font-size:14px;">Aucun mannequin pour l'instant. Clique sur « + Nouveau mannequin » pour créer le premier.</p></div>`}
     `;
     app.querySelector("#client-new").addEventListener("click", openCreateModal);
     app.querySelectorAll(".client-row").forEach((btn) => btn.addEventListener("click", () => {
@@ -218,56 +165,46 @@ export async function renderClients(root) {
   function openCreateModal() {
     const { overlay, close } = openModal(`
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <h2 style="font-size:16px;font-weight:700;letter-spacing:normal;text-transform:none;margin:0;">Nouveau client</h2>
+        <h2 style="font-size:16px;font-weight:700;letter-spacing:normal;text-transform:none;margin:0;">Nouveau mannequin</h2>
         <button type="button" class="icon-btn" data-close title="Fermer" style="width:30px;height:30px;">✕</button>
       </div>
       <form id="create-form">
-        ${field("Nom du client *", `<input type="text" name="nom" maxlength="150" required autocomplete="off" placeholder="Nom de la marque, du mannequin…">`)}
-        ${typeFields()}
+        ${field("Nom *", `<input type="text" name="nom" maxlength="150" required autocomplete="off" placeholder="Prénom Nom ou nom de scène">`)}
         <div class="crm-form-grid">
-          ${field("Secteur / univers", `<input type="text" name="secteur" maxlength="80" placeholder="Mode, beauté, sport…" autocomplete="off">`)}
           ${field("Ville", `<input type="text" name="ville" maxlength="80" autocomplete="off">`)}
+          ${field("Email du mannequin *", `<input type="email" name="email" maxlength="200" required autocomplete="off" placeholder="contact@exemple.fr">`)}
         </div>
-        ${field("Email du contact *", `<input type="email" name="email" maxlength="200" required autocomplete="off" placeholder="contact@exemple.fr">`)}
+        <div class="field"><label class="field-label">Ses comptes (cochés = suivis)</label>
+          ${RESEAUX.map((r) => `<div class="crm-form-grid" style="margin-bottom:6px;"><label class="crm-check" style="align-self:center;"><input type="checkbox" name="reseau" value="${r.key}"${r.key !== "linkedin" ? " checked" : ""}> ${r.label}</label><input type="text" name="compte_${r.key}" maxlength="80" placeholder="@pseudo" aria-label="Compte ${r.label}"></div>`).join("")}
+        </div>
         ${field("Prochaine saisie de ses chiffres (rappel)", `<input type="date" name="prochaine_maj" min="${dateKeyOf(new Date())}">`)}
-        <div class="field" id="metrics-wrap"><label class="field-label" id="metrics-label">Chiffres Google à suivre pour ce client</label>${metricChecks(METRICS.map((m) => m.key))}
-          <p style="font-size:12px;color:var(--text-dim);margin:4px 0 0;">Décoche ceux qui n'ont pas de sens pour ce commerce (ex. « Itinéraires » pour un électricien).</p></div>
         <p style="font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:6px;">
-          Un compte est créé avec un mot de passe temporaire, que tu transmets au client. Il devra en choisir un à lui à sa première connexion.
+          Un compte est créé avec un mot de passe temporaire, que tu transmets au mannequin. Il devra en choisir un à lui à sa première connexion.
         </p>
         <div class="error-msg" id="create-error"></div>
-        <div class="modal-actions"><button type="button" class="btn ghost" data-close>Annuler</button><button type="submit" class="btn primary" id="create-submit">Créer le client</button></div>
+        <div class="modal-actions"><button type="button" class="btn ghost" data-close>Annuler</button><button type="submit" class="btn primary" id="create-submit">Créer le mannequin</button></div>
       </form>`);
-    wireTypeFields(overlay.querySelector("#create-form"));
     overlay.querySelector("#create-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const f = e.target;
       const errorEl = overlay.querySelector("#create-error");
       const btn = overlay.querySelector("#create-submit");
       errorEl.textContent = "";
-      const kind = readTypeFields(f);
-      if (!kind.sections.length) { errorEl.textContent = "Coche au moins une partie à montrer au client."; return; }
-      const metrics = readMetrics(f);
-      if (kind.sections.includes("chiffres") && !metrics.length) { errorEl.textContent = "Garde au moins un chiffre Google à suivre."; return; }
       btn.disabled = true;
       btn.textContent = "Création…";
       try {
-        const res = await callAdmin("create_client", { nom: f.nom.value, secteur: f.secteur.value, ville: f.ville.value, email: f.email.value });
-        // Chiffres choisis pour ce client (tous cochés = réglage par défaut, rien à enregistrer).
+        const res = await callAdmin("create_client", { nom: f.nom.value, ville: f.ville.value, email: f.email.value });
         let note = null;
-        const patch = {};
-        if (kind.sections.includes("chiffres") && !sameMetrics(metrics, METRICS.map((m) => m.key))) patch.metriques = metrics;
-        // Type, réseaux et parties de l'espace : seulement s'ils diffèrent d'un client Google classique.
-        if (kind.type !== "local" || kind.reseaux.length || !sameMetrics(kind.sections, ["chiffres", "avis"])) { patch.type = kind.type; patch.reseaux = kind.reseaux; patch.sections = kind.sections; }
+        const reseaux = [...f.querySelectorAll('input[name="reseau"]:checked')].map((i) => i.value);
+        const comptes = Object.fromEntries(RESEAUX.map((r) => [r.key, f[`compte_${r.key}`].value.trim()]).filter(([, v]) => v));
+        const patch = { type: "mannequin", reseaux, comptes, sections: ["reseaux", "calendrier", "collabs"] };
         if (f.prochaine_maj.value) patch.prochaine_maj = f.prochaine_maj.value;
-        if (Object.keys(patch).length) {
-          const { error: patchError } = await supabase.from("espace_businesses").update(patch).eq("id", res.business_id);
-          if (patchError) note = "Le client est créé, mais certains réglages (type, réseaux, chiffres, rappel) n'ont pas pu être enregistrés : colle espace-reseaux.sql, espace-metriques.sql et espace-rappels.sql dans Supabase, puis règle-les dans sa fiche.";
-          else refreshDueBadge();
-        }
+        const { error: patchError } = await supabase.from("espace_businesses").update(patch).eq("id", res.business_id);
+        if (patchError) note = "Le mannequin est créé, mais ses réseaux n'ont pas pu être enregistrés : colle espace-reseaux.sql (et espace-rappels.sql) dans Supabase, puis règle-les dans sa fiche.";
+        else refreshDueBadge();
         close();
         showCredentials({
-          title: "Client créé ✓",
+          title: "Mannequin créé ✓",
           email: res.email,
           tempPassword: res.temp_password,
           note,
@@ -280,7 +217,7 @@ export async function renderClients(root) {
       } catch (err) {
         errorEl.textContent = err.message;
         btn.disabled = false;
-        btn.textContent = "Créer le client";
+        btn.textContent = "Créer le mannequin";
       }
     });
   }
@@ -288,13 +225,12 @@ export async function renderClients(root) {
   // =================== FICHE CLIENT ===================
   function showSheet(business) {
     selected = business;
-    const TABS = tabsFor(business);
     if (!TABS.some((t) => t.id === tab)) tab = TABS[0].id;
     app.innerHTML = `
-      <button type="button" class="btn ghost btn-sm" id="back" style="margin-bottom:14px;">← Tous les clients</button>
+      <button type="button" class="btn ghost btn-sm" id="back" style="margin-bottom:14px;">← Tous les mannequins</button>
       <div class="clients-head">
-        <div><h1 class="page-title" id="sheet-title">${escapeHtml(business.nom)}</h1><p class="clients-sub">${escapeHtml([business.type && business.type !== "local" ? typeLabel(business.type) : null, business.secteur, business.ville].filter(Boolean).join(" · "))}</p></div>
-        <button type="button" class="btn ghost btn-sm" id="preview" style="margin:0;">👁 Voir comme le client</button>
+        <div><h1 class="page-title" id="sheet-title">${escapeHtml(business.nom)}</h1><p class="clients-sub">${escapeHtml([business.ville].filter(Boolean).join(" · "))}</p></div>
+        <button type="button" class="btn ghost btn-sm" id="preview" style="margin:0;">👁 Voir comme le mannequin</button>
       </div>
       <div class="due-box" id="due-box">
         <label for="due-date">Prochaine saisie des chiffres</label>
@@ -363,186 +299,11 @@ export async function renderClients(root) {
 
   function drawTab() {
     const box = app.querySelector("#tab-body");
-    const draw = { reseaux: tabReseaux, calendrier: tabCalendrier, collabs: tabCollabs, chiffres: tabChiffres, avis: tabAvis, taches: tabTaches, infos: tabInfos }[tab];
+    const draw = { reseaux: tabReseaux, calendrier: tabCalendrier, collabs: tabCollabs, partenaires: tabPartenaires, taches: tabTaches, infos: tabInfos }[tab];
     box.innerHTML = `<p style="color:var(--light-text-dim);font-size:13.5px;">Chargement…</p>`;
     draw(box, selected).catch((err) => {
       console.error("[Clients]", err);
       box.innerHTML = `<p class="error-msg">${isSocialMissing(err) ? SOCIAL_MISSING : "Impossible de charger cet onglet. Réessaie dans un instant."}</p>`;
-    });
-  }
-
-  // ---------- Onglet : chiffres du mois ----------
-  async function tabChiffres(box, biz) {
-    const { data, error } = await supabase.from("espace_monthly_stats").select("*").eq("business_id", biz.id).order("mois", { ascending: false }).limit(36);
-    if (error) throw error;
-    const stats = data || [];
-    const byMonth = Object.fromEntries(stats.map((s) => [s.mois, s]));
-    const start = previousMonthKey();
-    const shown = METRICS.filter((m) => enabledMetrics(biz).includes(m.key)); // chiffres suivis pour ce client
-
-    box.innerHTML = `
-      <div class="card admin-card">
-        <div class="panel-title">Saisir les chiffres d'un mois</div>
-        <form id="stats-form">
-          <div class="crm-form-grid">
-            ${field("Mois", `<select name="mois">${monthOptions(start)}</select>`, { span: true })}
-            ${shown.map((m) => numField(m.key, m.label)).join("")}
-          </div>
-          <div id="stats-hint" class="admin-hint"></div>
-          <div id="stats-msg" class="error-msg" style="min-height:18px;"></div>
-          <button type="submit" class="btn primary" id="stats-save">Enregistrer</button>
-        </form>
-      </div>
-      <div class="card admin-card">
-        <div class="panel-title">Mois déjà saisis</div>
-        ${stats.length ? `<div class="crm-table-wrap" style="border:0;"><table class="crm-table crm-stack">
-          <thead><tr><th>Mois</th>${shown.map((m) => `<th>${escapeHtml(m.label)}</th>`).join("")}<th><span class="sr-only">Actions</span></th></tr></thead>
-          <tbody>${stats.map((s) => `<tr data-mois="${s.mois}"><td style="font-weight:700;">${escapeHtml(monthLabel(s.mois))}</td>${shown.map((m) => `<td data-label="${escapeHtml(m.label)}">${s[m.key]}</td>`).join("")}
-            <td style="text-align:right;white-space:nowrap;"><button type="button" class="btn btn-sm ghost" data-edit>Modifier</button> <button type="button" class="icon-btn" data-del title="Supprimer" style="display:inline-flex;">✕</button></td></tr>`).join("")}</tbody></table></div>`
-          : `<p style="color:var(--light-text-dim);font-size:13.5px;">Aucun chiffre saisi pour l'instant.</p>`}
-      </div>`;
-
-    const form = box.querySelector("#stats-form");
-    const hint = box.querySelector("#stats-hint");
-    const msg = box.querySelector("#stats-msg");
-    const fill = () => {
-      const existing = byMonth[form.mois.value];
-      shown.forEach((m) => { form[m.key].value = existing ? existing[m.key] : ""; });
-      hint.textContent = existing ? "Ce mois est déjà saisi : l'enregistrement va le modifier." : "";
-    };
-    form.mois.addEventListener("change", fill);
-    form.addEventListener("input", () => setMsg(msg, ""));
-    fill();
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      setMsg(msg, "");
-      // Seuls les chiffres suivis sont envoyés : les autres gardent leur valeur actuelle.
-      const values = Object.fromEntries(shown.map((m) => [m.key, Number(form[m.key].value)]));
-      if (Object.values(values).some((v) => !Number.isInteger(v) || v < 0)) { setMsg(msg, "Indique des nombres entiers positifs."); return; }
-      const btn = box.querySelector("#stats-save");
-      btn.disabled = true;
-      const { error: saveError } = await supabase.from("espace_monthly_stats").upsert(
-        { business_id: biz.id, mois: form.mois.value, ...values, updated_at: new Date().toISOString() },
-        { onConflict: "business_id,mois" }
-      );
-      btn.disabled = false;
-      if (saveError) { setMsg(msg, "Enregistrement impossible : " + saveError.message); return; }
-      notifyEspaceChanged();
-      await tabChiffres(box, biz);
-      setMsg(box.querySelector("#stats-msg"), "Chiffres enregistrés ✓", true);
-    });
-
-    box.querySelectorAll("tr[data-mois]").forEach((tr) => {
-      tr.querySelector("[data-edit]").addEventListener("click", () => {
-        form.mois.value = tr.dataset.mois; fill();
-        form.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
-      tr.querySelector("[data-del]").addEventListener("click", async () => {
-        const ok = await window.confirmDialog(`Supprimer les chiffres de ${monthLabel(tr.dataset.mois)} ?`, { danger: true, confirmLabel: "Supprimer" });
-        if (!ok) return;
-        const { error: delError } = await supabase.from("espace_monthly_stats").delete().eq("business_id", biz.id).eq("mois", tr.dataset.mois);
-        if (delError) { setMsg(msg, "Suppression impossible."); return; }
-        notifyEspaceChanged();
-        tabChiffres(box, biz);
-      });
-    });
-  }
-
-  // ---------- Onglet : avis ----------
-  let reviewFilter = "all";
-  async function tabAvis(box, biz) {
-    const { data, error } = await supabase.from("espace_reviews").select("id, auteur, note, texte, date, repondu, reponse").eq("business_id", biz.id).order("date", { ascending: false });
-    if (error) throw error;
-    const reviews = data || [];
-    const toAnswer = reviews.filter((r) => !r.repondu).length;
-    const shown = reviewFilter === "toanswer" ? reviews.filter((r) => !r.repondu) : reviews;
-
-    box.innerHTML = `
-      <div class="card admin-card">
-        <div class="panel-title">Ajouter un avis</div>
-        <form id="review-form">
-          <div class="crm-form-grid">
-            ${field("Prénom ou pseudo *", `<input type="text" name="auteur" maxlength="80" required autocomplete="off">`)}
-            ${field("Note *", `<select name="note">${[5, 4, 3, 2, 1].map((n) => `<option value="${n}">${"★".repeat(n)}${"☆".repeat(5 - n)}  (${n})</option>`).join("")}</select>`)}
-            ${field("Date", `<input type="date" name="date" value="${todayKey()}" max="${todayKey()}" required>`, { span: true })}
-            ${field("Texte de l'avis", `<textarea name="texte" rows="3" maxlength="2000"></textarea>`, { span: true })}
-          </div>
-          <div id="review-msg" class="error-msg" style="min-height:18px;"></div>
-          <button type="submit" class="btn primary" id="review-add">Ajouter l'avis</button>
-        </form>
-      </div>
-      <div class="card admin-card">
-        <div class="admin-toolbar">
-          <div class="panel-title" style="margin:0;">Avis (${reviews.length})</div>
-          <div class="crm-views">
-            <button type="button" class="crm-view-btn${reviewFilter === "all" ? " active" : ""}" data-filter="all">Tous</button>
-            <button type="button" class="crm-view-btn${reviewFilter === "toanswer" ? " active" : ""}" data-filter="toanswer">À répondre${toAnswer ? ` <span class="crm-badge">${toAnswer}</span>` : ""}</button>
-          </div>
-        </div>
-        ${shown.length ? shown.map((r) => `
-          <article class="espace-review${r.repondu ? "" : " to-answer"}" data-id="${r.id}">
-            <div class="espace-review-head">${stars(r.note)}<strong>${escapeHtml(r.auteur)}</strong><span class="espace-review-date">${formatDate(r.date)}</span>
-              ${r.repondu ? "" : `<span class="status-pill warning" style="margin-left:auto;">En attente de réponse</span>`}</div>
-            ${r.texte ? `<p class="espace-review-text">${escapeHtml(r.texte)}</p>` : ""}
-            ${r.repondu && r.reponse ? `<div class="espace-reply" data-reply-view><span>Ta réponse</span>${escapeHtml(r.reponse)}</div>` : ""}
-            <div data-reply-box ${r.repondu ? "hidden" : ""} style="margin-top:10px;">
-              <textarea rows="2" maxlength="2000" data-reply placeholder="Ta réponse à cet avis…">${escapeHtml(r.reponse || "")}</textarea>
-            </div>
-            <div class="admin-actions">
-              <button type="button" class="btn btn-sm primary" data-save-reply ${r.repondu ? "hidden" : ""}>Publier la réponse</button>
-              ${r.repondu ? `<button type="button" class="btn btn-sm ghost" data-edit-reply>Modifier la réponse</button>` : ""}
-              <button type="button" class="btn btn-sm danger" data-delete-review style="margin-left:auto;">Supprimer</button>
-            </div>
-          </article>`).join("") : `<p style="color:var(--light-text-dim);font-size:13.5px;">${reviewFilter === "toanswer" ? "Aucun avis en attente de réponse 🎉" : "Aucun avis pour l'instant."}</p>`}
-      </div>`;
-
-    const msg = box.querySelector("#review-msg");
-    box.querySelector("#review-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const f = e.target;
-      setMsg(msg, "");
-      const auteur = f.auteur.value.trim();
-      if (!auteur) { setMsg(msg, "Indique le prénom ou le pseudo."); return; }
-      const btn = box.querySelector("#review-add");
-      btn.disabled = true;
-      const { error: addError } = await supabase.from("espace_reviews").insert({
-        business_id: biz.id, auteur, note: Number(f.note.value), date: f.date.value, texte: f.texte.value.trim() || null
-      });
-      btn.disabled = false;
-      if (addError) { setMsg(msg, "Ajout impossible : " + addError.message); return; }
-      notifyEspaceChanged();
-      await tabAvis(box, biz);
-      setMsg(box.querySelector("#review-msg"), "Avis ajouté ✓", true);
-    });
-    box.querySelectorAll("[data-filter]").forEach((b) => b.addEventListener("click", () => { reviewFilter = b.dataset.filter; tabAvis(box, biz); }));
-
-    box.querySelectorAll("article[data-id]").forEach((card) => {
-      const id = card.dataset.id;
-      const replyBox = card.querySelector("[data-reply-box]");
-      const saveBtn = card.querySelector("[data-save-reply]");
-      const editBtn = card.querySelector("[data-edit-reply]");
-      if (editBtn) editBtn.addEventListener("click", () => {
-        replyBox.hidden = false; saveBtn.hidden = false; editBtn.hidden = true;
-        card.querySelector("[data-reply-view]")?.setAttribute("hidden", "");
-        card.querySelector("[data-reply]").focus();
-      });
-      saveBtn.addEventListener("click", async () => {
-        const reponse = card.querySelector("[data-reply]").value.trim();
-        saveBtn.disabled = true;
-        const { error: replyError } = await supabase.from("espace_reviews").update({ repondu: !!reponse, reponse: reponse || null }).eq("id", id);
-        if (replyError) { saveBtn.disabled = false; setMsg(msg, "Réponse non enregistrée : " + replyError.message); return; }
-        notifyEspaceChanged();
-        tabAvis(box, biz);
-      });
-      card.querySelector("[data-delete-review]").addEventListener("click", async () => {
-        const ok = await window.confirmDialog("Supprimer cet avis ?", { danger: true, confirmLabel: "Supprimer" });
-        if (!ok) return;
-        const { error: delError } = await supabase.from("espace_reviews").delete().eq("id", id);
-        if (delError) { setMsg(msg, "Suppression impossible."); return; }
-        notifyEspaceChanged();
-        tabAvis(box, biz);
-      });
     });
   }
 
@@ -609,98 +370,75 @@ export async function renderClients(root) {
 
   // ---------- Onglet : infos et accès ----------
   async function tabInfos(box, biz) {
+    // Notes privées : table réservée à l'admin (le mannequin ne peut pas les lire).
+    const privRes = await supabase.from("espace_private").select("objectifs, notes").eq("business_id", biz.id).maybeSingle();
+    const priv = (privRes.error ? null : privRes.data) || {};
+    const nets = reseauxOf(biz);
     box.innerHTML = `
       <div class="card admin-card">
-        <div class="panel-title">Informations du client</div>
+        <div class="panel-title">Informations du mannequin</div>
         <form id="info-form">
           <div class="crm-form-grid">
-            ${field("Nom du client *", `<input type="text" name="nom" maxlength="150" required value="${escapeHtml(biz.nom)}">`, { span: true })}
-            ${field("Secteur / univers", `<input type="text" name="secteur" maxlength="80" value="${escapeHtml(biz.secteur || "")}">`)}
-            ${field("Ville", `<input type="text" name="ville" maxlength="80" value="${escapeHtml(biz.ville || "")}">`)}
+            ${field("Nom *", `<input type="text" name="nom" maxlength="150" required value="${escapeHtml(biz.nom)}">`, { span: true })}
+            ${field("Ville", `<input type="text" name="ville" maxlength="80" value="${escapeHtml(biz.ville || "")}">`, { span: true })}
           </div>
-          ${typeFields(biz)}
-          <div class="crm-form-grid" id="comptes-grid">
-            ${RESEAUX.map((r) => field(`Compte ${r.label}`, `<input type="text" name="compte_${r.key}" maxlength="80" placeholder="@pseudo" value="${escapeHtml((biz.comptes || {})[r.key] || "")}">`)).join("")}
+          <div class="field" style="margin-top:6px;"><label class="field-label">Comptes suivis</label>
+            ${RESEAUX.map((r) => `<div class="crm-form-grid" style="margin-bottom:6px;"><label class="crm-check" style="align-self:center;"><input type="checkbox" name="reseau" value="${r.key}"${nets.includes(r.key) ? " checked" : ""}> ${r.label}</label><input type="text" name="compte_${r.key}" maxlength="80" placeholder="@pseudo" aria-label="Compte ${r.label}" value="${escapeHtml((biz.comptes || {})[r.key] || "")}"></div>`).join("")}
           </div>
           <div class="crm-form-grid" style="margin-top:10px;">
-            ${field("Lien d'avis Google", `<input type="url" name="lien" maxlength="500" placeholder="https://search.google.com/local/writereview?placeid=…" value="${escapeHtml(biz.lien_avis_google || "")}">`, { span: true })}
+            ${field("Objectifs du mannequin (privé)", `<textarea name="objectifs" rows="3" maxlength="2000" placeholder="Ce qu'il veut obtenir…">${escapeHtml(priv.objectifs || "")}</textarea>`, { span: true })}
+            ${field("Notes importantes (privées)", `<textarea name="notes" rows="4" maxlength="4000" placeholder="Repris de la prospection, modifiable à tout moment">${escapeHtml(priv.notes || "")}</textarea>`, { span: true })}
           </div>
-          <div class="admin-hint">Ce lien sert au QR code « Demander des avis » que voit le client.</div>
-          <div class="crm-form-grid" style="margin-top:10px;">
-            ${field("Objectifs du client", `<textarea name="objectifs" rows="3" maxlength="2000" placeholder="Ce qu'il veut obtenir…">${escapeHtml(biz.objectifs || "")}</textarea>`, { span: true })}
-            ${field("Notes importantes (privées)", `<textarea name="notes_prospection" rows="4" maxlength="4000" placeholder="Repris de la prospection, modifiable à tout moment">${escapeHtml(biz.notes_prospection || "")}</textarea>`, { span: true })}
-          </div>
-          <div class="admin-hint">Ces notes ne sont visibles que par toi, jamais par le client.</div>
-          <div class="field" id="metrics-wrap" style="margin-top:10px;"><label class="field-label">Chiffres Google à suivre pour ce client</label>${metricChecks(enabledMetrics(biz))}
-            <div class="admin-hint">Seuls les chiffres cochés sont affichés au client et à saisir chaque mois. Les autres ne sont pas supprimés : tu peux les ré-afficher quand tu veux.</div></div>
+          <div class="admin-hint">Ces notes ne sont visibles que par toi, jamais par le mannequin.</div>
           <div id="info-msg" class="error-msg" style="min-height:18px;"></div>
           <button type="submit" class="btn primary" id="info-save">Enregistrer</button>
         </form>
       </div>
       <div class="card admin-card">
-        <div class="panel-title">Accès du client</div>
+        <div class="panel-title">Accès du mannequin</div>
         <div id="account-box"><p style="color:var(--light-text-dim);font-size:13.5px;">Chargement…</p></div>
       </div>
       <div class="card admin-card">
         <div class="panel-title">Données personnelles (RGPD)</div>
-        <p style="font-size:13px;color:var(--light-text-dim);margin-bottom:12px;max-width:520px;">Si ce client (ou une personne citée dans ses avis) demande une copie de ses données, télécharge-la ici (fichier JSON). Pour un droit à l'effacement, utilise « Supprimer ce client » ci-dessous.</p>
+        <p style="font-size:13px;color:var(--light-text-dim);margin-bottom:12px;max-width:520px;">Si ce mannequin demande une copie de ses données, télécharge-la ici (fichier JSON). Pour un droit à l'effacement, utilise « Supprimer ce mannequin » ci-dessous.</p>
         <div id="export-msg" class="error-msg" style="min-height:18px;"></div>
-        <button type="button" class="btn ghost btn-sm" id="client-export">Exporter les données du client</button>
+        <button type="button" class="btn ghost btn-sm" id="client-export">Exporter les données du mannequin</button>
       </div>
       <div class="card admin-card" style="border-color:#d9534f4d;">
         <div class="panel-title" style="color:var(--danger);">Zone dangereuse</div>
-        <p style="font-size:13px;color:var(--light-text-dim);margin-bottom:12px;max-width:520px;">Supprime ce client, son compte, ses chiffres, ses statistiques, son calendrier, ses collaborations, ses avis, ses tâches et ses messages. Cette action est irréversible.</p>
-        <button type="button" class="btn danger btn-sm" id="client-delete">Supprimer ce client</button>
+        <p style="font-size:13px;color:var(--light-text-dim);margin-bottom:12px;max-width:520px;">Supprime ce mannequin, son compte, ses statistiques, son calendrier, ses collaborations, ses tâches et ses messages. Cette action est irréversible.</p>
+        <button type="button" class="btn danger btn-sm" id="client-delete">Supprimer ce mannequin</button>
       </div>`;
 
     const msg = box.querySelector("#info-msg");
-    wireTypeFields(box.querySelector("#info-form"), { applyDefaults: false }); // sur une fiche existante, changer le type ne touche pas aux cases
     box.querySelector("#info-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const f = e.target;
       setMsg(msg, "");
       const nom = f.nom.value.trim();
-      const lien = f.lien.value.trim();
-      if (!nom) { setMsg(msg, "Le nom du client est obligatoire."); return; }
-      if (lien && !safeHttpUrl(lien)) { setMsg(msg, "Le lien doit commencer par https://"); return; }
+      if (!nom) { setMsg(msg, "Le nom est obligatoire."); return; }
       const btn = box.querySelector("#info-save");
-      const metrics = readMetrics(f);
-      const kind = readTypeFields(f);
-      if (!kind.sections.length) { setMsg(msg, "Coche au moins une partie à montrer au client."); return; }
-      if (kind.sections.includes("chiffres") && !metrics.length) { setMsg(msg, "Garde au moins un chiffre Google à suivre."); return; }
-      const patch = { nom, secteur: f.secteur.value.trim() || null, ville: f.ville.value.trim() || null, lien_avis_google: lien || null };
-      if (!sameMetrics(metrics, enabledMetrics(biz))) patch.metriques = metrics; // seulement si modifié
-      // Type, réseaux, parties de l'espace et pseudos : envoyés seulement s'ils changent (colonnes de espace-reseaux.sql).
+      const reseaux = [...f.querySelectorAll('input[name="reseau"]:checked')].map((i) => i.value);
       const comptes = Object.fromEntries(RESEAUX.map((r) => [r.key, f[`compte_${r.key}`].value.trim()]).filter(([, v]) => v));
-      if (kind.type !== (biz.type || "local")) patch.type = kind.type;
-      if (!sameMetrics(kind.reseaux, reseauxOf(biz))) patch.reseaux = kind.reseaux;
-      if (!sameMetrics(kind.sections, sectionsOf(biz))) patch.sections = kind.sections;
-      if (JSON.stringify(comptes) !== JSON.stringify(biz.comptes || {})) patch.comptes = comptes;
-      // Objectifs / notes : envoyés seulement s'ils changent (la colonne vient de prospection.sql).
-      if (f.objectifs.value.trim() !== (biz.objectifs || "")) patch.objectifs = f.objectifs.value.trim() || null;
-      if (f.notes_prospection.value.trim() !== (biz.notes_prospection || "")) patch.notes_prospection = f.notes_prospection.value.trim() || null;
       btn.disabled = true;
-      const { data: saved, error: saveError } = await supabase.from("espace_businesses").update(patch).eq("id", biz.id).select("*").single();
+      const { data: saved, error: saveError } = await supabase.from("espace_businesses").update({ nom, ville: f.ville.value.trim() || null, reseaux, comptes }).eq("id", biz.id).select("*").single();
+      // Notes privées dans leur table (la ligne est créée au premier enregistrement).
+      let privError = null;
+      if (!saveError) {
+        const res = await supabase.from("espace_private").upsert({ business_id: biz.id, objectifs: f.objectifs.value.trim() || null, notes: f.notes.value.trim() || null }, { onConflict: "business_id" });
+        privError = res.error;
+      }
       btn.disabled = false;
-      if (saveError) {
-        setMsg(msg, /\b(type|reseaux|sections|comptes)\b/i.test(saveError.message || "")
-          ? SOCIAL_MISSING
-          : /metriques/i.test(saveError.message || "")
-          ? "Le choix des chiffres n'est pas encore installé : colle espace-metriques.sql dans Supabase (SQL Editor), puis réessaie."
-          : "Enregistrement impossible : " + saveError.message);
+      if (saveError || privError) {
+        const err = saveError || privError;
+        setMsg(msg, isSocialMissing(err) || /espace_private|reseaux|comptes/i.test(err.message || "") ? SOCIAL_MISSING + " (et partenaires.sql)" : "Enregistrement impossible : " + err.message);
         return;
       }
       selected = saved;
       Object.assign(biz, saved);
       notifyEspaceChanged();
-      if (patch.sections || patch.reseaux || patch.type) {
-        // Les onglets dépendent de ces réglages : on redessine la fiche.
-        showSheet(saved);
-        setTimeout(() => { const m = app.querySelector("#info-msg"); if (m) setMsg(m, "Informations enregistrées ✓", true); }, 500);
-        return;
-      }
       app.querySelector("#sheet-title").textContent = saved.nom;
-      app.querySelector(".clients-sub").textContent = [saved.type && saved.type !== "local" ? typeLabel(saved.type) : null, saved.secteur, saved.ville].filter(Boolean).join(" · ");
+      app.querySelector(".clients-sub").textContent = [saved.ville].filter(Boolean).join(" · ");
       setMsg(msg, "Informations enregistrées ✓", true);
     });
 
@@ -748,7 +486,7 @@ export async function renderClients(root) {
     });
 
     box.querySelector("#client-delete").addEventListener("click", async () => {
-      const ok = await window.confirmDialog(`Supprimer « ${biz.nom} » ? Son compte, ses chiffres, ses avis, ses tâches et ses messages seront définitivement supprimés.`, { danger: true, confirmLabel: "Supprimer" });
+      const ok = await window.confirmDialog(`Supprimer « ${biz.nom} » ? Son compte, ses statistiques, son calendrier, ses collaborations, ses tâches et ses messages seront définitivement supprimés.`, { danger: true, confirmLabel: "Supprimer" });
       if (!ok) return;
       try {
         await callAdmin("delete_client", { business_id: biz.id });
