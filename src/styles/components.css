@@ -941,3 +941,16 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 .zs-pop::-webkit-scrollbar { width: 8px; }
 @media (prefers-reduced-motion: reduce) { .zs-pop { animation: none; } }
 .auth-star { display: block; width: 36px; height: 36px; margin: 0 auto 14px; }
+
+/* Messages : photos de profil */
+.msg-av { flex: none; width: 40px; height: 40px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; font-weight: 700; font-size: 15px; color: #fff; background: linear-gradient(135deg, #b3121f, #ff4a3d); }
+.msg-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.msg-av.star { background: #0a0a0a; border: 1px solid rgba(225, 29, 46, .35); }
+.msg-av.star img { width: 62%; height: 62%; object-fit: contain; }
+.msg-av.md { width: 36px; height: 36px; font-size: 14px; }
+.msg-av.sm { width: 28px; height: 28px; font-size: 12px; align-self: flex-end; margin-right: 8px; }
+.msg-conv { display: flex; align-items: center; gap: 12px; }
+.msg-conv-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.msg-row.theirs { align-items: flex-end; }
+.msg-head .msg-av { margin-left: 0; color: #fff; font-size: 14px; }
+.msg-head .msg-tag { margin-left: 6px; }

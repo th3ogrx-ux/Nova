@@ -18,6 +18,15 @@ const TEAM_COLUMNS = "id, member_id, auteur, texte, created_at, lu";
 const normTeam = (r) => ({ id: r.id, business_id: "t:" + r.member_id, auteur: r.auteur === "membre" ? "client" : "admin", texte: r.texte, created_at: r.created_at, lu: r.lu });
 const isTeamConv = (id) => typeof id === "string" && id.startsWith("t:");
 
+const initialOf = (name) => (String(name || "?").trim().charAt(0) || "?").toUpperCase();
+// Pastille ronde : photo de profil si on l'a, sinon l'initiale. « star » = le logo Zenoa (côté équipe).
+const avatarHtml = (person, size = "") => {
+  if (person && person.star) return `<span class="msg-av star${size}"><img src="/zenoa-icon.png" alt=""></span>`;
+  const url = person && person.avatar_url;
+  return `<span class="msg-av${size}">${url ? `<img src="${escapeHtml(url)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : escapeHtml(initialOf(person && person.nom))}</span>`;
+};
+const ZENOA_PERSON = { star: true, nom: "Zenoa" };
+
 const timeOf = (iso) => new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 const dayKey = (iso) => { const d = new Date(iso); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
 
@@ -80,6 +89,10 @@ export async function renderMessages(root) {
     return list;
   }
 
+  // La personne à qui on parle : côté admin, la conversation ouverte ; côté mannequin ou membre, Zenoa.
+  const personOf = (id) => businesses.concat(members).find((x) => x.id === id) || null;
+  const otherPerson = () => (isAdmin ? personOf(selectedId) : ZENOA_PERSON);
+
   const threadOf = (id) => all.filter((m) => m.business_id === id);
 
   // ---------- "Lu" : seulement quand la page est réellement sous les yeux ----------
@@ -116,6 +129,7 @@ export async function renderMessages(root) {
       const own = m.auteur === mine;
       html += `
         <div class="msg-row ${own ? "own" : "theirs"}">
+          ${own ? "" : avatarHtml(otherPerson(), " sm")}
           <div class="msg-bubble${m.pending ? " pending" : ""}">
             <div class="msg-text">${escapeHtml(m.texte)}</div>
             <div class="msg-meta">${timeOf(m.created_at)}${own && !m.pending ? (m.lu ? " · Lu" : " · Envoyé") : ""}${m.pending ? " · Envoi…" : ""}</div>
@@ -194,7 +208,7 @@ export async function renderMessages(root) {
   function drawClient() {
     app.innerHTML = `
       <div class="card msg-card">
-        <div class="msg-head"><strong>${isMember ? "Conversation avec l'admin" : "Conversation avec Zenoa"}</strong><span>${isMember ? "Ton message arrive directement chez le fondateur." : "On te répond rapidement."}</span></div>
+        <div class="msg-head">${avatarHtml(ZENOA_PERSON, " md")}<strong>${isMember ? "Conversation avec l'admin" : "Conversation avec Zenoa"}</strong><span>${isMember ? "Ton message arrive directement chez le fondateur." : "On te répond rapidement."}</span></div>
         <div id="msg-thread" class="msg-thread" role="log" tabindex="0" aria-label="Conversation"></div>
         ${composerHtml()}
       </div>`;
@@ -216,11 +230,12 @@ export async function renderMessages(root) {
     if (!box) return;
     box.innerHTML = conversations().map(({ b, last, unread }) => `
       <button type="button" class="msg-conv${b.id === selectedId ? " active" : ""}" data-id="${b.id}">
+        ${avatarHtml(b)}<div class="msg-conv-main">
         <div class="msg-conv-top"><strong>${escapeHtml(b.nom)}${b.team ? ` <span class="msg-tag">Équipe</span>` : ""}</strong>${last ? `<span>${escapeHtml(shortAgo(last.created_at))}</span>` : ""}</div>
         <div class="msg-conv-bottom">
           <span class="msg-conv-preview">${last ? `${last.auteur === "admin" ? "Vous : " : ""}${escapeHtml(last.texte)}` : "Aucun message"}</span>
           ${unread ? `<span class="msg-unread" aria-label="${unread} non lu${unread > 1 ? "s" : ""}">${unread}</span>` : ""}
-        </div>
+        </div></div>
       </button>`).join("") || `<p class="msg-empty">Aucune conversation pour l'instant.</p>`;
     box.querySelectorAll(".msg-conv").forEach((btn) => btn.addEventListener("click", () => select(btn.dataset.id)));
   }
@@ -234,7 +249,7 @@ export async function renderMessages(root) {
     app.querySelector("#msg-pane").innerHTML = `
       <div class="msg-head">
         <button type="button" class="icon-btn msg-back" id="msg-back" aria-label="Retour aux conversations">‹</button>
-        <strong>${escapeHtml(b ? b.nom : "Conversation")}</strong>
+        ${avatarHtml(b, " md")}<strong>${escapeHtml(b ? b.nom : "Conversation")}${b && b.team ? ` <span class="msg-tag">Équipe</span>` : ""}</strong>
       </div>
       <div id="msg-thread" class="msg-thread" role="log" tabindex="0" aria-label="Conversation"></div>
       ${composerHtml()}`;
@@ -267,7 +282,10 @@ export async function renderMessages(root) {
     if (isAdmin) {
       if (bizRes.error) throw bizRes.error;
       businesses = bizRes.data || [];
-      members = ((teamRes && teamRes.members) || []).map((m) => ({ id: "t:" + m.user_id, nom: m.pseudo || m.email || "Membre", team: true }));
+      // Photos de profil (comptes des mannequins et des membres) : fournies par la fonction espace-admin ; sinon initiales.
+      const avatarOf = Object.fromEntries(((teamRes && teamRes.mannequins) || []).map((m) => [m.business_id, m.avatar_url || null]));
+      businesses = businesses.map((b) => ({ ...b, avatar_url: avatarOf[b.id] || null }));
+      members = ((teamRes && teamRes.members) || []).map((m) => ({ id: "t:" + m.user_id, nom: m.pseudo || m.email || "Membre", avatar_url: m.avatar_url || null, team: true }));
     }
   } catch (err) {
     console.error("[Messages]", err);

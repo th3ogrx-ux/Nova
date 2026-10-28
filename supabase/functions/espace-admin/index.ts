@@ -174,7 +174,7 @@ async function teamList(db: any) {
   const names: Record<string, string> = {};
   for (const b of biz || []) if (!b.is_example) names[b.id] = b.nom;
   const mannequins = (await Promise.all((cl.data || []).filter((r: any) => names[r.business_id]).map(async (r: any) => ({
-    user_id: r.id, business_id: r.business_id, nom: names[r.business_id], last_seen: presence[r.id] || null, ...(await info(r.id))
+    user_id: r.id, business_id: r.business_id, nom: names[r.business_id], avatar_url: (profiles[r.id] || {}).avatar_url || null, last_seen: presence[r.id] || null, ...(await info(r.id))
   }))));
   // Partenaires de l'annuaire : l'activité n'existe que pour ceux qui ont un compte.
   const partners = await Promise.all((pa.data || []).map(async (r: any) => ({
