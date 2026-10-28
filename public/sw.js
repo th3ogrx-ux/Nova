@@ -3,7 +3,7 @@
 // toujours essayer le réseau d'abord (contenu à jour), ne retombe sur
 // le cache que hors-ligne. Ne met en cache que la coquille de l'appli
 // (HTML/JS/CSS/manifest), jamais les données Supabase.
-const CACHE_NAME = "zenoa-agency-shell-v1";
+const CACHE_NAME = "zenoa-agency-shell-v2";
 const SHELL_FILES = ["/", "/index.html", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {

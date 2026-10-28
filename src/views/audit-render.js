@@ -119,7 +119,7 @@ export function renderAuditHtml(audit, urlOf, { agencyName = "Zenoa Agency" } = 
     <header class="pub-head">
       ${audit.cover_path ? `<div class="pub-cover" style="background-image:url('${e(u(audit.cover_path)).replace(/'/g, "%27")}')"></div>` : ""}
       <div class="pub-head-in">
-        <div class="pub-brand"><span class="pub-brand-name">${e(agencyName)}</span>${audit.logo_path ? `<img class="pub-client-logo" src="${e(u(audit.logo_path))}" alt="">` : ""}</div>
+        <div class="pub-brand"><img class="pub-star" src="/sidebar-logo.png" alt="" width="22" height="22"><span class="pub-brand-name">${e(agencyName)}</span>${audit.logo_path ? `<img class="pub-client-logo" src="${e(u(audit.logo_path))}" alt="">` : ""}</div>
         <h1 class="pub-title">${e(audit.title)}</h1>
         ${audit.client_name ? `<p class="pub-for">Audit réalisé pour <strong>${e(audit.client_name)}</strong></p>` : ""}
       </div>

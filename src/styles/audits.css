@@ -173,3 +173,5 @@
 .pub-section + .pub-section { margin-top: 8px; }
 .pub-layout, .pub-layout:not(:has(.pub-toc)) { max-width: 1040px; }
 .pub-main { max-width: 800px; }
+.pub-brand { display: flex; align-items: center; gap: 10px; }
+.pub-star { flex-shrink: 0; }
