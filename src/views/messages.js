@@ -247,7 +247,7 @@ export async function renderMessages(root) {
     box.innerHTML = conversations().map(({ b, last, unread }) => `
       <button type="button" class="msg-conv${b.id === selectedId ? " active" : ""}" data-id="${b.id}">
         ${avatarHtml(b)}<div class="msg-conv-main">
-        <div class="msg-conv-top"><strong>${escapeHtml(b.nom)}${b.kind ? ` <span class="msg-tag">${CONVS[b.kind].tag}</span>` : ""}</strong>${last ? `<span>${escapeHtml(shortAgo(last.created_at))}</span>` : ""}</div>
+        <div class="msg-conv-top"><strong>${escapeHtml(b.nom)}</strong>${last ? `<span>${escapeHtml(shortAgo(last.created_at))}</span>` : ""}</div>
         <div class="msg-conv-bottom">
           <span class="msg-conv-preview">${last ? `${last.auteur === "admin" ? "Vous : " : ""}${escapeHtml(last.texte)}` : "Aucun message"}</span>
           ${unread ? `<span class="msg-unread" aria-label="${unread} non lu${unread > 1 ? "s" : ""}">${unread}</span>` : ""}
@@ -265,7 +265,7 @@ export async function renderMessages(root) {
     app.querySelector("#msg-pane").innerHTML = `
       <div class="msg-head">
         <button type="button" class="icon-btn msg-back" id="msg-back" aria-label="Retour aux conversations">‹</button>
-        ${avatarHtml(b, " md")}<strong>${escapeHtml(b ? b.nom : "Conversation")}${b && b.kind ? ` <span class="msg-tag">${CONVS[b.kind].tag}</span>` : ""}</strong>
+        ${avatarHtml(b, " md")}<strong>${escapeHtml(b ? b.nom : "Conversation")}</strong>
       </div>
       <div id="msg-thread" class="msg-thread" role="log" tabindex="0" aria-label="Conversation"></div>
       ${composerHtml()}`;
