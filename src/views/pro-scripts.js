@@ -33,10 +33,10 @@ export function renderScripts(root, data, ctx) {
         <article class="card pro-price${o.populaire ? " pop" : ""} pro-seq" style="--i:${i + 4}">
           ${o.populaire ? `<span class="pro-ribbon">Le plus choisi</span>` : ""}
           <h3>${escapeHtml(o.nom)}</h3>
-          ${(o.phases || []).length ? phasedHeader(o) : `<div class="pro-price-amount"><b>${fmtEuro(o.prix)}</b><span>${o.periode === "mois" ? "/ mois" : "une fois"}</span></div>`}
+          ${(o.phases || []).length ? phasedHeader(o) : priceHeader(o, offerParts(o).essai)}
           ${o.description ? `<p class="pro-muted">${escapeHtml(o.description)}</p>` : ""}
           ${(o.phases || []).length ? phaseTimeline(o.phases) : ""}
-          <ul>${(o.atouts || "").split("\n").map((a) => a.trim()).filter(Boolean).map((a) => `<li><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>${escapeHtml(a)}</span></li>`).join("")}</ul>
+          ${offerListHtml(offerParts(o))}
           <div class="pro-price-btns">${(o.phases || []).length ? `<button type="button" class="btn primary btn-sm" data-program="${o.id}">Voir le programme complet</button>` : ""}<button type="button" class="btn ghost btn-sm" data-edit-offer="${o.id}">Modifier</button></div>
         </article>`).join("")}</div>`
         : `<div class="card">${emptyState({ title: "Aucun pack d'offre", text: "Présente 2 ou 3 packs côte à côte (ex. Essentiel, Pro, Premium) : c'est plus simple à comparer pour toi comme pour tes prospects.", cta: "Créer un pack", action: "new-offer2" })}</div>`}
@@ -62,6 +62,38 @@ export function renderScripts(root, data, ctx) {
 const monthsLabel = (start, n) => (n === 1 ? `Mois ${start}` : `Mois ${start} à ${start + n - 1}`);
 const costText = (p) => (p.mode === "mois" ? `${fmtEuro(p.prix)} / mois${p.mois > 1 ? ` · ${fmtEuro(p.prix * p.mois)} au total` : ""}` : `${fmtEuro(p.prix)} au total`);
 
+// Conventions dans « Ce qui est inclus » : « ## Titre » = titre de section, « + texte » = supplément
+// mis en avant, « essai: 120 » = prix du premier mois (affiché en grand, sans ligne dans la liste).
+function offerParts(o) {
+  const parts = { essai: null, items: [] };
+  (o.atouts || "").split("\n").map((a) => a.trim()).filter(Boolean).forEach((l) => {
+    const m = /^essai\s*:\s*(\d+)/i.exec(l);
+    if (m) parts.essai = Number(m[1]);
+    else if (l.startsWith("##")) parts.items.push({ t: "h", v: l.replace(/^#+\s*/, "") });
+    else if (l.startsWith("+")) parts.items.push({ t: "plus", v: l.replace(/^\+\s*/, "") });
+    else parts.items.push({ t: "li", v: l });
+  });
+  return parts;
+}
+function priceHeader(o, essai) {
+  const per = o.periode === "mois" ? "/ mois" : "une fois";
+  if (essai == null) return `<div class="pro-price-amount"><b>${fmtEuro(o.prix)}</b><span>${per}</span></div>`;
+  return `<div class="pro-price-trial"><span class="pro-trial-tag">1er mois d'essai</span>
+    <div class="pro-price-amount"><b>${fmtEuro(essai)}</b><span>le premier mois</span></div>
+    <p class="pro-then">puis <b>${fmtEuro(o.prix)}</b> ${per} · sans engagement</p></div>`;
+}
+const CHECK = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
+function offerListHtml(parts) {
+  const out = []; let open = false;
+  const close = () => { if (open) { out.push("</ul>"); open = false; } };
+  parts.items.forEach((it) => {
+    if (it.t === "h") { close(); out.push(`<h4 class="pro-price-sec">${escapeHtml(it.v)}</h4>`); }
+    else if (it.t === "plus") { close(); out.push(`<div class="pro-price-plus"><span class="pro-plus-badge">+</span><span>${escapeHtml(it.v)}</span></div>`); }
+    else { if (!open) { out.push("<ul>"); open = true; } out.push(`<li>${CHECK}<span>${escapeHtml(it.v)}</span></li>`); }
+  });
+  close();
+  return `<div class="pro-price-body">${out.join("")}</div>`;
+}
 function phasedHeader(o) {
   const sm = phasesSummary(o.phases);
   return `<div class="pro-price-amount"><b>${fmtEuro(sm.total)}</b><span>sur ${sm.mois} mois</span></div>
@@ -146,7 +178,7 @@ function openOfferModal(offer, ctx) {
         ${field("Paiement", `<select name="periode"><option value="unique"${o.periode === "unique" ? " selected" : ""}>Une fois</option><option value="mois"${o.periode === "mois" ? " selected" : ""}>Par mois</option></select>`)}
       </div>
       ${field("Description", `<input type="text" name="description" maxlength="200" value="${escapeHtml(o.description || "")}" placeholder="Une phrase pour résumer le pack">`)}
-      ${field("Ce qui est inclus (un point par ligne)", `<textarea name="atouts" rows="5" maxlength="1000" placeholder="Site vitrine 5 pages&#10;Fiche Google optimisée">${escapeHtml(o.atouts || "")}</textarea>`)}
+      ${field("Ce qui est inclus (un point par ligne · ## titre · + supplément · essai: prix du 1er mois)", `<textarea name="atouts" rows="8" maxlength="1000" placeholder="## Mise en place&#10;Site vitrine 5 pages&#10;+ Option vidéo : 100 € / mois&#10;essai: 120">${escapeHtml(o.atouts || "")}</textarea>`)}
       <div class="pro-phases-edit">
         <div class="pro-phases-edit-head"><span class="field-label" style="margin:0;">Étapes dans le temps (offre long terme)</span></div>
         <p class="pro-muted" style="margin:0 0 10px;">Pour une offre qui s'étale sur plusieurs mois : ex. 3 mois à 180 € pour la fiche Google, puis 3 mois de réseaux sociaux. Laisse vide pour une offre simple.</p>
