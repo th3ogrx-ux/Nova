@@ -16,4 +16,5 @@ psql -q -v ON_ERROR_STOP=1 -f sales.sql 2>&1 | grep -v "NOTICE" || true
 psql -q -v ON_ERROR_STOP=1 -f espace-reseaux.sql 2>&1 | grep -v "NOTICE" || true
 psql -q -v ON_ERROR_STOP=1 -f equipe.sql 2>&1 | grep -v "NOTICE" || true
 psql -q -v ON_ERROR_STOP=1 -f partenaires.sql 2>&1 | grep -v "NOTICE" || true
+psql -q -v ON_ERROR_STOP=1 -f agenda.sql 2>&1 | grep -v "NOTICE" || true
 psql -q -v ON_ERROR_STOP=1 -f tests/sql/isolation.sql

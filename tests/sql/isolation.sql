@@ -134,6 +134,10 @@ select tst.denied('admin : offre inconnue refusée', $$update public.pro_strateg
 insert into public.pro_videos (jour, titre, type) values ('2026-11-03', 'Vidéo 1', 'viral'), ('2026-11-03', 'Vidéo 2 même jour', 'valeur');
 select tst.eq('admin : plusieurs vidéos le même jour', (select count(*) from public.pro_videos where jour = '2026-11-03'), 2);
 select tst.denied('admin : type de vidéo inconnu refusé', $$insert into public.pro_videos (jour, titre, type) values ('2026-11-03', 'x', 'autre')$$);
+insert into public.agenda_events (jour, titre, type, kind, prospect) values ('2026-11-04', 'Relancer Marque X', 'relance', 'prospect', 'Marque X');
+select tst.eq('admin : événement de prospect créé', (select count(*) from public.agenda_events where kind = 'prospect'), 1);
+select tst.denied('admin : type d''événement inconnu refusé', $$insert into public.agenda_events (jour, titre, type) values ('2026-11-04', 'x', 'zzz')$$);
+select tst.denied('admin : heure invalide refusée', $$insert into public.agenda_events (jour, titre, heure) values ('2026-11-04', 'x', '99:99')$$);
 select tst.denied('admin : écrire pour un autre compte refusé', $$insert into public.pro_strategies (user_id, titre) values ('00000000-0000-0000-0000-0000000000a1', 'intrus')$$);
 rollback;
 begin; set local role authenticated;
@@ -143,6 +147,8 @@ select tst.denied('client : écrit une stratégie', $$insert into public.pro_str
 select tst.denied('client : écrit un log', $$insert into public.pro_logs (envoyes) values (1)$$);
 select tst.eq('client : 0 vidéo visible', (select count(*) from public.pro_videos), 0);
 select tst.denied('client : écrit une vidéo', $$insert into public.pro_videos (jour, titre) values ('2026-11-03', 'x')$$);
+select tst.eq('client : 0 événement visible', (select count(*) from public.agenda_events), 0);
+select tst.denied('client : écrit un événement', $$insert into public.agenda_events (jour, titre) values ('2026-11-04', 'x')$$);
 select tst.denied('client : écrit un prospect', $$insert into public.pro_prospects (nom) values ('x')$$);
 rollback;
 begin; set local role authenticated;

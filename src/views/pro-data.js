@@ -30,19 +30,6 @@ export const ETAPES = [
   { key: "audit", label: "Audit envoyé", color: "var(--warm-2)" },
   { key: "signe", label: "Signé", color: "var(--ok)" }
 ];
-// Calendrier de contenu : les 3 types de vidéo et leur avancement.
-export const VIDEO_TYPES = [
-  { key: "viral", label: "Viral", color: "var(--warm-1)", hint: "Pour toucher un maximum de monde" },
-  { key: "valeur", label: "Valeur", color: "var(--gold)", hint: "Pour apprendre quelque chose, aider" },
-  { key: "perso", label: "Contenu perso", color: "var(--ok)", hint: "Pour créer du lien : coulisses, histoire, vécu" }
-];
-export const VIDEO_STATUTS = [
-  { key: "a_tourner", label: "À tourner" },
-  { key: "tourne", label: "Tournée" },
-  { key: "publie", label: "Publiée" }
-];
-export const videoType = (key) => VIDEO_TYPES.find((t) => t.key === key) || VIDEO_TYPES[1];
-export const nextVideoStatut = (key) => VIDEO_STATUTS[(VIDEO_STATUTS.findIndex((s) => s.key === key) + 1) % VIDEO_STATUTS.length].key;
 
 export const statutOf = (key) => STATUTS.find((s) => s.key === key) || STATUTS[0];
 
@@ -265,17 +252,3 @@ export function offerPriceLabel(o) {
 }
 
 // ---------- Calendrier de contenu (page « Calendrier ») ----------
-export async function loadVideos() {
-  const res = await supabase.from("pro_videos").select("*").order("jour").order("created_at").limit(3000);
-  if (res.error) { if (isMissingTable(res.error)) return { videos: [], videosMissing: true }; throw res.error; }
-  return { videos: res.data || [], videosMissing: false };
-}
-export async function saveVideo(values, id) {
-  return id ? run(supabase.from("pro_videos").update(values).eq("id", id).select().single())
-            : run(supabase.from("pro_videos").insert({ ...values, user_id: await uid() }).select().single());
-}
-export async function addVideos(list) {
-  const user = await uid();
-  return run(supabase.from("pro_videos").insert(list.map((v) => ({ ...v, user_id: user }))).select());
-}
-export const deleteVideo = (id) => run(supabase.from("pro_videos").delete().eq("id", id));
