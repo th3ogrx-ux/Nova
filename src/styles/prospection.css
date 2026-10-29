@@ -572,3 +572,4 @@ i.pro-cell.l1 { background: rgba(225, 29, 46, .28); } i.pro-cell.l2 { background
 .ag-fait { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; margin-bottom: 6px; }
 .ag-fait input { width: 18px; height: 18px; margin: 0; }
 .msg-tag { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 1px 7px; border-radius: 999px; background: rgba(201,164,92,.2); color: #b8892f; margin-left: 6px; vertical-align: middle; }
+.pro-price-body ul { flex: none; }
