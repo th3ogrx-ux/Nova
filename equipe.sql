@@ -129,7 +129,7 @@ begin
     ('radar_leads', 'radar'),
     ('pro_strategies', 'prospection'), ('pro_scripts', 'prospection'), ('pro_logs', 'prospection'), ('pro_prospects', 'prospection'),
     ('pro_offers', 'prospection'), ('pro_reviews', 'prospection'), ('pro_settings', 'prospection'),
-    ('pro_videos', 'calendrier'), ('agenda_events', 'calendrier'),
+    ('pro_videos', 'calendrier'), ('agenda_events', 'calendrier'), ('suivi_jours', 'prospection'),
     ('audits', 'audits'),
     ('sales', 'dashboard')
   ) as v(tbl, module) loop

@@ -2,9 +2,11 @@
 import { loadAll, isMissingTable, MISSING_MESSAGE, escapeHtml } from "./pro-data.js";
 import { skeleton, toast } from "./pro-ui.js";
 import { renderScripts } from "./pro-scripts.js";
+import { renderSuiviJour } from "./pro-suivi-jour.js";
 
 const TABS = [
-  { key: "scripts", label: "Offres", render: renderScripts, skel: "dashboard" }
+  { key: "scripts", label: "Offres", render: renderScripts, skel: "dashboard" },
+  { key: "suivi", label: "Suivi quotidien", render: (pane) => renderSuiviJour(pane), skel: "dashboard" }
 ];
 const TAB_KEY = "zenoa-pro-tab";
 
@@ -15,6 +17,7 @@ try { const t = localStorage.getItem(TAB_KEY); if (TABS.some((x) => x.key === t)
 export async function renderProspection(root) {
   root.innerHTML = `
     <h1 class="page-title">Offres</h1>
+    <nav class="pro-tabs" role="tablist" aria-label="Sections">${TABS.map((t) => `<button type="button" role="tab" class="pro-tab" data-tab="${t.key}" aria-selected="false">${t.label}</button>`).join("")}</nav>
         <div class="pro-body" data-body aria-live="polite">${skeleton(TABS.find((t) => t.key === state.tab).skel)}</div>`;
   const body = root.querySelector("[data-body]");
   let data = null, animateNext = true;

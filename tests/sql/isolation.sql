@@ -312,6 +312,36 @@ select tst.eq('admin : lit les messages partenaires', (select count(*) from publ
 rollback;
 delete from public.partner_messages; delete from public.espace_partners where user_id = :'pu';
 
+-- ---------- Suivi quotidien ----------
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'adm', true), set_config('request.jwt.claim.aal', 'aal1', true);
+insert into public.suivi_jours (jour, google, instagram, reponses, audits, ventes) values ('2026-11-02', 20, 15, 4, 2, 1);
+select tst.eq('admin : note sa journée', (select count(*) from public.suivi_jours), 1);
+select tst.denied('admin : un seul enregistrement par jour', $$insert into public.suivi_jours (jour) values ('2026-11-02')$$);
+select tst.denied('admin : nombre négatif refusé', $$insert into public.suivi_jours (jour, google) values ('2026-11-03', -1)$$);
+select tst.n('admin : corrige sa journée (upsert)', $$insert into public.suivi_jours (jour, google) values ('2026-11-02', 30) on conflict (user_id, jour) do update set google = excluded.google$$, 1);
+select tst.denied('admin : écrire pour un autre compte refusé', $$insert into public.suivi_jours (user_id, jour) values ('00000000-0000-0000-0000-0000000000a1', '2026-11-04')$$);
+commit;
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'m1', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('membre (droit prospection) : voit le suivi', (select count(*) from public.suivi_jours), 1);
+select tst.n('membre : modifie une journée', $$update public.suivi_jours set ventes = 2$$, 1);
+select tst.n('membre : suppression sans droit = 0', $$delete from public.suivi_jours$$, 0);
+rollback;
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'m2', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('membre sans rôle : ne voit rien', (select count(*) from public.suivi_jours), 0);
+rollback;
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'ca', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('client : ne voit pas le suivi', (select count(*) from public.suivi_jours), 0);
+select tst.denied('client : écrit dans le suivi', $$insert into public.suivi_jours (jour) values ('2026-11-05')$$);
+rollback;
+begin; set local role anon;
+select tst.denied('anon : lit le suivi', $$select * from public.suivi_jours$$);
+rollback;
+delete from public.suivi_jours;
+
 begin; set local role anon;
 select tst.denied('anon : lit les rôles', $$select * from public.team_roles$$);
 select tst.denied('anon : appelle touch_presence', $$select public.touch_presence()$$);
