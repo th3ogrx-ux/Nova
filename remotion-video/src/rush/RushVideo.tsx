@@ -25,9 +25,12 @@ const segs = timeline.segments.map((s, i, a) => ({
 }));
 export const RUSH_DURATION = f(timeline.duration);
 
-const at = (needle: string) => {
-  const s = segs.find((x) => x.text.includes(needle));
-  return s ? s.from : 0;
+/** Frame de début d'un mot (n-ième occurrence), d'après les timings des sous-titres. */
+const wordFrame = (word: string, occurrence = 0) => {
+  const hits = (captionsJson as Caption[]).filter(
+    (c) => c.text.trim().toLowerCase().replace(/[.,!?]/g, "") === word,
+  );
+  return f((hits[occurrence]?.startMs ?? 0) / 1000);
 };
 
 /** Zoom par segment : alternance push-in / pull-out + petit « punch » à chaque coupe. */
@@ -52,10 +55,10 @@ const Zoom: React.FC<{ i: number; dur: number; children: React.ReactNode }> = ({
 };
 
 export const RushVideo: React.FC = () => {
-  const ctaFrom = at("commente marque");
-  const errorFrom = at("tu fais une grosse erreur") + 30;
-  const numbersFrom = at("trois reels");
-  const winnerFrom = at("bah tu la fais passer");
+  const ctaFrom = wordFrame("commente");
+  const errorFrom = wordFrame("grosse");
+  const numbersFrom = wordFrame("trois");
+  const winnerFrom = wordFrame("passer") - 4;
   return (
     <AbsoluteFill style={{ background: "#031a12" }}>
       {segs.map((s, i) => (
@@ -78,8 +81,8 @@ export const RushVideo: React.FC = () => {
         }}
       />
 
-      <ErrorCard from={errorFrom} to={errorFrom + 26} />
-      <ThreeHooks from={numbersFrom} to={numbersFrom + 40} />
+      <ErrorCard from={errorFrom} to={errorFrom + 24} />
+      <ThreeHooks from={numbersFrom} to={numbersFrom + 42} />
       <WinnerCard from={winnerFrom} to={winnerFrom + 50} />
       <CTA from={ctaFrom} to={RUSH_DURATION} />
       <Captions captions={captionsJson as Caption[]} />

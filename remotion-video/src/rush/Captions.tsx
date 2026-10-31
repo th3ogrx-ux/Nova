@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { createTikTokStyleCaptions } from "@remotion/captions";
 import type { Caption, TikTokPage } from "@remotion/captions";
-import { FONT, ICE, glassStyle } from "./theme";
+import { FONT, ICE } from "./theme";
 
 const KEYWORDS = /(reels?|essai|accroches?|marque|gratuit|erreur|scaler|puissants?)/i;
 
@@ -44,7 +44,7 @@ const Page: React.FC<{
         position: "absolute",
         left: 60,
         right: 60,
-        bottom: 290,
+        bottom: 300,
         display: "flex",
         justifyContent: "center",
         transform: `translateY(${(1 - enter) * 40}px) scale(${0.85 + enter * 0.15})`,
@@ -53,18 +53,17 @@ const Page: React.FC<{
     >
       <div
         style={{
-          ...glassStyle,
-          background: `linear-gradient(135deg, rgba(10,60,44,0.62), rgba(10,60,44,0.42))`,
-          borderRadius: 56,
-          padding: "26px 44px",
           fontFamily: FONT,
-          fontWeight: 800,
-          fontSize: 76,
+          fontWeight: 900,
+          fontSize: 88,
           lineHeight: 1.12,
           textAlign: "center",
           whiteSpace: "pre-wrap",
           color: ICE.text,
-          textShadow: "0 3px 14px rgba(0,0,0,0.45)",
+          WebkitTextStroke: "10px rgba(3,30,20,0.95)",
+          paintOrder: "stroke fill",
+          textShadow: "0 6px 24px rgba(0,0,0,0.55)",
+          textTransform: "uppercase",
         }}
       >
         {page.tokens.map((t, i) => {
@@ -82,8 +81,8 @@ const Page: React.FC<{
                 opacity: spoken ? 1 : 0.55,
                 transform: `scale(${active ? 1.07 : 1})`,
                 textShadow: active
-                  ? `0 0 28px ${ICE.glow}, 0 3px 14px rgba(0,0,0,0.45)`
-                  : "0 3px 14px rgba(0,0,0,0.45)",
+                  ? `0 0 36px ${ICE.glow}, 0 6px 24px rgba(0,0,0,0.55)`
+                  : "0 6px 24px rgba(0,0,0,0.55)",
               }}
             >
               {t.text}
