@@ -44,7 +44,7 @@ const Page: React.FC<{
         position: "absolute",
         left: 60,
         right: 60,
-        bottom: 430,
+        bottom: 290,
         display: "flex",
         justifyContent: "center",
         transform: `translateY(${(1 - enter) * 40}px) scale(${0.85 + enter * 0.15})`,

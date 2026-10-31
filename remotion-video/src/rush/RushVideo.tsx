@@ -11,7 +11,7 @@ import type { Caption } from "@remotion/captions";
 import timeline from "./timeline.json";
 import captionsJson from "./captions.json";
 import { Captions } from "./Captions";
-import { CTA, HookBadge, NumberedHooks, PopWord, Progress } from "./Overlays";
+import { CTA, ErrorCard, ThreeHooks, WinnerCard } from "./Overlays";
 import { ICE } from "./theme";
 
 export const FPS = 30;
@@ -53,8 +53,9 @@ const Zoom: React.FC<{ i: number; dur: number; children: React.ReactNode }> = ({
 
 export const RushVideo: React.FC = () => {
   const ctaFrom = at("commente marque");
-  const errorFrom = at("tu fais une grosse erreur") + 38;
-  const numbersFrom = at("trois accroches");
+  const errorFrom = at("tu fais une grosse erreur") + 30;
+  const numbersFrom = at("trois reels");
+  const winnerFrom = at("bah tu la fais passer");
   return (
     <AbsoluteFill style={{ background: "#031a12" }}>
       {segs.map((s, i) => (
@@ -77,10 +78,9 @@ export const RushVideo: React.FC = () => {
         }}
       />
 
-      <Progress total={RUSH_DURATION} />
-      <HookBadge from={4} to={f(2.6)} />
-      <PopWord from={errorFrom} to={errorFrom + 28} text="ERREUR" />
-      <NumberedHooks from={numbersFrom} to={numbersFrom + f(1.6)} />
+      <ErrorCard from={errorFrom} to={errorFrom + 26} />
+      <ThreeHooks from={numbersFrom} to={numbersFrom + 40} />
+      <WinnerCard from={winnerFrom} to={winnerFrom + 50} />
       <CTA from={ctaFrom} to={RUSH_DURATION} />
       <Captions captions={captionsJson as Caption[]} />
     </AbsoluteFill>
