@@ -1,0 +1,681 @@
+[
+ {
+  "text": "Tu",
+  "startMs": 0,
+  "endMs": 181,
+  "timestampMs": 90,
+  "confidence": null
+ },
+ {
+  "text": " postes",
+  "startMs": 181,
+  "endMs": 500,
+  "timestampMs": 340,
+  "confidence": null
+ },
+ {
+  "text": " qu'à",
+  "startMs": 500,
+  "endMs": 820,
+  "timestampMs": 660,
+  "confidence": null
+ },
+ {
+  "text": " tes",
+  "startMs": 820,
+  "endMs": 1000,
+  "timestampMs": 910,
+  "confidence": null
+ },
+ {
+  "text": " abonnés",
+  "startMs": 1000,
+  "endMs": 1459,
+  "timestampMs": 1230,
+  "confidence": null
+ },
+ {
+  "text": " alors",
+  "startMs": 1459,
+  "endMs": 1841,
+  "timestampMs": 1650,
+  "confidence": null
+ },
+ {
+  "text": " que",
+  "startMs": 1841,
+  "endMs": 2057,
+  "timestampMs": 1949,
+  "confidence": null
+ },
+ {
+  "text": " les",
+  "startMs": 2057,
+  "endMs": 2273,
+  "timestampMs": 2165,
+  "confidence": null
+ },
+ {
+  "text": " Reels",
+  "startMs": 2273,
+  "endMs": 2489,
+  "timestampMs": 2381,
+  "confidence": null
+ },
+ {
+  "text": " d'essai",
+  "startMs": 2489,
+  "endMs": 2872,
+  "timestampMs": 2680,
+  "confidence": null
+ },
+ {
+  "text": " existent,",
+  "startMs": 2872,
+  "endMs": 3420,
+  "timestampMs": 3146,
+  "confidence": null
+ },
+ {
+  "text": " tu",
+  "startMs": 3420,
+  "endMs": 3615,
+  "timestampMs": 3518,
+  "confidence": null
+ },
+ {
+  "text": " fais",
+  "startMs": 3615,
+  "endMs": 3810,
+  "timestampMs": 3713,
+  "confidence": null
+ },
+ {
+  "text": " une",
+  "startMs": 3810,
+  "endMs": 4156,
+  "timestampMs": 3983,
+  "confidence": null
+ },
+ {
+  "text": " grosse",
+  "startMs": 4156,
+  "endMs": 4501,
+  "timestampMs": 4328,
+  "confidence": null
+ },
+ {
+  "text": " erreur.",
+  "startMs": 4501,
+  "endMs": 4846,
+  "timestampMs": 4673,
+  "confidence": null
+ },
+ {
+  "text": " Les",
+  "startMs": 4846,
+  "endMs": 5044,
+  "timestampMs": 4945,
+  "confidence": null
+ },
+ {
+  "text": " Reels",
+  "startMs": 5044,
+  "endMs": 5243,
+  "timestampMs": 5143,
+  "confidence": null
+ },
+ {
+  "text": " d'essai",
+  "startMs": 5243,
+  "endMs": 5593,
+  "timestampMs": 5418,
+  "confidence": null
+ },
+ {
+  "text": " sont",
+  "startMs": 5593,
+  "endMs": 5792,
+  "timestampMs": 5693,
+  "confidence": null
+ },
+ {
+  "text": " hyper",
+  "startMs": 5792,
+  "endMs": 6143,
+  "timestampMs": 5967,
+  "confidence": null
+ },
+ {
+  "text": " puissants",
+  "startMs": 6143,
+  "endMs": 6493,
+  "timestampMs": 6318,
+  "confidence": null
+ },
+ {
+  "text": " car",
+  "startMs": 6493,
+  "endMs": 6692,
+  "timestampMs": 6593,
+  "confidence": null
+ },
+ {
+  "text": " ça",
+  "startMs": 6692,
+  "endMs": 6890,
+  "timestampMs": 6791,
+  "confidence": null
+ },
+ {
+  "text": " montre",
+  "startMs": 6890,
+  "endMs": 7280,
+  "timestampMs": 7085,
+  "confidence": null
+ },
+ {
+  "text": " à",
+  "startMs": 7280,
+  "endMs": 7501,
+  "timestampMs": 7390,
+  "confidence": null
+ },
+ {
+  "text": " des",
+  "startMs": 7501,
+  "endMs": 7721,
+  "timestampMs": 7611,
+  "confidence": null
+ },
+ {
+  "text": " personnes",
+  "startMs": 7721,
+  "endMs": 8240,
+  "timestampMs": 7980,
+  "confidence": null
+ },
+ {
+  "text": " qui",
+  "startMs": 8240,
+  "endMs": 8444,
+  "timestampMs": 8342,
+  "confidence": null
+ },
+ {
+  "text": " ne",
+  "startMs": 8444,
+  "endMs": 8648,
+  "timestampMs": 8546,
+  "confidence": null
+ },
+ {
+  "text": " sont",
+  "startMs": 8648,
+  "endMs": 8853,
+  "timestampMs": 8750,
+  "confidence": null
+ },
+ {
+  "text": " pas",
+  "startMs": 8853,
+  "endMs": 9057,
+  "timestampMs": 8955,
+  "confidence": null
+ },
+ {
+  "text": " abonnées",
+  "startMs": 9057,
+  "endMs": 9575,
+  "timestampMs": 9316,
+  "confidence": null
+ },
+ {
+  "text": " à",
+  "startMs": 9575,
+  "endMs": 9780,
+  "timestampMs": 9678,
+  "confidence": null
+ },
+ {
+  "text": " toi.",
+  "startMs": 9780,
+  "endMs": 9984,
+  "timestampMs": 9882,
+  "confidence": null
+ },
+ {
+  "text": " Donc",
+  "startMs": 9984,
+  "endMs": 10142,
+  "timestampMs": 10063,
+  "confidence": null
+ },
+ {
+  "text": " tu",
+  "startMs": 10142,
+  "endMs": 10301,
+  "timestampMs": 10221,
+  "confidence": null
+ },
+ {
+  "text": " peux",
+  "startMs": 10301,
+  "endMs": 10459,
+  "timestampMs": 10380,
+  "confidence": null
+ },
+ {
+  "text": " essayer",
+  "startMs": 10459,
+  "endMs": 10739,
+  "timestampMs": 10599,
+  "confidence": null
+ },
+ {
+  "text": " une",
+  "startMs": 10739,
+  "endMs": 11019,
+  "timestampMs": 10879,
+  "confidence": null
+ },
+ {
+  "text": " chose,",
+  "startMs": 11019,
+  "endMs": 11299,
+  "timestampMs": 11159,
+  "confidence": null
+ },
+ {
+  "text": " trois",
+  "startMs": 11299,
+  "endMs": 11460,
+  "timestampMs": 11380,
+  "confidence": null
+ },
+ {
+  "text": " reels,",
+  "startMs": 11460,
+  "endMs": 11622,
+  "timestampMs": 11541,
+  "confidence": null
+ },
+ {
+  "text": " trois",
+  "startMs": 11622,
+  "endMs": 11747,
+  "timestampMs": 11685,
+  "confidence": null
+ },
+ {
+  "text": " accroches",
+  "startMs": 11747,
+  "endMs": 12066,
+  "timestampMs": 11907,
+  "confidence": null
+ },
+ {
+  "text": " différentes.",
+  "startMs": 12066,
+  "endMs": 12481,
+  "timestampMs": 12273,
+  "confidence": null
+ },
+ {
+  "text": " Tu",
+  "startMs": 12481,
+  "endMs": 12682,
+  "timestampMs": 12581,
+  "confidence": null
+ },
+ {
+  "text": " mets",
+  "startMs": 12682,
+  "endMs": 12882,
+  "timestampMs": 12782,
+  "confidence": null
+ },
+ {
+  "text": " en",
+  "startMs": 12882,
+  "endMs": 13083,
+  "timestampMs": 12982,
+  "confidence": null
+ },
+ {
+  "text": " Reels",
+  "startMs": 13083,
+  "endMs": 13283,
+  "timestampMs": 13183,
+  "confidence": null
+ },
+ {
+  "text": " d'essai",
+  "startMs": 13283,
+  "endMs": 13638,
+  "timestampMs": 13461,
+  "confidence": null
+ },
+ {
+  "text": " et",
+  "startMs": 13638,
+  "endMs": 13838,
+  "timestampMs": 13738,
+  "confidence": null
+ },
+ {
+  "text": " la",
+  "startMs": 13838,
+  "endMs": 14039,
+  "timestampMs": 13939,
+  "confidence": null
+ },
+ {
+  "text": " vidéo",
+  "startMs": 14039,
+  "endMs": 14382,
+  "timestampMs": 14210,
+  "confidence": null
+ },
+ {
+  "text": " qui",
+  "startMs": 14382,
+  "endMs": 14575,
+  "timestampMs": 14478,
+  "confidence": null
+ },
+ {
+  "text": " performe",
+  "startMs": 14575,
+  "endMs": 15067,
+  "timestampMs": 14821,
+  "confidence": null
+ },
+ {
+  "text": " le",
+  "startMs": 15067,
+  "endMs": 15260,
+  "timestampMs": 15164,
+  "confidence": null
+ },
+ {
+  "text": " mieux,",
+  "startMs": 15260,
+  "endMs": 15454,
+  "timestampMs": 15357,
+  "confidence": null
+ },
+ {
+  "text": " bah",
+  "startMs": 15454,
+  "endMs": 15658,
+  "timestampMs": 15556,
+  "confidence": null
+ },
+ {
+  "text": " tu",
+  "startMs": 15658,
+  "endMs": 15862,
+  "timestampMs": 15760,
+  "confidence": null
+ },
+ {
+  "text": " la",
+  "startMs": 15862,
+  "endMs": 16066,
+  "timestampMs": 15964,
+  "confidence": null
+ },
+ {
+  "text": " fais",
+  "startMs": 16066,
+  "endMs": 16270,
+  "timestampMs": 16168,
+  "confidence": null
+ },
+ {
+  "text": " passer",
+  "startMs": 16270,
+  "endMs": 16631,
+  "timestampMs": 16451,
+  "confidence": null
+ },
+ {
+  "text": " en",
+  "startMs": 16631,
+  "endMs": 16835,
+  "timestampMs": 16733,
+  "confidence": null
+ },
+ {
+  "text": " reels",
+  "startMs": 16835,
+  "endMs": 17039,
+  "timestampMs": 16937,
+  "confidence": null
+ },
+ {
+  "text": " normal.",
+  "startMs": 17039,
+  "endMs": 17400,
+  "timestampMs": 17220,
+  "confidence": null
+ },
+ {
+  "text": " Un",
+  "startMs": 17400,
+  "endMs": 18570,
+  "timestampMs": 17985,
+  "confidence": null
+ },
+ {
+  "text": " reels,",
+  "startMs": 18570,
+  "endMs": 19739,
+  "timestampMs": 19154,
+  "confidence": null
+ },
+ {
+  "text": " ça",
+  "startMs": 19739,
+  "endMs": 20057,
+  "timestampMs": 19898,
+  "confidence": null
+ },
+ {
+  "text": " se",
+  "startMs": 20057,
+  "endMs": 20376,
+  "timestampMs": 20217,
+  "confidence": null
+ },
+ {
+  "text": " teste,",
+  "startMs": 20376,
+  "endMs": 20939,
+  "timestampMs": 20657,
+  "confidence": null
+ },
+ {
+  "text": " ça",
+  "startMs": 20939,
+  "endMs": 21101,
+  "timestampMs": 21020,
+  "confidence": null
+ },
+ {
+  "text": " ne",
+  "startMs": 21101,
+  "endMs": 21263,
+  "timestampMs": 21182,
+  "confidence": null
+ },
+ {
+  "text": " se",
+  "startMs": 21263,
+  "endMs": 21426,
+  "timestampMs": 21345,
+  "confidence": null
+ },
+ {
+  "text": " pose",
+  "startMs": 21426,
+  "endMs": 21713,
+  "timestampMs": 21569,
+  "confidence": null
+ },
+ {
+  "text": " pas",
+  "startMs": 21713,
+  "endMs": 21875,
+  "timestampMs": 21794,
+  "confidence": null
+ },
+ {
+  "text": " au",
+  "startMs": 21875,
+  "endMs": 22037,
+  "timestampMs": 21956,
+  "confidence": null
+ },
+ {
+  "text": " hasard.",
+  "startMs": 22037,
+  "endMs": 22324,
+  "timestampMs": 22181,
+  "confidence": null
+ },
+ {
+  "text": " Alors",
+  "startMs": 22324,
+  "endMs": 22667,
+  "timestampMs": 22495,
+  "confidence": null
+ },
+ {
+  "text": " si",
+  "startMs": 22667,
+  "endMs": 22860,
+  "timestampMs": 22763,
+  "confidence": null
+ },
+ {
+  "text": " tu",
+  "startMs": 22860,
+  "endMs": 23054,
+  "timestampMs": 22957,
+  "confidence": null
+ },
+ {
+  "text": " veux",
+  "startMs": 23054,
+  "endMs": 23248,
+  "timestampMs": 23151,
+  "confidence": null
+ },
+ {
+  "text": " scaler",
+  "startMs": 23248,
+  "endMs": 23590,
+  "timestampMs": 23419,
+  "confidence": null
+ },
+ {
+  "text": " ou",
+  "startMs": 23590,
+  "endMs": 23784,
+  "timestampMs": 23687,
+  "confidence": null
+ },
+ {
+  "text": " démarrer",
+  "startMs": 23784,
+  "endMs": 24289,
+  "timestampMs": 24037,
+  "confidence": null
+ },
+ {
+  "text": " ta",
+  "startMs": 24289,
+  "endMs": 24488,
+  "timestampMs": 24389,
+  "confidence": null
+ },
+ {
+  "text": " marque",
+  "startMs": 24488,
+  "endMs": 24841,
+  "timestampMs": 24664,
+  "confidence": null
+ },
+ {
+  "text": " de",
+  "startMs": 24841,
+  "endMs": 25040,
+  "timestampMs": 24940,
+  "confidence": null
+ },
+ {
+  "text": " vêtements,",
+  "startMs": 25040,
+  "endMs": 25545,
+  "timestampMs": 25292,
+  "confidence": null
+ },
+ {
+  "text": " commente",
+  "startMs": 25545,
+  "endMs": 26125,
+  "timestampMs": 25835,
+  "confidence": null
+ },
+ {
+  "text": " marque",
+  "startMs": 26125,
+  "endMs": 26530,
+  "timestampMs": 26327,
+  "confidence": null
+ },
+ {
+  "text": " et",
+  "startMs": 26530,
+  "endMs": 26758,
+  "timestampMs": 26644,
+  "confidence": null
+ },
+ {
+  "text": " je",
+  "startMs": 26758,
+  "endMs": 26987,
+  "timestampMs": 26873,
+  "confidence": null
+ },
+ {
+  "text": " t'enverrai",
+  "startMs": 26987,
+  "endMs": 27567,
+  "timestampMs": 27277,
+  "confidence": null
+ },
+ {
+  "text": " un",
+  "startMs": 27567,
+  "endMs": 27796,
+  "timestampMs": 27681,
+  "confidence": null
+ },
+ {
+  "text": " diagnostic",
+  "startMs": 27796,
+  "endMs": 28376,
+  "timestampMs": 28086,
+  "confidence": null
+ },
+ {
+  "text": " gratuitement.",
+  "startMs": 28376,
+  "endMs": 28703,
+  "timestampMs": 28539,
+  "confidence": null
+ }
+]
