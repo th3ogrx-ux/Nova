@@ -643,3 +643,5 @@ i.pro-cell.l1 { background: rgba(225, 29, 46, .28); } i.pro-cell.l2 { background
   .sj-cell::before { content: attr(data-label); display: block; font-size: 11px; color: var(--light-text-dim); margin-bottom: 4px; }
   .sj-line-total .sj-cell { text-align: left; }
 }
+.sj-history td.sj-h-strat { text-align: left; font-weight: 600; }
+.sj-history th:nth-child(2) { text-align: left; }

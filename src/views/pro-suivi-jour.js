@@ -72,7 +72,11 @@ export async function renderSuiviJour(root) {
     }
     const sparkData = buckets.slice(-14);
     const kpi = (i, label, valueHtml, foot, spark) => `<div class="card pro-kpi pro-seq" style="--i:${i}"><div class="pro-kpi-label">${label}</div><div class="pro-kpi-value">${valueHtml}</div><div class="pro-kpi-foot"><span class="pro-delta">${foot}</span>${spark}</div></div>`;
-    const recent = [...perDayAll()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 12);
+    // Historique : une ligne par jour ET par stratégie (plus récent en haut), pour voir où chaque chiffre a été noté.
+    const order = new Map(strategies.map((st, i) => [st.id, i]));
+    const nameOf = new Map(strategies.map((st) => [st.id, st.nom]));
+    const recent = rows.filter((r) => FIELDS.some((f) => r[f.key] > 0))
+      .sort((a, b) => b.jour.localeCompare(a.jour) || (order.get(a.strategie_id) ?? 0) - (order.get(b.strategie_id) ?? 0)).slice(0, 25);
 
     // Comparaison des stratégies sur la période.
     const stats = strategies.map((s) => {
@@ -154,10 +158,10 @@ export async function renderSuiviJour(root) {
       </section>
 
       <section class="card pro-panel pro-seq" style="--i:10">
-        <h2 class="panel-title">Derniers jours</h2>
-        ${recent.length ? `<div class="sj-table-wrap"><table class="sj-table"><thead><tr><th>Jour</th><th>DM</th><th>Réponses</th><th>Audits</th><th>Offres</th><th>Ventes</th></tr></thead><tbody>
-          ${recent.map(([jour, r]) => `<tr data-pick="${jour}" tabindex="0"><td>${escapeHtml(cap(shortDay(parseKey(jour))))}</td><td>${r.dm}</td><td>${r.reponses}</td><td>${r.audits}</td><td>${r.offres}</td><td><b>${r.ventes}</b></td></tr>`).join("")}
-          </tbody></table></div><p class="pro-muted sj-hint">Clique une ligne pour la corriger.</p>` : `<p class="pro-muted">Aucun jour noté pour l'instant.</p>`}
+        <h2 class="panel-title">Historique</h2>
+        ${recent.length ? `<div class="sj-table-wrap"><table class="sj-table sj-history"><thead><tr><th>Jour</th><th>Stratégie</th><th>DM</th><th>Réponses</th><th>Audits</th><th>Offres</th><th>Ventes</th></tr></thead><tbody>
+          ${recent.map((r) => `<tr data-pick="${r.jour}" tabindex="0"><td>${escapeHtml(cap(shortDay(parseKey(r.jour))))}</td><td class="sj-h-strat">${escapeHtml(nameOf.get(r.strategie_id) || "—")}</td><td>${r.dm}</td><td>${r.reponses}</td><td>${r.audits}</td><td>${r.offres}</td><td><b>${r.ventes}</b></td></tr>`).join("")}
+          </tbody></table></div><p class="pro-muted sj-hint">Clique une ligne pour corriger ce jour-là.</p>` : `<p class="pro-muted">Aucun jour noté pour l'instant.</p>`}
       </section>`;
 
     lineChart(root.querySelector("[data-chart]"), {
@@ -175,11 +179,6 @@ export async function renderSuiviJour(root) {
 
   // Une cellule de résultat : le nombre, et en petit le % par rapport à l'étape d'avant.
   function cell(n, base, enough) { return `<td>${fmtInt(n)}${base && enough ? `<small class="sj-pc">${fmtPct(pct(n, base))}</small>` : ""}</td>`; }
-  function perDayAll() {
-    const m = new Map();
-    rows.forEach((r) => { m.set(r.jour, add(m.get(r.jour) || zero(), r)); });
-    return m;
-  }
 
   function bind() {
     const form = root.querySelector("[data-form]"), msg = root.querySelector("[data-msg]");
