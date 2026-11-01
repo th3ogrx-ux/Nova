@@ -18,7 +18,7 @@
     "debordement": 0.5,
     "fractionHauteurTete": 0.4,
     "fonduBords": 0.06,
-    "epaulesPx": 150
+    "epaulesPx": 200
   },
   "sous_titres": {
     "actif": true,
