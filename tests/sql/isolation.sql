@@ -342,6 +342,42 @@ select tst.denied('anon : lit le suivi', $$select * from public.suivi_jours$$);
 rollback;
 delete from public.suivi_jours;
 
+-- ---------- Suivi par stratégie ----------
+\set st1 '00000000-0000-0000-0000-0000000000b1'
+\set st2 '00000000-0000-0000-0000-0000000000b2'
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'adm', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('départ : Insta 1, 2, 3 + Sans stratégie', (select count(*) from public.suivi_strategies), 4);
+insert into public.suivi_strategies (id, nom, note) values (:'st1', 'Insta 4 : compliment + audit', 'Message court, cible : restos');
+insert into public.suivi_lignes (jour, strategie_id, dm, reponses, audits, offres, ventes) values ('2026-11-06', :'st1', 20, 5, 2, 1, 1);
+select tst.eq('admin : ligne par stratégie', (select count(*) from public.suivi_lignes where jour = '2026-11-06'), 1);
+select tst.denied('admin : deux fois la même stratégie le même jour', $$insert into public.suivi_lignes (jour, strategie_id) values ('2026-11-06', '00000000-0000-0000-0000-0000000000b1')$$);
+select tst.denied('admin : nom de stratégie en double', $$insert into public.suivi_strategies (nom) values ('Insta 1')$$);
+select tst.denied('admin : stratégie inconnue', $$insert into public.suivi_lignes (jour, strategie_id) values ('2026-11-06', gen_random_uuid())$$);
+select tst.denied('admin : nombre négatif', $$insert into public.suivi_lignes (jour, strategie_id, dm) select '2026-11-07', id, -1 from public.suivi_strategies limit 1$$);
+select tst.n('admin : renomme une stratégie', $$update public.suivi_strategies set nom = 'Insta 4 renommée' where id = '00000000-0000-0000-0000-0000000000b1'$$, 1);
+select tst.n('admin : supprime une stratégie (ses chiffres partent avec)', $$delete from public.suivi_strategies where id = '00000000-0000-0000-0000-0000000000b1'$$, 1);
+select tst.eq('chiffres supprimés avec la stratégie', (select count(*) from public.suivi_lignes where jour = '2026-11-06'), 0);
+commit;
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'m1', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('membre (droit prospection) : voit les stratégies', (select count(*) from public.suivi_strategies), 4);
+select tst.n('membre : ajoute une stratégie', $$insert into public.suivi_strategies (user_id, nom) values ('00000000-0000-0000-0000-00000000000a', 'Insta 9')$$, 1);
+select tst.n('membre : suppression sans droit = 0', $$delete from public.suivi_strategies$$, 0);
+rollback;
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'m2', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('membre sans rôle : rien', (select count(*) from public.suivi_strategies) + (select count(*) from public.suivi_lignes), 0);
+rollback;
+begin; set local role authenticated;
+select set_config('request.jwt.claim.sub', :'ca', true), set_config('request.jwt.claim.aal', 'aal1', true);
+select tst.eq('client : rien', (select count(*) from public.suivi_strategies) + (select count(*) from public.suivi_lignes), 0);
+select tst.denied('client : écrit une stratégie', $$insert into public.suivi_strategies (nom) values ('x')$$);
+rollback;
+begin; set local role anon;
+select tst.denied('anon : lit le suivi par stratégie', $$select * from public.suivi_lignes$$);
+rollback;
+
 begin; set local role anon;
 select tst.denied('anon : lit les rôles', $$select * from public.team_roles$$);
 select tst.denied('anon : appelle touch_presence', $$select public.touch_presence()$$);
