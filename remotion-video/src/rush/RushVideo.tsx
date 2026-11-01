@@ -1,11 +1,9 @@
 import React from "react";
 import {
   AbsoluteFill,
-  interpolate,
   OffthreadVideo,
   Sequence,
   staticFile,
-  useCurrentFrame,
 } from "remotion";
 import type { Caption } from "@remotion/captions";
 import timeline from "./timeline.json";
@@ -33,26 +31,10 @@ const wordFrame = (word: string, occurrence = 0) => {
   return f((hits[occurrence]?.startMs ?? 0) / 1000);
 };
 
-/** Zoom par segment : alternance push-in / pull-out + petit « punch » à chaque coupe. */
-const Zoom: React.FC<{ i: number; dur: number; children: React.ReactNode }> = ({
-  i,
-  dur,
-  children,
-}) => {
-  const frame = useCurrentFrame();
-  const base =
-    i % 2 === 0
-      ? interpolate(frame, [0, dur], [1.04, 1.14], { extrapolateRight: "clamp" })
-      : interpolate(frame, [0, dur], [1.16, 1.06], { extrapolateRight: "clamp" });
-  const punch = interpolate(frame, [0, 5], [0.05, 0], {
-    extrapolateRight: "clamp",
-  });
-  return (
-    <AbsoluteFill style={{ transform: `scale(${base + punch})` }}>
-      {children}
-    </AbsoluteFill>
-  );
-};
+/** Zoom fixe très léger : masque les sauts de coupe sans animer le plan. */
+const Zoom: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <AbsoluteFill style={{ transform: "scale(1.05)" }}>{children}</AbsoluteFill>
+);
 
 export const RushVideo: React.FC = () => {
   const ctaFrom = wordFrame("commente");
@@ -63,7 +45,7 @@ export const RushVideo: React.FC = () => {
     <AbsoluteFill style={{ background: "#031a12" }}>
       {segs.map((s, i) => (
         <Sequence key={i} from={s.from} durationInFrames={s.dur} premountFor={15}>
-          <Zoom i={i} dur={s.dur}>
+          <Zoom>
             <OffthreadVideo
               src={staticFile("rush/rush.mp4")}
               startFrom={s.srcFrom}
@@ -85,7 +67,15 @@ export const RushVideo: React.FC = () => {
       <ThreeHooks from={numbersFrom} to={numbersFrom + 42} />
       <WinnerCard from={winnerFrom} to={winnerFrom + 50} />
       <CTA from={ctaFrom} to={RUSH_DURATION} />
-      <Captions captions={captionsJson as Caption[]} />
+      <Captions
+        captions={captionsJson as Caption[]}
+        hidden={[
+          [errorFrom, errorFrom + 24],
+          [numbersFrom, numbersFrom + 42],
+          [winnerFrom, winnerFrom + 50],
+          [ctaFrom, RUSH_DURATION + 1000],
+        ]}
+      />
     </AbsoluteFill>
   );
 };
