@@ -229,7 +229,7 @@ export const SceneOrbite: React.FC<P<"orbite">> = ({ s, t, z }) => {
                 background: t.accent,
                 color: "#fff",
                 fontWeight: 800,
-                fontSize: 72,
+                fontSize: s.centre.length > 14 ? 54 : 72,
                 letterSpacing: -1.5,
                 padding: "20px 50px 26px",
                 borderRadius: 22,
