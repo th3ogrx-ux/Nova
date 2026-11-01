@@ -29,7 +29,7 @@ const drapeau = (nom) => {
 const fichierScenes = opt("--scenes", path.join(RACINE, "scenes.json"));
 const fichierConfig = opt("--config", path.join(RACINE, "config.json"));
 const fondOpt = opt("--fond", ""); // blanc | noir (remplace config.json pour ce rendu)
-const format = opt("--format", "vertical"); // vertical (1080x1920) | horizontal (1920x1080)
+const format = opt("--format", "vertical"); // vertical (1080x1920, animations) | rectangle (1080x1920, tête dans un rectangle) | horizontal (1920x1080)
 const nomSortie = opt("--sortie", "video.mp4");
 const langue = opt("--langue", "fr");
 const vocabulaire = opt("--vocabulaire", "");
@@ -46,7 +46,7 @@ if (aide) {
   --scenes fichier.json     animations (défaut : scenes.json)
   --config fichier.json     réglages (défaut : config.json)
   --fond blanc|noir         remplace le fond de config.json pour ce rendu
-  --format vertical|horizontal  vertical = 1080x1920 (défaut) ; horizontal = 1920x1080, tête dans un rectangle
+  --format vertical|rectangle|horizontal  vertical = TikTok avec animations (défaut) ; rectangle = TikTok, tête dans un rectangle ; horizontal = 1920x1080
   --sortie nom.mp4          nom du fichier dans sortie/ (défaut : video.mp4)
   --langue fr               langue parlée
   --vocabulaire "Reels, Instagram"   mots que la transcription doit bien reconnaître
@@ -159,8 +159,9 @@ if (fondOpt) config.fond = fondOpt;
 const props = {
   config,
   scenes: JSON.parse(fs.readFileSync(fichierScenes, "utf8")).scenes,
-  grosPlans: format === "horizontal" ? [] : fichierScenesJson.grosPlans || [],
-  cta: format === "horizontal" ? (fichierScenesJson.horizontal && fichierScenesJson.horizontal.cta) || null : null,
+  grosPlans: format === "vertical" ? fichierScenesJson.grosPlans || [] : [],
+  cta: format !== "vertical" ? (fichierScenesJson.horizontal && fichierScenesJson.horizontal.cta) || null : null,
+  bloc: format === "rectangle" ? "rectangle" : "horizontal",
   mots: JSON.parse(fs.readFileSync(motsFichier, "utf8")),
   dureeSecondes: parseFloat(sonde(video, "format=duration")) || 10,
   personne: "personne.webm",
@@ -171,7 +172,7 @@ const props = {
 const fichierProps = path.join(tmp, "props.json");
 fs.writeFileSync(fichierProps, JSON.stringify(props));
 
-const rendu = ["remotion", "render", "src/index.ts", format === "horizontal" ? "MontageH" : "Montage", sortie, `--props=${fichierProps}`, "--crf=18",
+const rendu = ["remotion", "render", "src/index.ts", format === "horizontal" ? "MontageH" : format === "rectangle" ? "MontageR" : "Montage", sortie, `--props=${fichierProps}`, "--crf=18",
   "--concurrency=" + Math.max(1, Math.min(8, os.cpus().length))];
 // Chrome : celui du système si on l'indique (CHROME_PATH), sinon Remotion télécharge le sien.
 const chrome = process.env.CHROME_PATH || (fs.existsSync("/opt/pw-browsers/chromium") ? "/opt/pw-browsers/chromium" : "");

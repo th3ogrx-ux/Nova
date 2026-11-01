@@ -1,6 +1,18 @@
 import type { Caption } from "@remotion/captions";
 import type { IconeNom } from "./Icones";
 
+/** Mise en page « rectangle » : titre, rectangle avec la tête qui dépasse, sous-titres dessous, bandeau en bas. */
+export type BlocRect = {
+  largeur: number;
+  hauteur: number;
+  titre: { y: number; taille: number };
+  cadre: { x: number; largeur: number; haut: number; hauteur: number; rayon: number };
+  tete: { hauteurPx: number; debordement: number };
+  sous_titres: { y: number; taille: number; marge: number };
+  cta: { y: number; taille: number };
+  epaulesPx: number;
+};
+
 /** Réglages de config.json. */
 export type Config = {
   fond: "blanc" | "noir";
@@ -13,16 +25,9 @@ export type Config = {
   /** Gros plan : votre tête en grand, plein écran, sur la photo du cadre. */
   gros_plan?: { hauteurTetePx: number; hautTeteEcran: number; y: number; taille: number; zoom: number };
   /** Format horizontal 1920×1080 : tête dans un rectangle au milieu, sous-titres en dessous. */
-  horizontal?: {
-    largeur: number;
-    hauteur: number;
-    titre: { y: number; taille: number };
-    cadre: { x: number; largeur: number; haut: number; hauteur: number; rayon: number };
-    tete: { hauteurPx: number; debordement: number };
-    sous_titres: { y: number; taille: number; marge: number };
-    cta: { y: number; taille: number };
-    epaulesPx: number;
-  };
+  horizontal?: BlocRect;
+  /** Format TikTok 1080×1920, 2e mise en page : rectangle au milieu, tête qui dépasse, sous-titres dessous. */
+  rectangle?: BlocRect;
   titre_fixe?: { actif: boolean; ligne1: string; ligne2?: string; y: number; hauteur: number };
 };
 
@@ -102,6 +107,8 @@ export type GrosPlan = { debut: number; duree: number };
 export type CtaH = { debut: number; duree: number; texte: string; mot: string; fin: string };
 
 export type MontageProps = {
+  /** Quel bloc de config.json utiliser pour les formats « rectangle ». */
+  bloc?: "horizontal" | "rectangle";
   /** Format horizontal : appel à l'action en bas. */
   cta?: CtaH | null;
   /** Moments où la tête passe en gros plan plein écran (en secondes). */

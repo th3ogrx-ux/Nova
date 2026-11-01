@@ -15,10 +15,12 @@ import type { MontageProps } from "./types";
  *  - sous-titres juste en dessous ;
  *  - bandeau « Commente MARQUE… » en bas, quand vous le dites.
  */
-export const MontageH: React.FC<MontageProps> = ({ config: c, mots, personne, audio, cadrePhoto, mesures, cta }) => {
+export const MontageH: React.FC<MontageProps> = ({ config: c, mots, personne, audio, cadrePhoto, mesures, cta, bloc = "horizontal" }) => {
   const frame = useCurrentFrame();
-  const { fps, width } = useVideoConfig();
-  const h = c.horizontal;
+  const { fps, width, height } = useVideoConfig();
+  const h = c[bloc];
+  // Écran vertical (TikTok) : titre sur deux lignes, bandeau sur deux lignes.
+  const empile = height > width;
   const t = themeDe({ ...c, fond: "blanc" });
   if (!h) return null;
   const sec = frame / fps;
@@ -58,7 +60,7 @@ export const MontageH: React.FC<MontageProps> = ({ config: c, mots, personne, au
             fontFamily: FONT,
           }}
         >
-          <div style={{ display: "flex", alignItems: "baseline", gap: 22, whiteSpace: "nowrap" }}>
+          <div style={{ display: "flex", flexDirection: empile ? "column" : "row", alignItems: empile ? "center" : "baseline", gap: empile ? 0 : 22, whiteSpace: "nowrap" }}>
             <span
               style={{
                 fontSize: h.titre.taille,
@@ -149,15 +151,28 @@ export const MontageH: React.FC<MontageProps> = ({ config: c, mots, personne, au
               fontSize: h.cta.taille,
               fontWeight: 800,
               letterSpacing: -0.5,
-              padding: "12px 44px 16px",
-              borderRadius: 18,
+              padding: empile ? "20px 52px 26px" : "12px 44px 16px",
+              borderRadius: 22,
               whiteSpace: "nowrap",
+              textAlign: "center",
+              lineHeight: 1.18,
               boxShadow: `0 0 ${26 + Math.sin(frame / 5) * 10}px rgba(229,48,58,0.5)`,
               transform: `translateY(${(1 - Math.min(1, ce)) * 90}px) scale(${1 + Math.sin(frame / 7) * 0.012})`,
               opacity: Math.min(1, ce * 2),
             }}
           >
-            {cta.texte} <span style={{ background: "#fff", color: t.accent, padding: "0 14px", borderRadius: 10, margin: "0 6px" }}>{cta.mot}</span> {cta.fin}
+            {empile ? (
+              <>
+                <div>
+                  {cta.texte} <span style={{ background: "#fff", color: t.accent, padding: "0 16px", borderRadius: 12, margin: "0 6px" }}>{cta.mot}</span>
+                </div>
+                <div style={{ fontSize: h.cta.taille * 0.62, fontWeight: 700, marginTop: 6 }}>{cta.fin}</div>
+              </>
+            ) : (
+              <>
+                {cta.texte} <span style={{ background: "#fff", color: t.accent, padding: "0 14px", borderRadius: 10, margin: "0 6px" }}>{cta.mot}</span> {cta.fin}
+              </>
+            )}
           </div>
         </div>
       )}

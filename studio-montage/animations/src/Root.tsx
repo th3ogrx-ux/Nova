@@ -32,6 +32,18 @@ export const RemotionRoot: React.FC = () => (
     })}
   />
   <Composition
+    id="MontageR"
+    component={MontageH}
+    width={1080}
+    height={1920}
+    fps={30}
+    durationInFrames={480}
+    defaultProps={{ ...defaut, bloc: "rectangle" as const }}
+    calculateMetadata={({ props }) => ({
+      durationInFrames: Math.max(1, Math.round(props.dureeSecondes * 30)),
+    })}
+  />
+  <Composition
     id="MontageH"
     component={MontageH}
     width={1920}

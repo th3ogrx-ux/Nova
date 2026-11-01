@@ -76,5 +76,34 @@
       "taille": 46
     },
     "epaulesPx": 330
+  },
+  "rectangle": {
+    "largeur": 1080,
+    "hauteur": 1920,
+    "titre": {
+      "y": 150,
+      "taille": 76
+    },
+    "cadre": {
+      "x": 60,
+      "largeur": 960,
+      "haut": 760,
+      "hauteur": 520,
+      "rayon": 40
+    },
+    "tete": {
+      "hauteurPx": 400,
+      "debordement": 0.3
+    },
+    "sous_titres": {
+      "y": 1370,
+      "taille": 64,
+      "marge": 110
+    },
+    "cta": {
+      "y": 1500,
+      "taille": 64
+    },
+    "epaulesPx": 200
   }
 }
