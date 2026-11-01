@@ -122,8 +122,10 @@ etape(3, "Transcription de la voix (Whisper en local)");
 if (fs.existsSync(motsFichier) && !retranscrire && !refaire) {
   console.log(`  (je garde ta transcription : ${path.relative(RACINE, motsFichier)})`);
 } else {
+  // Si tu as le texte exact de la vidéo dans entree/<nom>.script.txt, il corrige les mots mal reconnus.
+  const scriptTexte = path.join(RACINE, "entree", `${nom}.script.txt`);
   lancer(PYTHON, [path.join(RACINE, "outils", "transcrire.py"), video, motsFichier, "--langue", langue,
-    ...(vocabulaire ? ["--vocabulaire", vocabulaire] : [])]);
+    ...(vocabulaire ? ["--vocabulaire", vocabulaire] : []), ...(fs.existsSync(scriptTexte) ? ["--script", scriptTexte] : [])]);
 }
 if (transcrireSeulement) {
   console.log(`\nTranscription prête : ${motsFichier}\nCorrige les mots (champ « text », garde l'espace devant chaque mot), puis relance : node montage.js`);

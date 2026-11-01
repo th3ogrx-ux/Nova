@@ -1,0 +1,35 @@
+{
+  "scenes": [
+    { "type": "titre", "debut": 0.2, "duree": 2.0, "texte": "Tu postes", "italique": "qu'à tes abonnés ?" },
+    { "type": "titre", "debut": 2.35, "duree": 1.7, "texte": "Les Reels", "italique": "d'essai" },
+    { "type": "titre", "debut": 4.8, "duree": 1.5, "texte": "Grosse erreur", "sousTitre": "poster qu'à tes abonnés" },
+    {
+      "type": "comparaison", "debut": 8.6, "duree": 3.0, "titre": "Qui voit ton Reel ?",
+      "a": { "nom": "Normal", "points": ["Tes abonnés"] },
+      "b": { "nom": "D'essai", "points": ["Tes abonnés", "+ des inconnus"] }
+    },
+    {
+      "type": "liste", "debut": 14.2, "duree": 2.9, "titre": "Teste 3 accroches",
+      "elements": ["Reel 1 : accroche A", "Reel 2 : accroche B", "Reel 3 : accroche C"]
+    },
+    {
+      "type": "courbe", "debut": 17.8, "duree": 2.2, "titre": "Exemple : vues par accroche",
+      "points": [2, 5, 4, 9, 14], "libelles": ["1", "2", "3", "4", "5"]
+    },
+    {
+      "type": "score", "debut": 20.2, "duree": 1.8, "titre": "Exemple : score",
+      "elements": [
+        { "nom": "Accroche 1", "valeur": 5, "max": 10 },
+        { "nom": "Accroche 2", "valeur": 9, "max": 10 },
+        { "nom": "Accroche 3", "valeur": 7, "max": 10 }
+      ]
+    },
+    { "type": "titre", "debut": 22.2, "duree": 2.0, "texte": "Le gagnant", "italique": "passe en reel normal" },
+    { "type": "titre", "debut": 24.4, "duree": 3.4, "texte": "Un Reel, ça se teste", "italique": "pas au hasard" },
+    {
+      "type": "liste", "debut": 28.0, "duree": 3.4, "titre": "Ta marque",
+      "elements": ["Tu veux la créer", "Tu veux la scaler"]
+    },
+    { "type": "titre", "debut": 31.8, "duree": 3.8, "texte": "Commente", "italique": "MARQUE", "sousTitre": "diagnostic gratuit" }
+  ]
+}
