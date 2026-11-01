@@ -138,7 +138,7 @@ fs.copyFileSync(photo, path.join(pub, "cadre.jpg"));
 // Pour garder exactement le volume d'origine : "son": { "normaliser": false } dans config.json.
 const normaliser = (JSON.parse(fs.readFileSync(fichierConfig, "utf8")).son || {}).normaliser !== false;
 lancer("ffmpeg", ["-v", "error", "-y", "-i", video, "-vn", ...(normaliser ? ["-af", "loudnorm=I=-14:TP=-1.5:LRA=11"] : []),
-  "-c:a", "aac", "-b:a", "192k", path.join(pub, "audio.m4a")]);
+  "-ar", "48000", "-ac", "2", "-c:a", "aac", "-b:a", "192k", path.join(pub, "audio.m4a")]);
 
 const config = JSON.parse(fs.readFileSync(fichierConfig, "utf8"));
 if (fondOpt) config.fond = fondOpt;
