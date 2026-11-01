@@ -16,7 +16,8 @@
   "tete": {
     "hauteurPx": 420,
     "debordement": 0.5,
-    "fractionHauteurTete": 0.4
+    "fractionHauteurTete": 0.4,
+    "fonduBords": 0.12
   },
   "sous_titres": {
     "actif": true,

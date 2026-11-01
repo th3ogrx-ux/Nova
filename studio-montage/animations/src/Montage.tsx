@@ -30,6 +30,11 @@ export const Montage: React.FC<MontageProps> = ({ config: c, scenes, mots, perso
   const y0 = hautTeteEcran - mesures.hautTete * vh;
   const x0 = (L - vw) / 2;
 
+  // Les épaules sont coupées par les bords de la vidéo d'origine : on les estompe au lieu de les trancher net.
+  const f = Math.max(0, Math.min(0.4, c.tete.fonduBords ?? 0.12)) * 100;
+  const masque = `linear-gradient(to right, transparent 0%, #000 ${f}%, #000 ${100 - f}%, transparent 100%)`;
+  const fondu: React.CSSProperties = f > 0 ? { WebkitMaskImage: masque, maskImage: masque } : {};
+
   const rendre = (s: Scene, i: number) => {
     switch (s.type) {
       case "titre":
@@ -81,12 +86,9 @@ export const Montage: React.FC<MontageProps> = ({ config: c, scenes, mots, perso
 
       {/* Vous, par-dessus le cadre */}
       {personne && (
-        <OffthreadVideo
-          src={staticFile(personne)}
-          transparent
-          muted
-          style={{ position: "absolute", left: x0, top: y0, width: vw, height: vh }}
-        />
+        <div style={{ position: "absolute", left: x0, top: y0, width: vw, height: vh, ...fondu }}>
+          <OffthreadVideo src={staticFile(personne)} transparent muted style={{ width: "100%", height: "100%" }} />
+        </div>
       )}
 
       {audio && <Audio src={staticFile(audio)} />}

@@ -5,7 +5,7 @@ export type Config = {
   fond: "blanc" | "noir";
   couleurs: { papier: string; noir: string; accent: string; texte: string };
   cadre: { gauche: number; droite: number; haut: number; rayon: number; flou: number };
-  tete: { hauteurPx: number; debordement: number; fractionHauteurTete: number };
+  tete: { hauteurPx: number; debordement: number; fractionHauteurTete: number; fonduBords?: number };
   sous_titres: { actif: boolean; police: string; taille: number; y: number; couleur: string; motsMax: number };
   animations: { zoneBas: number };
 };
