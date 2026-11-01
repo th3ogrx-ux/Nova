@@ -134,7 +134,11 @@ if (transcrireSeulement) {
 etape(4, "Animations Remotion et export MP4 1080x1920, 30 images/s, son d'origine");
 fs.copyFileSync(personne, path.join(pub, "personne.webm"));
 fs.copyFileSync(photo, path.join(pub, "cadre.jpg"));
-lancer("ffmpeg", ["-v", "error", "-y", "-i", video, "-vn", "-c:a", "aac", "-b:a", "192k", path.join(pub, "audio.m4a")]);
+// Le son d'origine, remis à un volume normal pour les réseaux (-14 LUFS) : les vidéos de téléphone sont souvent trop faibles.
+// Pour garder exactement le volume d'origine : "son": { "normaliser": false } dans config.json.
+const normaliser = (JSON.parse(fs.readFileSync(fichierConfig, "utf8")).son || {}).normaliser !== false;
+lancer("ffmpeg", ["-v", "error", "-y", "-i", video, "-vn", ...(normaliser ? ["-af", "loudnorm=I=-14:TP=-1.5:LRA=11"] : []),
+  "-c:a", "aac", "-b:a", "192k", path.join(pub, "audio.m4a")]);
 
 const config = JSON.parse(fs.readFileSync(fichierConfig, "utf8"));
 if (fondOpt) config.fond = fondOpt;

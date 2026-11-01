@@ -28,6 +28,9 @@
     "couleur": "#111111",
     "motsMax": 4
   },
+  "son": {
+    "normaliser": true
+  },
   "animations": {
     "zoneBas": 0.55
   }

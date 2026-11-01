@@ -123,6 +123,7 @@ Chaque scène a un `type`, un `debut` et une `duree` (en secondes). Les 5 types 
 | `tete.fonduBords` | adoucit les bords gauche et droit de ta silhouette (voir « Problèmes courants ») |
 | `sous_titres.taille / y / couleur` | taille, hauteur (en part de l'écran) et couleur des sous-titres |
 | `sous_titres.motsMax` | nombre maximum de mots à la fois (4 par défaut) |
+| `son.normaliser` | `true` : remet ta voix à un volume normal pour les réseaux (-14 LUFS). `false` : garde le volume d'origine |
 | `animations.zoneBas` | jusqu'où descendent les animations (0,55 = 55 % de la hauteur) |
 
 La police des sous-titres est **Poppins Bold**, incluse dans le projet. Les titres en serif italique
