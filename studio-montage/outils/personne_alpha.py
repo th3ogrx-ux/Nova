@@ -67,12 +67,29 @@ if P:
     cap, capm = cv2.VideoCapture(a.video), cv2.VideoCapture(a.masque)
 
 
+def combler(liste, max_trou=45):
+    """Un trou court (le modèle de découpe « chauffe » sur les premières images, ou une main passe devant)
+    est rempli avec la mesure valide la plus proche : l'épaule ne disparaît pas puis ne réapparaît pas."""
+    n = len(liste)
+    valides = [i for i, v in enumerate(liste) if v is not None]
+    if not valides:
+        return liste
+    out = list(liste)
+    for i in range(n):
+        if out[i] is None:
+            proche = min(valides, key=lambda j: abs(j - i))
+            if abs(proche - i) <= max_trou:
+                out[i] = liste[proche]
+    return out
+
+
 def lisse_temps(liste, fen=9):
     """Moyenne glissante : l'épaule ne tremble pas d'une image à l'autre."""
+    liste = combler(liste)
     out = []
     for i in range(len(liste)):
         vois = [v for v in liste[max(0, i - fen // 2): i + fen // 2 + 1] if v is not None]
-        out.append(None if len(vois) < (fen // 2) + 1 else (float(np.mean([v[0] for v in vois])), float(np.mean([v[1] for v in vois]))))
+        out.append(None if not vois else (float(np.mean([v[0] for v in vois])), float(np.mean([v[1] for v in vois]))))
     return out
 
 

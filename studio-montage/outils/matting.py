@@ -68,6 +68,13 @@ def main():
     ff = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "gray",
                            "-s", f"{w}x{h}", "-r", str(fps), "-i", "-", "-c:v", "ffv1", a.sortie],
                           stdin=subprocess.PIPE)
+    # Chauffe : RVM a une mémoire d'une image à l'autre. On le fait d'abord tourner sur la première image,
+    # sinon les toutes premières images sont mal découpées (un bout du corps manque, puis « apparaît »).
+    ok, premiere = cap.read()
+    if ok and a.moteur == "rvm":
+        for _ in range(10):
+            moteur(premiere)
+    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
     n, t0 = 0, time.time()
     while True:
         ok, img = cap.read()
