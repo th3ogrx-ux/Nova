@@ -1,19 +1,19 @@
 import React from "react";
 import { Composition } from "remotion";
 import { Montage } from "./Montage";
-import type { MontageProps } from "./types";
-import textes from "../textes.json";
+import type { Config, MontageProps, Scene } from "./types";
+import config from "../../config.json";
+import scenes from "../../scenes.json";
 
 const defaut: MontageProps = {
-  mode: "carte",
-  fond: "blanc",
-  base: null,
-  camera: null,
-  ratio: 16 / 9,
-  cadrage: 0.5,
-  dureeSecondes: 12,
-  textes: textes as MontageProps["textes"],
+  config: config as Config,
+  scenes: scenes.scenes as Scene[],
   mots: [],
+  dureeSecondes: 16,
+  personne: null,
+  audio: null,
+  cadrePhoto: null,
+  mesures: { hautTete: 0.25, largeur: 720, hauteur: 1280 },
 };
 
 export const RemotionRoot: React.FC = () => (
@@ -23,7 +23,7 @@ export const RemotionRoot: React.FC = () => (
     width={1080}
     height={1920}
     fps={30}
-    durationInFrames={360}
+    durationInFrames={480}
     defaultProps={defaut}
     calculateMetadata={({ props }) => ({
       durationInFrames: Math.max(1, Math.round(props.dureeSecondes * 30)),

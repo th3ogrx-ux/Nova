@@ -4,6 +4,7 @@
   "private": true,
   "description": "Animations Remotion du studio de montage",
   "dependencies": {
+    "@fontsource/playfair-display": "^5.2.8",
     "@fontsource/poppins": "5.2.6",
     "@remotion/captions": "4.0.529",
     "@remotion/cli": "4.0.529",

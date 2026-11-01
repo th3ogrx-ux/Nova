@@ -1,0 +1,6 @@
+{
+  "scenes": [
+    { "type": "titre", "debut": 0.2, "duree": 2.0, "texte": "Teste tes Reels", "italique": "avant de publier", "sousTitre": "3 accroches, 1 gagnant" },
+    { "type": "courbe", "debut": 2.4, "duree": 2.5, "titre": "Vues par accroche", "points": [2, 5, 4, 9, 14], "libelles": ["J1", "J2", "J3", "J4", "J5"] }
+  ]
+}

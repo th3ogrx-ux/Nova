@@ -1,70 +1,67 @@
 import React, { useMemo } from "react";
-import { spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import { createTikTokStyleCaptions } from "@remotion/captions";
-import type { Caption } from "@remotion/captions";
-import { FONT, MARGE, SOUS_TITRES_Y, Theme } from "./theme";
+import type { Caption, TikTokPage } from "@remotion/captions";
+import type { Config } from "./types";
+import { FONT, H, MARGE } from "./theme";
 
-type Props = {
-  mots: Caption[];
-  t: Theme;
-  masquer: Array<[number, number]>;
-  /** Position verticale (px). Par défaut : sur la couture entre le tableau et la carte. */
-  y?: number;
-  /** Taille du texte (px). */
-  taille?: number;
-};
+/** Coupe une page en morceaux de `max` mots au plus (les temps de chaque mot sont gardés). */
+const decoupe = (pages: TikTokPage[], max: number): TikTokPage[] =>
+  pages.flatMap((p) => {
+    if (p.tokens.length <= max) return [p];
+    const nb = Math.ceil(p.tokens.length / max);
+    const taille = Math.ceil(p.tokens.length / nb);
+    const out: TikTokPage[] = [];
+    for (let i = 0; i < p.tokens.length; i += taille) {
+      const tokens = p.tokens.slice(i, i + taille);
+      out.push({ ...p, tokens, text: tokens.map((t) => t.text).join(""), startMs: tokens[0].fromMs });
+    }
+    return out;
+  });
 
-/** Sous-titres mot par mot : 1 à 3 mots à l'écran, le mot dit est en accent. */
-export const SousTitres: React.FC<Props> = ({ mots, t, masquer, y = SOUS_TITRES_Y, taille = 56 }) => {
+/** Sous-titres mot par mot : 2 à 4 mots, apparition en léger zoom + fondu de 150 ms. */
+export const SousTitres: React.FC<{ mots: Caption[]; c: Config }> = ({ mots, c }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const { pages } = useMemo(
-    () =>
-      createTikTokStyleCaptions({
-        captions: mots.map((c) => ({ ...c, pageBreakAfter: /[.,?!]\s*$/.test(c.text) })),
-        combineTokensWithinMilliseconds: 450,
-      }),
-    [mots],
-  );
-  if (masquer.some(([a, b]) => frame >= a && frame < b)) return null;
+  const st = c.sous_titres;
+  const pages = useMemo(() => {
+    const { pages: brutes } = createTikTokStyleCaptions({
+      captions: mots.map((m) => ({ ...m, pageBreakAfter: /[.,?!]\s*$/.test(m.text) })),
+      combineTokensWithinMilliseconds: 700,
+    });
+    return decoupe(brutes, st.motsMax);
+  }, [mots, st.motsMax]);
+
   const ms = (frame / fps) * 1000;
-  const i = pages.findIndex((p, k) => ms >= p.startMs && ms < (pages[k + 1]?.startMs ?? p.startMs + 1500));
+  const i = pages.findIndex((p, k) => ms >= p.startMs && ms < (pages[k + 1]?.startMs ?? p.startMs + 1600));
   if (i < 0) return null;
   const page = pages[i];
-  const e = spring({ frame: frame - (page.startMs / 1000) * fps, fps, config: { damping: 200 } });
+  const t = Math.max(0, ms - page.startMs) / 150; // 150 ms
+  const e = interpolate(t, [0, 1], [0, 1], { extrapolateRight: "clamp" });
   return (
     <div
       style={{
         position: "absolute",
         left: MARGE,
         right: MARGE,
-        top: y,
-        height: 100,
+        top: Math.round(st.y * H) - 60,
+        height: 120,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         fontFamily: FONT,
         fontWeight: 700,
-        fontSize: taille,
+        fontSize: st.taille,
         lineHeight: 1.1,
         letterSpacing: -0.5,
         textAlign: "center",
         whiteSpace: "pre",
-        opacity: Math.min(1, e * 2),
-        transform: `translateY(${(1 - e) * 12}px)`,
-        textShadow: t.clair ? "none" : "0 3px 14px rgba(0,0,0,0.7)",
+        color: st.couleur,
+        opacity: e,
+        transform: `scale(${0.92 + 0.08 * e})`,
       }}
     >
-      <span>
-        {page.tokens.map((tok, k) => {
-          const actif = tok.fromMs <= ms && tok.toMs > ms;
-          return (
-            <span key={k} style={{ color: actif ? t.accent : t.texte, visibility: ms >= tok.fromMs - 30 ? "visible" : "hidden" }}>
-              {k === 0 ? tok.text.trimStart() : tok.text}
-            </span>
-          );
-        })}
-      </span>
+      {page.tokens.map((tok, k) => (k === 0 ? tok.text.trimStart() : tok.text)).join("")}
     </div>
   );
 };

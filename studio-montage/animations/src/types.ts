@@ -1,9 +1,17 @@
 import type { Caption } from "@remotion/captions";
 
-type Base = { fond?: "clair" | "sombre" };
+/** Réglages de config.json. */
+export type Config = {
+  fond: "blanc" | "noir";
+  couleurs: { papier: string; noir: string; accent: string; texte: string };
+  cadre: { gauche: number; droite: number; haut: number; rayon: number; flou: number };
+  tete: { hauteurPx: number; debordement: number; fractionHauteurTete: number };
+  sous_titres: { actif: boolean; police: string; taille: number; y: number; couleur: string; motsMax: number };
+  animations: { zoneBas: number };
+};
 
-export type Scene = (
-  | { type: "titre"; debut: number; duree: number; texte: string; sousTitre?: string }
+export type Scene =
+  | { type: "titre"; debut: number; duree: number; texte: string; italique?: string; sousTitre?: string }
   | {
       type: "comparaison";
       debut: number;
@@ -13,37 +21,26 @@ export type Scene = (
       b: { nom: string; points: string[] };
     }
   | { type: "liste"; debut: number; duree: number; titre: string; elements: string[] }
+  | { type: "courbe"; debut: number; duree: number; titre: string; points: number[]; libelles?: string[] }
   | {
       type: "score";
       debut: number;
       duree: number;
       titre: string;
       elements: { nom: string; valeur: number; max?: number }[];
-    }
-  | { type: "fin"; debut: number; duree: number; texte: string; logo?: string }
-) &
-  Base;
-
-export type Textes = {
-  accent?: string;
-  sousTitres?: { actif: boolean };
-  scenes: Scene[];
-};
+    };
 
 export type MontageProps = {
-  /** "carte" : vous dans une carte en bas + plans plein écran. "silhouette" : vous découpé dans la moitié basse. */
-  mode: "carte" | "silhouette";
-  /** Mode silhouette : "blanc", "flou" ou "paysage" (choisit les couleurs du texte). */
-  fond: string;
-  /** Mode silhouette : vidéo déjà découpée et placée (dans public/). */
-  base: string | null;
-  /** Mode carte : votre vidéo d'origine (dans public/). */
-  camera: string | null;
-  /** Hauteur / largeur de la vidéo (1.78 pour du 9:16). */
-  ratio: number;
-  /** Mode carte : quelle partie de l'image reste visible dans la carte (0 = haut, 1 = bas). */
-  cadrage: number;
-  dureeSecondes: number;
-  textes: Textes;
+  config: Config;
+  scenes: Scene[];
   mots: Caption[];
+  dureeSecondes: number;
+  /** Silhouette transparente (WebM) dans public/. */
+  personne: string | null;
+  /** Son d'origine (dans public/). */
+  audio: string | null;
+  /** Photo du cadre (dans public/). */
+  cadrePhoto: string | null;
+  /** Mesures de la silhouette : haut de la tête (0 à 1) et proportions de la vidéo. */
+  mesures: { hautTete: number; largeur: number; hauteur: number };
 };

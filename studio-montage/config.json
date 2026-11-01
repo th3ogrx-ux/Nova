@@ -1,0 +1,32 @@
+{
+  "fond": "blanc",
+  "couleurs": {
+    "papier": "#F4F4F2",
+    "noir": "#0A0A0A",
+    "accent": "#E5303A",
+    "texte": "#111111"
+  },
+  "cadre": {
+    "gauche": 0.07,
+    "droite": 0.93,
+    "haut": 0.73,
+    "rayon": 40,
+    "flou": 6
+  },
+  "tete": {
+    "hauteurPx": 420,
+    "debordement": 0.5,
+    "fractionHauteurTete": 0.4
+  },
+  "sous_titres": {
+    "actif": true,
+    "police": "Poppins",
+    "taille": 64,
+    "y": 0.585,
+    "couleur": "#111111",
+    "motsMax": 4
+  },
+  "animations": {
+    "zoneBas": 0.55
+  }
+}

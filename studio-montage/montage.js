@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /* Studio de montage : une seule commande.
 
-   node montage.js ma-video.mp4                      (écran divisé : tableau en haut, vous en carte en bas)
-   node montage.js ma-video.mp4 --bas silhouette --fond blanc|flou|paysage.jpg   (vous découpé, en bas)
+   node montage.js                    prend la première vidéo du dossier entree/
+   node montage.js ma-video.mp4       ou une vidéo précise
 
-   Étapes (mode par défaut) : 1) préparation de la vidéo  2) transcription de la voix
-                              3) animations + sous-titres + export MP4 1080x1920, 30 images/s */
+   Étapes : 1) découpe de la silhouette  2) silhouette transparente
+            3) transcription (fichier corrigeable)  4) animations + export sortie/video.mp4 (1080x1920, 30 i/s) */
 const { spawnSync } = require("child_process");
 const fs = require("fs");
 const os = require("os");
@@ -16,59 +16,45 @@ const ANIM = path.join(RACINE, "animations");
 const win = os.platform() === "win32";
 const PYTHON = path.join(RACINE, ".venv", win ? "Scripts/python.exe" : "bin/python");
 
-// ---------- lecture des options ----------
+// ---------- options ----------
 const args = process.argv.slice(2);
 const opt = (nom, defaut) => {
   const i = args.indexOf(nom);
-  if (i === -1) return defaut;
-  return args.splice(i, 2)[1];
+  return i === -1 ? defaut : args.splice(i, 2)[1];
 };
 const drapeau = (nom) => {
   const i = args.indexOf(nom);
-  if (i === -1) return false;
-  args.splice(i, 1);
-  return true;
+  return i === -1 ? false : (args.splice(i, 1), true);
 };
-const bas = opt("--bas", "carte"); // carte | silhouette
-const derriere = opt("--derriere", "genere"); // (carte) genere | flou | original | image dans fonds/
-const fondArg = opt("--fond", "blanc"); // (silhouette) blanc | flou | image
-const textesArg = opt("--textes", path.join(ANIM, "textes.json"));
+const fichierScenes = opt("--scenes", path.join(RACINE, "scenes.json"));
+const fichierConfig = opt("--config", path.join(RACINE, "config.json"));
+const fondOpt = opt("--fond", ""); // blanc | noir (remplace config.json pour ce rendu)
+const nomSortie = opt("--sortie", "video.mp4");
 const langue = opt("--langue", "fr");
-const qualite = opt("--qualite", "0.5");
-const cadrage = parseFloat(opt("--cadrage", "0.50")); // (carte) 0 = haut de l'image, 1 = bas
 const vocabulaire = opt("--vocabulaire", "");
+const qualite = opt("--qualite", "0.5");
 const refaire = drapeau("--refaire");
-const sansSousTitres = drapeau("--sans-sous-titres");
+const retranscrire = drapeau("--retranscrire");
+const transcrireSeulement = drapeau("--transcrire-seulement");
 const aide = drapeau("--aide") || drapeau("-h");
-const videoArg = args[0];
 
-if (aide || !videoArg) {
-  console.log(`Usage : node montage.js <video> [options]
+if (aide) {
+  console.log(`Usage : node montage.js [video] [options]
 
-  --textes fichier.json     animations à afficher (défaut : animations/textes.json)
-  --bas carte|silhouette    carte = vous en carte arrondie (défaut) ; silhouette = vous découpé
-  --fond blanc|flou|image   (silhouette seulement) l'image est cherchée dans fonds/
-  --derriere genere         (carte) décor derrière vous : genere (créé pour vous), flou, original, ou une image de fonds/
-  --cadrage 0.50            (carte) quelle partie de l'image reste visible : 0 haut … 1 bas
+  --scenes fichier.json     animations (défaut : scenes.json)
+  --config fichier.json     réglages (défaut : config.json)
+  --fond blanc|noir         remplace le fond de config.json pour ce rendu
+  --sortie nom.mp4          nom du fichier dans sortie/ (défaut : video.mp4)
   --langue fr               langue parlée
   --vocabulaire "Reels, Instagram"   mots que la transcription doit bien reconnaître
-  --sans-sous-titres        pas de sous-titres
-  --refaire                 recalcule tout (sinon, les étapes lentes déjà faites sont réutilisées)
-
-Exemples :
-  node montage.js ma-video.mp4
-  node montage.js ma-video.mp4 --bas silhouette --fond flou`);
-  process.exit(aide ? 0 : 1);
-}
-if (!["carte", "silhouette"].includes(bas)) {
-  console.error("--bas doit valoir « carte » ou « silhouette ».");
-  process.exit(1);
+  --transcrire-seulement    s'arrête après la transcription : corrige le fichier, puis relance
+  --retranscrire            refait la transcription (écrase tes corrections)
+  --refaire                 recalcule tout`);
+  process.exit(0);
 }
 
-// ---------- petits outils ----------
-const decoupe = bas === "silhouette" || derriere !== "original";
-const total = decoupe ? 4 : 3;
-const etape = (n, txt) => console.log(`\n[${n}/${total}] ${txt}`);
+// ---------- outils ----------
+const etape = (n, txt) => console.log(`\n[${n}/4] ${txt}`);
 const echec = (msg) => {
   console.error(`\nProblème : ${msg}`);
   process.exit(1);
@@ -78,103 +64,84 @@ const lancer = (cmd, argv, options = {}) => {
   if (r.error) echec(`impossible de lancer « ${cmd} » (${r.error.message}). Lance d'abord : node installer.js`);
   if (r.status !== 0) echec(`la commande « ${path.basename(cmd)} » a échoué (code ${r.status}).`);
 };
-const trouver = (nom, dossiers) => {
-  if (fs.existsSync(nom)) return path.resolve(nom);
-  for (const d of dossiers) {
-    const p = path.join(RACINE, d, nom);
-    if (fs.existsSync(p)) return p;
-  }
-  return null;
-};
-const sonde = (fichier, champs) => {
-  const r = spawnSync("ffprobe", ["-v", "error", "-show_entries", champs, "-of", "csv=p=0:s=x", fichier], { encoding: "utf8" });
-  return (r.stdout || "").trim();
-};
+const sonde = (f, champs) =>
+  (spawnSync("ffprobe", ["-v", "error", "-show_entries", champs, "-of", "csv=p=0", f], { encoding: "utf8" }).stdout || "").trim();
 
 if (!fs.existsSync(PYTHON)) echec("l'environnement Python n'existe pas. Lance d'abord : node installer.js");
 
-const video = trouver(videoArg, ["entree"]);
-if (!video) echec(`vidéo introuvable : ${videoArg} (mets-la dans le dossier entree/).`);
-
-let fond = fondArg;
-if (bas === "silhouette" && !["blanc", "flou"].includes(fondArg)) {
-  fond = trouver(fondArg, ["fonds"]);
-  if (!fond) echec(`image de fond introuvable : ${fondArg} (mets-la dans le dossier fonds/).`);
+// ---------- la vidéo ----------
+let video = args[0];
+if (!video) {
+  const dossier = path.join(RACINE, "entree");
+  const trouve = fs.existsSync(dossier) ? fs.readdirSync(dossier).filter((f) => /\.(mp4|mov|m4v|webm|mkv)$/i.test(f)).sort()[0] : null;
+  if (!trouve) echec("aucune vidéo dans le dossier entree/.");
+  video = path.join(dossier, trouve);
+} else if (!fs.existsSync(video)) {
+  video = path.join(RACINE, "entree", video);
 }
-const typeFond = ["blanc", "flou"].includes(fondArg) ? fondArg : "paysage";
-const fichierTextes = trouver(textesArg, ["animations"]);
-if (!fichierTextes) echec(`fichier de textes introuvable : ${textesArg}`);
+if (!fs.existsSync(video)) echec(`vidéo introuvable : ${args[0]}`);
+video = path.resolve(video);
+
+const photo = path.join(RACINE, "fonds", "cadre.jpg");
+if (!fs.existsSync(photo)) echec("il manque la photo du cadre : fonds/cadre.jpg");
+for (const f of [fichierScenes, fichierConfig]) if (!fs.existsSync(f)) echec(`fichier introuvable : ${f}`);
 
 const nom = path.basename(video, path.extname(video));
 const tmp = path.join(RACINE, "sortie", ".tmp", nom);
 fs.mkdirSync(tmp, { recursive: true });
-const etiquette = bas === "carte" ? "carte" : typeFond;
-const sortie = path.join(RACINE, "sortie", `${nom}-${etiquette}.mp4`);
-const t0 = Date.now();
-const frais = (f) => !refaire && fs.existsSync(f) && fs.statSync(f).mtimeMs > fs.statSync(video).mtimeMs;
 const pub = path.join(ANIM, "public");
 fs.mkdirSync(pub, { recursive: true });
+const sortie = path.join(RACINE, "sortie", nomSortie);
+const motsFichier = path.join(RACINE, "entree", `${nom}.mots.json`);
+const t0 = Date.now();
+const frais = (f) => !refaire && fs.existsSync(f) && fs.statSync(f).mtimeMs > fs.statSync(video).mtimeMs;
 
-console.log(`Vidéo   : ${video}\nMode    : ${bas === "carte" ? "écran divisé (carte)" : "silhouette, fond " + typeFond}\nTextes  : ${fichierTextes}\nSortie  : ${sortie}`);
+console.log(`Vidéo  : ${video}\nSortie : ${sortie}`);
 
-const props = { mode: bas, fond: typeFond, base: null, camera: null, ratio: 16 / 9, cadrage, dureeSecondes: 10 };
-let n = 0;
+// ---------- 1) découpe ----------
+const masque = path.join(tmp, "masque.mkv");
+etape(1, "Découpe de la silhouette (RVM sur processeur : environ 5 min par minute de vidéo)");
+if (frais(masque)) console.log("  (déjà faite, je la réutilise)");
+else lancer(PYTHON, [path.join(RACINE, "outils", "matting.py"), video, masque, "--moteur", "rvm", "--ratio", qualite]);
 
-if (bas === "carte") {
-  let source = video;
-  if (derriere !== "original") {
-    // ---------- 1+2) découpe, puis nouveau décor derrière vous (taille d'origine) ----------
-    const masque = path.join(tmp, "masque.mkv");
-    etape(++n, "Découpe de la silhouette (RVM, sur processeur : ~5 min par minute de vidéo)");
-    if (frais(masque)) console.log("  (découpe déjà faite, je la réutilise)");
-    else lancer(PYTHON, [path.join(RACINE, "outils", "matting.py"), video, masque, "--moteur", "rvm", "--ratio", qualite]);
-    etape(++n, `Nouveau décor derrière vous (${derriere})`);
-    let fondChoisi = derriere;
-    if (!["genere", "flou"].includes(derriere)) {
-      fondChoisi = trouver(derriere, ["fonds"]);
-      if (!fondChoisi) echec(`image de fond introuvable : ${derriere} (mets-la dans le dossier fonds/).`);
-    }
-    source = path.join(tmp, "decor.mp4");
-    lancer(PYTHON, [path.join(RACINE, "outils", "remplacer_fond.py"), video, masque, source, "--fond", fondChoisi]);
-  }
-  // ---------- préparation : H.264 propre, orientation corrigée ----------
-  etape(++n, "Préparation de la vidéo (H.264, orientation corrigée)");
-  const cam = path.join(tmp, "camera.mp4");
-  lancer("ffmpeg", ["-v", "error", "-y", "-i", source, "-c:v", "libx264", "-preset", "veryfast", "-crf", "17",
-    "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", cam]);
-  fs.copyFileSync(cam, path.join(pub, "camera.mp4"));
-  const [w, h] = sonde(cam, "stream=width,height").split("\n")[0].split("x").map(Number);
-  props.camera = "camera.mp4";
-  props.ratio = h / w;
-  props.dureeSecondes = parseFloat(sonde(cam, "format=duration")) || 10;
+// ---------- 2) silhouette transparente ----------
+const personne = path.join(tmp, "personne.webm");
+const mesuresF = path.join(tmp, "mesures.json");
+etape(2, "Silhouette transparente (contour nettoyé, sans liseré)");
+if (frais(personne) && fs.existsSync(mesuresF)) console.log("  (déjà faite, je la réutilise)");
+else lancer(PYTHON, [path.join(RACINE, "outils", "personne_alpha.py"), video, masque, personne, mesuresF]);
+
+// ---------- 3) transcription ----------
+etape(3, "Transcription de la voix (Whisper en local)");
+if (fs.existsSync(motsFichier) && !retranscrire && !refaire) {
+  console.log(`  (je garde ta transcription : ${path.relative(RACINE, motsFichier)})`);
 } else {
-  // ---------- 1) découpe ----------
-  const masque = path.join(tmp, "masque.mkv");
-  etape(++n, "Découpe de la silhouette (RVM, sur processeur : ~5 min par minute de vidéo)");
-  if (frais(masque)) console.log("  (découpe déjà faite, je la réutilise)");
-  else lancer(PYTHON, [path.join(RACINE, "outils", "matting.py"), video, masque, "--moteur", "rvm", "--ratio", qualite]);
-  // ---------- 2) fond + placement ----------
-  const base = path.join(tmp, "base.mp4");
-  etape(++n, "Remplacement du fond et placement dans la moitié basse");
-  lancer(PYTHON, [path.join(RACINE, "outils", "composer.py"), video, masque, base, "--fond", fond]);
-  fs.copyFileSync(base, path.join(pub, "base.mp4"));
-  props.base = "base.mp4";
-  props.dureeSecondes = parseFloat(sonde(base, "format=duration")) || 10;
+  lancer(PYTHON, [path.join(RACINE, "outils", "transcrire.py"), video, motsFichier, "--langue", langue,
+    ...(vocabulaire ? ["--vocabulaire", vocabulaire] : [])]);
+}
+if (transcrireSeulement) {
+  console.log(`\nTranscription prête : ${motsFichier}\nCorrige les mots (champ « text », garde l'espace devant chaque mot), puis relance : node montage.js`);
+  process.exit(0);
 }
 
-// ---------- transcription ----------
-const motsFichier = path.join(tmp, "mots.json");
-etape(++n, "Transcription de la voix (sous-titres mot par mot)");
-if (sansSousTitres) fs.writeFileSync(motsFichier, "[]");
-else if (frais(motsFichier) && !vocabulaire) console.log("  (transcription déjà faite, je la réutilise)");
-else lancer(PYTHON, [path.join(RACINE, "outils", "transcrire.py"), video, motsFichier, "--langue", langue,
-  ...(vocabulaire ? ["--vocabulaire", vocabulaire] : [])]);
+// ---------- 4) animations + export ----------
+etape(4, "Animations Remotion et export MP4 1080x1920, 30 images/s, son d'origine");
+fs.copyFileSync(personne, path.join(pub, "personne.webm"));
+fs.copyFileSync(photo, path.join(pub, "cadre.jpg"));
+lancer("ffmpeg", ["-v", "error", "-y", "-i", video, "-vn", "-c:a", "aac", "-b:a", "192k", path.join(pub, "audio.m4a")]);
 
-// ---------- animations + export ----------
-etape(++n, "Animations Remotion et export MP4 1080x1920, 30 images/s");
-props.textes = JSON.parse(fs.readFileSync(fichierTextes, "utf8"));
-props.mots = JSON.parse(fs.readFileSync(motsFichier, "utf8"));
-if (sansSousTitres) props.textes.sousTitres = { actif: false };
+const config = JSON.parse(fs.readFileSync(fichierConfig, "utf8"));
+if (fondOpt) config.fond = fondOpt;
+const props = {
+  config,
+  scenes: JSON.parse(fs.readFileSync(fichierScenes, "utf8")).scenes,
+  mots: JSON.parse(fs.readFileSync(motsFichier, "utf8")),
+  dureeSecondes: parseFloat(sonde(video, "format=duration")) || 10,
+  personne: "personne.webm",
+  audio: "audio.m4a",
+  cadrePhoto: "cadre.jpg",
+  mesures: JSON.parse(fs.readFileSync(mesuresF, "utf8")),
+};
 const fichierProps = path.join(tmp, "props.json");
 fs.writeFileSync(fichierProps, JSON.stringify(props));
 
@@ -186,5 +153,5 @@ if (chrome) rendu.push(`--browser-executable=${chrome}`, "--chrome-mode=chrome-f
 if (process.env.REMOTION_GL || chrome) rendu.push(`--gl=${process.env.REMOTION_GL || "swangle"}`);
 lancer(win ? "npx.cmd" : "npx", rendu, { cwd: ANIM, shell: win });
 
-for (const f of ["camera.mp4", "base.mp4"]) fs.rmSync(path.join(pub, f), { force: true });
+for (const f of ["personne.webm", "cadre.jpg", "audio.m4a"]) fs.rmSync(path.join(pub, f), { force: true });
 console.log(`\nTerminé en ${((Date.now() - t0) / 60000).toFixed(1)} min.\nRésultat : ${sortie}`);

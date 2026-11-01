@@ -1,16 +1,48 @@
 import React from "react";
+import type { Config } from "./types";
+import { H, L } from "./theme";
 
-/** Papier clair à grille discrète, ou noir profond : les deux fonds du tableau. */
-export const FondTableau: React.FC<{ clair: boolean }> = ({ clair }) => (
-  <div
-    style={{
-      position: "absolute",
-      inset: 0,
-      backgroundColor: clair ? "#F1F2F2" : "#0A0A0C",
-      backgroundImage: clair
-        ? "radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.9), rgba(255,255,255,0) 60%), linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px)"
-        : "radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.10), rgba(255,255,255,0) 60%), linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)",
-      backgroundSize: "100% 100%, 54px 54px, 54px 54px",
-    }}
-  />
-);
+/** Blanc cassé avec grille fine et points, comme du papier millimétré. Option : noir avec courbes rouges. */
+export const FondPage: React.FC<{ c: Config }> = ({ c }) => {
+  if (c.fond === "blanc") {
+    return (
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundColor: c.couleurs.papier,
+          backgroundImage: [
+            "radial-gradient(circle, rgba(0,0,0,0.13) 1.6px, transparent 2.2px)",
+            "linear-gradient(rgba(0,0,0,0.045) 1px, transparent 1px)",
+            "linear-gradient(90deg, rgba(0,0,0,0.045) 1px, transparent 1px)",
+          ].join(","),
+          backgroundSize: "54px 54px, 54px 54px, 54px 54px",
+          backgroundPosition: "27px 27px, 0 0, 0 0",
+        }}
+      />
+    );
+  }
+  const a = c.couleurs.accent;
+  return (
+    <div style={{ position: "absolute", inset: 0, backgroundColor: c.couleurs.noir }}>
+      <svg width={L} height={H} viewBox={`0 0 ${L} ${H}`} style={{ position: "absolute", inset: 0 }}>
+        <defs>
+          <filter id="flou-courbes">
+            <feGaussianBlur stdDeviation="2.5" />
+          </filter>
+        </defs>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <path
+            key={i}
+            d={`M -50 ${260 + i * 170} C 250 ${60 + i * 170}, 520 ${620 + i * 150}, 1130 ${300 + i * 190}`}
+            fill="none"
+            stroke={a}
+            strokeWidth={i % 2 ? 2 : 3}
+            opacity={0.18 + i * 0.07}
+            filter="url(#flou-courbes)"
+          />
+        ))}
+      </svg>
+    </div>
+  );
+};

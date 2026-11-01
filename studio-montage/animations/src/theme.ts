@@ -1,14 +1,12 @@
-export const ACCENT_DEFAUT = "#E5303A";
+import type { Config } from "./types";
+
 export const FONT = '"Poppins", "Helvetica Neue", Arial, sans-serif';
+export const FONT_SERIF = '"Playfair Display", Georgia, serif';
 
-/** Marges de sécurité : 15 % de chaque côté (1080 px de large). */
-export const MARGE = 162;
-/** La moitié haute de l'écran : 0 → 960 px. La couture est à 960. */
-export const HAUT = { top: 190, bottom: 1150 };
-
-/** Écran divisé « carte » : tableau en haut, sous-titres sur la couture, vous dans une carte en bas. */
-export const SOUS_TITRES_Y = 1190;
-export const CARTE = { left: 60, top: 1320, width: 960, height: 540, radius: 44 };
+/** L'écran : 1080 × 1920. Marges de sécurité de 15 % à gauche et à droite. */
+export const L = 1080;
+export const H = 1920;
+export const MARGE = Math.round(L * 0.15);
 
 export type Theme = {
   clair: boolean;
@@ -20,24 +18,26 @@ export type Theme = {
   accent: string;
 };
 
-/** Fond blanc → texte noir. Fond flou / paysage → texte blanc sur voile sombre. */
-export const themeDe = (fond: string, accent: string): Theme =>
-  fond === "blanc"
+export const themeDe = (c: Config): Theme =>
+  c.fond === "blanc"
     ? {
         clair: true,
-        texte: "#111111",
+        texte: c.couleurs.texte,
         doux: "#5C5C60",
         carte: "rgba(255,255,255,0.96)",
         bordure: "rgba(0,0,0,0.09)",
         piste: "rgba(0,0,0,0.10)",
-        accent,
+        accent: c.couleurs.accent,
       }
     : {
         clair: false,
         texte: "#FFFFFF",
         doux: "rgba(255,255,255,0.78)",
-        carte: "rgba(12,12,14,0.62)",
+        carte: "rgba(22,22,24,0.85)",
         bordure: "rgba(255,255,255,0.16)",
         piste: "rgba(255,255,255,0.18)",
-        accent,
+        accent: c.couleurs.accent,
       };
+
+/** Zone des animations : du haut de l'écran jusqu'à `animations.zoneBas` (en % de la hauteur). */
+export const zoneAnimations = (c: Config) => ({ top: 150, bottom: Math.round(c.animations.zoneBas * H) });
