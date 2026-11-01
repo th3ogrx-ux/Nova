@@ -1,35 +1,33 @@
 {
   "scenes": [
-    { "type": "titre", "debut": 0.2, "duree": 2.0, "texte": "Tu postes", "italique": "qu'à tes abonnés ?" },
-    { "type": "titre", "debut": 2.35, "duree": 1.7, "texte": "Les Reels", "italique": "d'essai" },
-    { "type": "titre", "debut": 4.8, "duree": 1.5, "texte": "Grosse erreur", "sousTitre": "poster qu'à tes abonnés" },
-    {
-      "type": "comparaison", "debut": 8.6, "duree": 3.0, "titre": "Qui voit ton Reel ?",
-      "a": { "nom": "Normal", "points": ["Tes abonnés"] },
-      "b": { "nom": "D'essai", "points": ["Tes abonnés", "+ des inconnus"] }
-    },
-    {
-      "type": "liste", "debut": 14.2, "duree": 2.9, "titre": "Teste 3 accroches",
-      "elements": ["Reel 1 : accroche A", "Reel 2 : accroche B", "Reel 3 : accroche C"]
-    },
-    {
-      "type": "courbe", "debut": 17.8, "duree": 2.2, "titre": "Exemple : vues par accroche",
-      "points": [2, 5, 4, 9, 14], "libelles": ["1", "2", "3", "4", "5"]
-    },
-    {
-      "type": "score", "debut": 20.2, "duree": 1.8, "titre": "Exemple : score",
+    { "type": "titre", "debut": 0.0, "duree": 2.05, "texte": "Tu postes", "surligne": "qu'à tes abonnés ?" },
+    { "type": "orbite", "debut": 2.1, "duree": 1.95, "centre": "Reels d'essai",
+      "icones": ["play", "users", "flask", "target", "trend", "heart"] },
+    { "type": "titre", "debut": 4.1, "duree": 2.0, "texte": "Une grosse", "surligne": "erreur", "secousse": true },
+    { "type": "profil", "debut": 6.2, "duree": 2.25, "titre": "Hyper puissants",
+      "tuiles": ["1,2K", "860", "3,4K", "1,9K", "540", "2,1K"], "vedette": { "index": 4, "valeur": 58000 } },
+    { "type": "compteurs", "debut": 8.5, "duree": 3.0, "titre": "Exemple : la portée",
+      "elements": [
+        { "icone": "users", "nom": "Tes abonnés", "valeur": 842 },
+        { "icone": "eye", "nom": "Des inconnus qui te voient", "valeur": 12480, "fort": true }
+      ] },
+    { "type": "titre", "debut": 11.6, "duree": 2.6, "texte": "Teste", "italique": "une seule chose" },
+    { "type": "liste", "debut": 14.3, "duree": 2.9, "titre": "3 Reels, 3 accroches",
+      "elements": ["Reel 1 : accroche A", "Reel 2 : accroche B", "Reel 3 : accroche C"] },
+    { "type": "courbe", "debut": 17.3, "duree": 2.8, "titre": "Exemple : vues par accroche",
+      "points": [2, 5, 3, 9, 6, 14, 12, 21], "axeX": "Jours", "axeY": "Vues", "etiquetteFinale": "x10" },
+    { "type": "score", "debut": 20.2, "duree": 1.85, "titre": "Exemple : score",
       "elements": [
         { "nom": "Accroche 1", "valeur": 5, "max": 10 },
         { "nom": "Accroche 2", "valeur": 9, "max": 10 },
         { "nom": "Accroche 3", "valeur": 7, "max": 10 }
-      ]
-    },
-    { "type": "titre", "debut": 22.2, "duree": 2.0, "texte": "Le gagnant", "italique": "passe en reel normal" },
-    { "type": "titre", "debut": 24.4, "duree": 3.4, "texte": "Un Reel, ça se teste", "italique": "pas au hasard" },
-    {
-      "type": "liste", "debut": 28.0, "duree": 3.4, "titre": "Ta marque",
-      "elements": ["Tu veux la créer", "Tu veux la scaler"]
-    },
-    { "type": "titre", "debut": 31.8, "duree": 3.8, "texte": "Commente", "italique": "MARQUE", "sousTitre": "diagnostic gratuit" }
+      ] },
+    { "type": "profil", "debut": 22.1, "duree": 2.15, "titre": "Le gagnant passe en Reel normal", "abonnes": { "de": 842, "a": 1280 },
+      "tuiles": ["2,6K", "5,1K", "1,8K", "3,2K", "4,4K", "2,9K"], "vedette": { "index": 1, "valeur": 58000 } },
+    { "type": "titre", "debut": 24.3, "duree": 2.05, "texte": "Un Reel,", "italique": "ça se teste" },
+    { "type": "titre", "debut": 26.4, "duree": 1.55, "texte": "Ça ne se pose", "surligne": "pas au hasard" },
+    { "type": "orbite", "debut": 28.0, "duree": 3.5, "centre": "Ta marque",
+      "icones": ["tag", "trend", "star", "users", "trophy", "gift"], "sousTitre": "la créer ou la scaler" },
+    { "type": "titre", "debut": 31.6, "duree": 4.0, "texte": "Commente", "surligne": "MARQUE", "sousTitre": "diagnostic gratuit", "secousse": true }
   ]
 }

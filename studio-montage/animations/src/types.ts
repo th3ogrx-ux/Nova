@@ -1,4 +1,5 @@
 import type { Caption } from "@remotion/captions";
+import type { IconeNom } from "./Icones";
 
 /** Réglages de config.json. */
 export type Config = {
@@ -11,7 +12,19 @@ export type Config = {
 };
 
 export type Scene =
-  | { type: "titre"; debut: number; duree: number; texte: string; italique?: string; sousTitre?: string }
+  | {
+      type: "titre";
+      debut: number;
+      duree: number;
+      texte: string;
+      /** Mot(s) sur une barre rouge qui balaie l'écran. */
+      surligne?: string;
+      /** Mot(s) en serif italique rouge. */
+      italique?: string;
+      sousTitre?: string;
+      /** Petit tremblement à l'arrivée. */
+      secousse?: boolean;
+    }
   | {
       type: "comparaison";
       debut: number;
@@ -21,7 +34,38 @@ export type Scene =
       b: { nom: string; points: string[] };
     }
   | { type: "liste"; debut: number; duree: number; titre: string; elements: string[] }
-  | { type: "courbe"; debut: number; duree: number; titre: string; points: number[]; libelles?: string[] }
+  | {
+      type: "courbe";
+      debut: number;
+      duree: number;
+      titre: string;
+      points: number[];
+      libelles?: string[];
+      axeX?: string;
+      axeY?: string;
+      /** Bulle affichée sur le dernier point (par ex. "x10"). */
+      etiquetteFinale?: string;
+    }
+  | {
+      type: "profil";
+      debut: number;
+      duree: number;
+      titre?: string;
+      compte?: string;
+      abonnes?: { de: number; a: number };
+      /** Vues affichées sur chaque tuile (6 tuiles). */
+      tuiles: string[];
+      /** La tuile qui grossit et compte jusqu'à `valeur`. */
+      vedette: { index: number; valeur: number };
+    }
+  | {
+      type: "compteurs";
+      debut: number;
+      duree: number;
+      titre?: string;
+      elements: { icone: IconeNom; nom: string; valeur: number; fort?: boolean }[];
+    }
+  | { type: "orbite"; debut: number; duree: number; centre: string; icones: IconeNom[]; sousTitre?: string }
   | {
       type: "score";
       debut: number;

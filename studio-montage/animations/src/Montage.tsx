@@ -3,6 +3,7 @@ import { AbsoluteFill, Audio, Img, OffthreadVideo, staticFile } from "remotion";
 import { FondPage } from "./Fonds";
 import { SousTitres } from "./SousTitres";
 import { SceneComparaison, SceneCourbe, SceneListe, SceneScore, SceneTitre } from "./scenes";
+import { SceneCompteurs, SceneOrbite, SceneProfil } from "./ScenesPlus";
 import { H, L, themeDe, zoneAnimations } from "./theme";
 import type { MontageProps, Scene } from "./types";
 
@@ -47,6 +48,12 @@ export const Montage: React.FC<MontageProps> = ({ config: c, scenes, mots, perso
         return <SceneCourbe key={i} s={s} t={t} z={z} />;
       case "score":
         return <SceneScore key={i} s={s} t={t} z={z} />;
+      case "profil":
+        return <SceneProfil key={i} s={s} t={t} z={z} />;
+      case "compteurs":
+        return <SceneCompteurs key={i} s={s} t={t} z={z} />;
+      case "orbite":
+        return <SceneOrbite key={i} s={s} t={t} z={z} />;
     }
   };
 
