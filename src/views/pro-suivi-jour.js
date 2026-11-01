@@ -238,7 +238,10 @@ export async function renderSuiviJour(root) {
         <div class="error-msg" data-merr></div>
         <div class="modal-actions"><button type="button" class="btn ghost" data-close>Annuler</button><button type="submit" class="btn primary">Enregistrer</button></div></form>`, { maxWidth: 520, lockOutside: true });
     const listEl = overlay.querySelector("[data-mlist]"), err = overlay.querySelector("[data-merr]");
-    const wireDel = (el) => el.querySelector("[data-del]").addEventListener("click", () => { el.dataset.removed = "1"; el.hidden = true; });
+    const wireDel = (el) => el.querySelector("[data-del]").addEventListener("click", () => {
+      if (!el.dataset.id) { el.remove(); return; }            // nouvelle ligne pas encore enregistrée : on l'enlève simplement
+      el.dataset.removed = "1"; el.hidden = true; el.style.display = "none"; // ancienne : supprimée à l'enregistrement
+    });
     listEl.querySelectorAll(".sj-mrow").forEach(wireDel);
     overlay.querySelector("[data-madd]").addEventListener("click", () => {
       const n = editable.length + listEl.querySelectorAll(".sj-mrow:not([data-id])").length + 1;

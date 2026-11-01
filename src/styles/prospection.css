@@ -645,3 +645,4 @@ i.pro-cell.l1 { background: rgba(225, 29, 46, .28); } i.pro-cell.l2 { background
 }
 .sj-history td.sj-h-strat { text-align: left; font-weight: 600; }
 .sj-history th:nth-child(2) { text-align: left; }
+.sj-mrow[hidden] { display: none; }
