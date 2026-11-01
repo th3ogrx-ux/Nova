@@ -12,6 +12,17 @@ export type Config = {
   /** Titre qui reste en haut de la vidéo, du début à la fin. */
   /** Gros plan : votre tête en grand, plein écran, sur la photo du cadre. */
   gros_plan?: { hauteurTetePx: number; hautTeteEcran: number; y: number; taille: number; zoom: number };
+  /** Format horizontal 1920×1080 : tête dans un rectangle au milieu, sous-titres en dessous. */
+  horizontal?: {
+    largeur: number;
+    hauteur: number;
+    titre: { y: number; taille: number };
+    cadre: { x: number; largeur: number; haut: number; hauteur: number; rayon: number };
+    tete: { hauteurPx: number; debordement: number };
+    sous_titres: { y: number; taille: number; marge: number };
+    cta: { y: number; taille: number };
+    epaulesPx: number;
+  };
   titre_fixe?: { actif: boolean; ligne1: string; ligne2?: string; y: number; hauteur: number };
 };
 
@@ -37,7 +48,15 @@ export type Scene =
       a: { nom: string; points: string[] };
       b: { nom: string; points: string[] };
     }
-  | { type: "liste"; debut: number; duree: number; titre: string; elements: string[] }
+  | {
+      type: "liste";
+      debut: number;
+      duree: number;
+      titre: string;
+      elements: string[];
+      /** Secondes (depuis le début de la scène) où chaque ligne apparaît ; sinon une ligne toutes les 0,27 s. */
+      apparitions?: number[];
+    }
   | {
       type: "courbe";
       debut: number;
@@ -80,7 +99,11 @@ export type Scene =
 
 export type GrosPlan = { debut: number; duree: number };
 
+export type CtaH = { debut: number; duree: number; texte: string; mot: string; fin: string };
+
 export type MontageProps = {
+  /** Format horizontal : appel à l'action en bas. */
+  cta?: CtaH | null;
   /** Moments où la tête passe en gros plan plein écran (en secondes). */
   grosPlans?: GrosPlan[];
   config: Config;

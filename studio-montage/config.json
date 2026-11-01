@@ -47,5 +47,34 @@
     "y": 0.72,
     "taille": 100,
     "zoom": 1.08
+  },
+  "horizontal": {
+    "largeur": 1920,
+    "hauteur": 1080,
+    "titre": {
+      "y": 34,
+      "taille": 86
+    },
+    "cadre": {
+      "x": 360,
+      "largeur": 1200,
+      "haut": 292,
+      "hauteur": 540,
+      "rayon": 40
+    },
+    "tete": {
+      "hauteurPx": 410,
+      "debordement": 0.22
+    },
+    "sous_titres": {
+      "y": 902,
+      "taille": 66,
+      "marge": 360
+    },
+    "cta": {
+      "y": 985,
+      "taille": 46
+    },
+    "epaulesPx": 330
   }
 }

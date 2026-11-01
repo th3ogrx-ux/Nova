@@ -195,7 +195,7 @@ export const SceneListe: React.FC<P<"liste">> = ({ s, t, z }) => {
           {s.titre}
         </div>
         {s.elements.map((el, i) => {
-          const e = useDecale(a.local, a.fps, i + 1, 9);
+          const e = s.apparitions && s.apparitions[i] !== undefined ? useRebond(a.local, a.fps, Math.round(s.apparitions[i] * a.fps)) : useDecale(a.local, a.fps, i + 1, 9);
           return (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 24, opacity: e, transform: `translateX(${(1 - e) * -60}px)` }}>
               <div style={{ flex: "0 0 66px", height: 66, borderRadius: "50%", background: t.accent, color: "#fff", fontSize: 34, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>

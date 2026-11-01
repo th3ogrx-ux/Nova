@@ -29,6 +29,7 @@ const drapeau = (nom) => {
 const fichierScenes = opt("--scenes", path.join(RACINE, "scenes.json"));
 const fichierConfig = opt("--config", path.join(RACINE, "config.json"));
 const fondOpt = opt("--fond", ""); // blanc | noir (remplace config.json pour ce rendu)
+const format = opt("--format", "vertical"); // vertical (1080x1920) | horizontal (1920x1080)
 const nomSortie = opt("--sortie", "video.mp4");
 const langue = opt("--langue", "fr");
 const vocabulaire = opt("--vocabulaire", "");
@@ -45,6 +46,7 @@ if (aide) {
   --scenes fichier.json     animations (défaut : scenes.json)
   --config fichier.json     réglages (défaut : config.json)
   --fond blanc|noir         remplace le fond de config.json pour ce rendu
+  --format vertical|horizontal  vertical = 1080x1920 (défaut) ; horizontal = 1920x1080, tête dans un rectangle
   --sortie nom.mp4          nom du fichier dans sortie/ (défaut : video.mp4)
   --langue fr               langue parlée
   --vocabulaire "Reels, Instagram"   mots que la transcription doit bien reconnaître
@@ -100,6 +102,24 @@ const frais = (f) => !refaire && fs.existsSync(f) && fs.statSync(f).mtimeMs > fs
 
 console.log(`Vidéo  : ${video}\nSortie : ${sortie}`);
 
+// ---------- transcription (fonction : utilisable avant la découpe avec --transcrire-seulement) ----------
+function transcrire(numero) {
+  etape(numero, "Transcription de la voix (Whisper en local)");
+  if (fs.existsSync(motsFichier) && !retranscrire && !refaire) {
+    console.log(`  (je garde ta transcription : ${path.relative(RACINE, motsFichier)})`);
+  } else {
+    // Si tu as le texte exact de la vidéo dans entree/<nom>.script.txt, il corrige les mots mal reconnus.
+    const scriptTexte = path.join(RACINE, "entree", `${nom}.script.txt`);
+    lancer(PYTHON, [path.join(RACINE, "outils", "transcrire.py"), video, motsFichier, "--langue", langue,
+      ...(vocabulaire ? ["--vocabulaire", vocabulaire] : []), ...(fs.existsSync(scriptTexte) ? ["--script", scriptTexte] : [])]);
+  }
+}
+if (transcrireSeulement) {
+  transcrire(1);
+  console.log(`\nTranscription prête : ${motsFichier}\nCorrige les mots (champ « text », garde l'espace devant chaque mot), puis relance : node montage.js`);
+  process.exit(0);
+}
+
 // ---------- 1) découpe ----------
 const masque = path.join(tmp, "masque.mkv");
 etape(1, "Découpe de la silhouette (RVM sur processeur : environ 5 min par minute de vidéo)");
@@ -107,30 +127,19 @@ if (frais(masque)) console.log("  (déjà faite, je la réutilise)");
 else lancer(PYTHON, [path.join(RACINE, "outils", "matting.py"), video, masque, "--moteur", "rvm", "--ratio", qualite]);
 
 // ---------- 2) silhouette transparente ----------
-const personne = path.join(tmp, "personne.webm");
-const mesuresF = path.join(tmp, "mesures.json");
+const personne = path.join(tmp, format === "horizontal" ? "personne-h.webm" : "personne.webm");
+const mesuresF = path.join(tmp, format === "horizontal" ? "mesures-h.json" : "mesures.json");
 etape(2, "Silhouette transparente (contour nettoyé, sans liseré)");
 if (frais(personne) && fs.existsSync(mesuresF)) console.log("  (déjà faite, je la réutilise)");
 else {
   const cfg = JSON.parse(fs.readFileSync(fichierConfig, "utf8"));
-  const ext = epaulesOpt !== "" ? epaulesOpt : String(cfg.tete && cfg.tete.epaulesPx !== undefined ? cfg.tete.epaulesPx : 150);
+  const defautEp = format === "horizontal" ? (cfg.horizontal && cfg.horizontal.epaulesPx) : (cfg.tete && cfg.tete.epaulesPx);
+  const ext = epaulesOpt !== "" ? epaulesOpt : String(defautEp !== undefined ? defautEp : 150);
   lancer(PYTHON, [path.join(RACINE, "outils", "personne_alpha.py"), video, masque, personne, mesuresF, "--epaules", ext]);
 }
 
 // ---------- 3) transcription ----------
-etape(3, "Transcription de la voix (Whisper en local)");
-if (fs.existsSync(motsFichier) && !retranscrire && !refaire) {
-  console.log(`  (je garde ta transcription : ${path.relative(RACINE, motsFichier)})`);
-} else {
-  // Si tu as le texte exact de la vidéo dans entree/<nom>.script.txt, il corrige les mots mal reconnus.
-  const scriptTexte = path.join(RACINE, "entree", `${nom}.script.txt`);
-  lancer(PYTHON, [path.join(RACINE, "outils", "transcrire.py"), video, motsFichier, "--langue", langue,
-    ...(vocabulaire ? ["--vocabulaire", vocabulaire] : []), ...(fs.existsSync(scriptTexte) ? ["--script", scriptTexte] : [])]);
-}
-if (transcrireSeulement) {
-  console.log(`\nTranscription prête : ${motsFichier}\nCorrige les mots (champ « text », garde l'espace devant chaque mot), puis relance : node montage.js`);
-  process.exit(0);
-}
+transcrire(3);
 
 // ---------- 4) animations + export ----------
 etape(4, "Animations Remotion et export MP4 1080x1920, 30 images/s, son d'origine");
@@ -143,11 +152,15 @@ lancer("ffmpeg", ["-v", "error", "-y", "-i", video, "-vn", ...(normaliser ? ["-a
   "-ar", "48000", "-ac", "2", "-c:a", "aac", "-b:a", "192k", path.join(pub, "audio.m4a")]);
 
 const config = JSON.parse(fs.readFileSync(fichierConfig, "utf8"));
+const fichierScenesJson = JSON.parse(fs.readFileSync(fichierScenes, "utf8"));
+// Le titre du haut propre à cette vidéo (clé « titreFixe » du fichier de scènes) remplace celui de config.json.
+if (fichierScenesJson.titreFixe) config.titre_fixe = { ...(config.titre_fixe || { actif: true, y: 150, hauteur: 200 }), ...fichierScenesJson.titreFixe };
 if (fondOpt) config.fond = fondOpt;
 const props = {
   config,
   scenes: JSON.parse(fs.readFileSync(fichierScenes, "utf8")).scenes,
-  grosPlans: JSON.parse(fs.readFileSync(fichierScenes, "utf8")).grosPlans || [],
+  grosPlans: format === "horizontal" ? [] : fichierScenesJson.grosPlans || [],
+  cta: format === "horizontal" ? (fichierScenesJson.horizontal && fichierScenesJson.horizontal.cta) || null : null,
   mots: JSON.parse(fs.readFileSync(motsFichier, "utf8")),
   dureeSecondes: parseFloat(sonde(video, "format=duration")) || 10,
   personne: "personne.webm",
@@ -158,7 +171,7 @@ const props = {
 const fichierProps = path.join(tmp, "props.json");
 fs.writeFileSync(fichierProps, JSON.stringify(props));
 
-const rendu = ["remotion", "render", "src/index.ts", "Montage", sortie, `--props=${fichierProps}`, "--crf=18",
+const rendu = ["remotion", "render", "src/index.ts", format === "horizontal" ? "MontageH" : "Montage", sortie, `--props=${fichierProps}`, "--crf=18",
   "--concurrency=" + Math.max(1, Math.min(8, os.cpus().length))];
 // Chrome : celui du système si on l'indique (CHROME_PATH), sinon Remotion télécharge le sien.
 const chrome = process.env.CHROME_PATH || (fs.existsSync("/opt/pw-browsers/chromium") ? "/opt/pw-browsers/chromium" : "");

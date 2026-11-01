@@ -25,10 +25,13 @@ export const SousTitres: React.FC<{
   c: Config;
   /** Gros plan : texte blanc, plus grand, avec ombre, à une autre hauteur. */
   gros?: { taille: number; y: number };
-}> = ({ mots, c, gros }) => {
+  /** Format horizontal : position verticale (centre, en px), taille et marge latérale (px). */
+  libre?: { yPx: number; taille: number; marge: number };
+}> = ({ mots, c, gros, libre }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const st = gros ? { ...c.sous_titres, couleur: "#FFFFFF", taille: gros.taille, y: gros.y } : c.sous_titres;
+  const st0 = gros ? { ...c.sous_titres, couleur: "#FFFFFF", taille: gros.taille, y: gros.y } : c.sous_titres;
+  const st = libre ? { ...st0, taille: libre.taille } : st0;
   const pages = useMemo(() => {
     const { pages: brutes } = createTikTokStyleCaptions({
       captions: mots.map((m) => ({ ...m, pageBreakAfter: /[.,?!]\s*$/.test(m.text) })),
@@ -47,9 +50,9 @@ export const SousTitres: React.FC<{
     <div
       style={{
         position: "absolute",
-        left: MARGE,
-        right: MARGE,
-        top: Math.round(st.y * H) - (gros ? 130 : 60),
+        left: libre ? libre.marge : MARGE,
+        right: libre ? libre.marge : MARGE,
+        top: libre ? libre.yPx - 60 : Math.round(st.y * H) - (gros ? 130 : 60),
         height: gros ? 260 : 120,
         display: "flex",
         alignItems: "center",

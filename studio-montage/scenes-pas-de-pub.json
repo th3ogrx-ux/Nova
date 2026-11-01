@@ -1,0 +1,129 @@
+{
+  "titreFixe": {
+    "ligne1": "Pas de pub",
+    "ligne2": "au début"
+  },
+  "scenes": [
+    {
+      "type": "titre",
+      "debut": 0.0,
+      "duree": 2.05,
+      "texte": "Tu démarres",
+      "surligne": "ta marque ?"
+    },
+    {
+      "type": "titre",
+      "debut": 2.1,
+      "duree": 1.3,
+      "texte": "Ne crame pas tout",
+      "surligne": "dans les ads",
+      "secousse": true
+    },
+    {
+      "type": "orbite",
+      "debut": 6.45,
+      "duree": 2.95,
+      "centre": "Organique",
+      "icones": [
+        "play",
+        "heart",
+        "chat",
+        "users",
+        "trend",
+        "star"
+      ],
+      "sousTitre": "Instagram + TikTok"
+    },
+    {
+      "type": "titre",
+      "debut": 9.45,
+      "duree": 1.6,
+      "texte": "Tous les jours",
+      "surligne": "sans exception"
+    },
+    {
+      "type": "titre",
+      "debut": 11.1,
+      "duree": 2.1,
+      "texte": "3 types",
+      "italique": "de formats"
+    },
+    {
+      "type": "liste",
+      "debut": 13.3,
+      "duree": 4.7,
+      "titre": "Les 3 formats",
+      "elements": [
+        "Questions à l'audience",
+        "Pièces portées",
+        "Fabrications"
+      ],
+      "apparitions": [
+        0.6,
+        1.9,
+        3.7
+      ]
+    },
+    {
+      "type": "profil",
+      "debut": 18.05,
+      "duree": 2.9,
+      "titre": "Exemple : la vidéo qui marche",
+      "tuiles": [
+        "1,2K",
+        "860",
+        "3,4K",
+        "1,9K",
+        "540",
+        "2,1K"
+      ],
+      "vedette": {
+        "index": 4,
+        "valeur": 42000
+      }
+    },
+    {
+      "type": "titre",
+      "debut": 24.45,
+      "duree": 3.55,
+      "texte": "Commente",
+      "surligne": "MARQUE",
+      "sousTitre": "si tu veux lancer ta marque",
+      "secousse": true
+    },
+    {
+      "type": "orbite",
+      "debut": 28.05,
+      "duree": 3.28,
+      "centre": "Diagnostic gratuit",
+      "icones": [
+        "clipboard",
+        "gift",
+        "check",
+        "star",
+        "trend",
+        "trophy"
+      ],
+      "sousTitre": "envoyé en direct"
+    }
+  ],
+  "grosPlans": [
+    {
+      "debut": 3.45,
+      "duree": 2.95
+    },
+    {
+      "debut": 21.0,
+      "duree": 3.05
+    }
+  ],
+  "horizontal": {
+    "cta": {
+      "debut": 24.5,
+      "duree": 6.83,
+      "texte": "Commente",
+      "mot": "MARQUE",
+      "fin": "si tu veux lancer ta marque"
+    }
+  }
+}

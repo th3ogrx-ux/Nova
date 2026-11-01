@@ -1,6 +1,7 @@
 import React from "react";
 import { Composition } from "remotion";
 import { Montage } from "./Montage";
+import { MontageH } from "./MontageH";
 import type { Config, MontageProps, Scene } from "./types";
 import config from "../../config.json";
 import scenes from "../../scenes.json";
@@ -17,6 +18,7 @@ const defaut: MontageProps = {
 };
 
 export const RemotionRoot: React.FC = () => (
+  <>
   <Composition
     id="Montage"
     component={Montage}
@@ -29,4 +31,17 @@ export const RemotionRoot: React.FC = () => (
       durationInFrames: Math.max(1, Math.round(props.dureeSecondes * 30)),
     })}
   />
+  <Composition
+    id="MontageH"
+    component={MontageH}
+    width={1920}
+    height={1080}
+    fps={30}
+    durationInFrames={480}
+    defaultProps={defaut}
+    calculateMetadata={({ props }) => ({
+      durationInFrames: Math.max(1, Math.round(props.dureeSecondes * 30)),
+    })}
+  />
+  </>
 );
