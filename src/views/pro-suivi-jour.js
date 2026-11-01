@@ -4,7 +4,7 @@ import { supabase } from "../supabase.js";
 import { getDataOwnerId, can } from "../session.js";
 import { dateKey, parseKey, addDays, mondayOf, escapeHtml, fmtInt, fmtPct, shortDay } from "./pro-data.js";
 import { sparkline, funnel, lineChart, runCounters } from "./pro-charts.js";
-import { skeleton, toast, friendlyError, openModal, modalHeader } from "./pro-ui.js";
+import { skeleton, toast, friendlyError, openModal, modalHeader, copyText } from "./pro-ui.js";
 
 const FIELDS = [
   { key: "dm", label: "DM envoyés", color: "var(--warm-1)" },
@@ -101,7 +101,7 @@ export async function renderSuiviJour(root) {
             <div class="sj-line sj-line-head" aria-hidden="true"><span>Stratégie</span>${FIELDS.map((f) => `<span>${f.label}</span>`).join("")}</div>
             ${list.map((s) => { const l = lineOf(s.id, state.day); return `
             <div class="sj-line" data-sid="${s.id}">
-              <div class="sj-line-name"><b>${escapeHtml(s.nom)}</b>${s.note ? `<small>${escapeHtml(s.note)}</small>` : ""}</div>
+              <div class="sj-line-name"><b>${escapeHtml(s.nom)}</b>${s.note ? `<small>${escapeHtml(s.note)}</small>` : ""}${s.script ? `<button type="button" class="sj-script-btn" data-script="${s.id}">📝 Voir le script</button>` : ""}</div>
               ${FIELDS.map((f) => `<div class="sj-cell" style="--c:${f.color}" data-label="${f.label}">
                 <div class="sj-step"><button type="button" data-step="-1" aria-label="Retirer 1 : ${escapeHtml(s.nom)}, ${f.label}"${canEdit ? "" : " disabled"}>−</button>
                   <input name="${f.key}" type="number" inputmode="numeric" min="0" max="100000" value="${l[f.key] || 0}" aria-label="${escapeHtml(s.nom)} : ${f.label}"${canEdit ? "" : " disabled"}>
@@ -217,11 +217,22 @@ export async function renderSuiviJour(root) {
     root.querySelectorAll("[data-day-nav]").forEach((b) => b.addEventListener("click", () => goDay(dateKey(addDays(parseKey(state.day), Number(b.dataset.dayNav))))));
     root.querySelectorAll("[data-period]").forEach((b) => b.addEventListener("click", () => { state.period = b.dataset.period; draw(); }));
     root.querySelectorAll("[data-manage]").forEach((b) => b.addEventListener("click", manage));
+    root.querySelectorAll("[data-script]").forEach((b) => b.addEventListener("click", () => showScript(strategies.find((x) => x.id === b.dataset.script))));
     root.querySelectorAll("[data-pick]").forEach((tr) => {
       const pick = () => { state.day = tr.dataset.pick; draw(); const main = root.closest(".main"); if (main) main.scrollTop = 0; };
       tr.addEventListener("click", pick);
       tr.addEventListener("keydown", (e) => { if (e.key === "Enter") pick(); });
     });
+  }
+
+  // Le script d'une stratégie : lu en grand, copiable en un clic.
+  function showScript(st) {
+    if (!st) return;
+    const { overlay } = openModal(`${modalHeader("Script : " + st.nom)}
+      ${st.note ? `<p class="pro-muted" style="margin:0 0 10px;">${escapeHtml(st.note)}</p>` : ""}
+      <div class="sj-script-box">${escapeHtml(st.script || "")}</div>
+      <div class="modal-actions"><button type="button" class="btn ghost" data-close>Fermer</button><button type="button" class="btn primary" data-copy-script>Copier le script</button></div>`, { maxWidth: 520 });
+    overlay.querySelector("[data-copy-script]").addEventListener("click", async () => toast((await copyText(st.script || "")) ? "Script copié ✓" : "Copie impossible"));
   }
 
   // Fenêtre « Gérer mes stratégies » : renommer, décrire, ajouter, supprimer.
@@ -230,7 +241,8 @@ export async function renderSuiviJour(root) {
     const rowHtml = (s) => `<div class="sj-mrow" data-id="${s ? s.id : ""}">
       <div class="sj-mrow-top"><input type="text" data-f="nom" maxlength="80" placeholder="Ex : Insta 1 : compliment + audit" value="${escapeHtml(s ? s.nom : "")}" aria-label="Nom de la stratégie">
         <button type="button" class="btn ghost btn-sm sj-mdel" data-del aria-label="Supprimer cette stratégie">✕</button></div>
-      <input type="text" data-f="note" maxlength="500" placeholder="En quoi elle consiste : le message utilisé, la cible…" value="${escapeHtml(s && s.note ? s.note : "")}" aria-label="Description"></div>`;
+      <input type="text" data-f="note" maxlength="500" placeholder="En quoi elle consiste : la cible, l'idée…" value="${escapeHtml(s && s.note ? s.note : "")}" aria-label="Description">
+      <textarea data-f="script" rows="4" maxlength="4000" placeholder="Script : le message que tu envoies en DM (tu pourras le copier en un clic)" aria-label="Script">${escapeHtml(s && s.script ? s.script : "")}</textarea></div>`;
     const { overlay, close } = openModal(`${modalHeader("Mes stratégies")}
       <p class="pro-muted" style="margin:0 0 12px;">Renomme-les, décris-les en une phrase, ajoutes-en ou supprime-en. Pour supprimer : clique sur ✕, puis sur « Enregistrer ». Cela supprime aussi ses chiffres.</p>
       <form data-mform><div data-mlist>${editable.map(rowHtml).join("")}</div>
@@ -251,7 +263,7 @@ export async function renderSuiviJour(root) {
     overlay.querySelector("[data-mform]").addEventListener("submit", async (e) => {
       e.preventDefault(); err.textContent = "";
       const user = await owner();
-      const items = [...listEl.querySelectorAll(".sj-mrow")].map((el, i) => ({ el, id: el.dataset.id || null, removed: !!el.dataset.removed, nom: el.querySelector('[data-f="nom"]').value.trim(), note: el.querySelector('[data-f="note"]').value.trim() || null, position: i }));
+      const items = [...listEl.querySelectorAll(".sj-mrow")].map((el, i) => ({ el, id: el.dataset.id || null, removed: !!el.dataset.removed, nom: el.querySelector('[data-f="nom"]').value.trim(), note: el.querySelector('[data-f="note"]').value.trim() || null, script: el.querySelector('[data-f="script"]').value.trim() || null, position: i }));
       const live = items.filter((x) => !x.removed);
       if (live.some((x) => !x.nom)) { err.textContent = "Chaque stratégie doit avoir un nom."; return; }
       const names = live.map((x) => x.nom.toLowerCase());
@@ -262,10 +274,10 @@ export async function renderSuiviJour(root) {
       try {
         for (const x of dels) { const { error } = await supabase.from("suivi_strategies").delete().eq("id", x.id); if (error) throw error; }
         // Renommage en deux temps : évite un conflit de nom quand on échange deux noms.
-        for (const x of live.filter((y) => y.id)) { const { error } = await supabase.from("suivi_strategies").update({ nom: x.nom + "​", note: x.note, position: x.position }).eq("id", x.id); if (error) throw error; }
+        for (const x of live.filter((y) => y.id)) { const { error } = await supabase.from("suivi_strategies").update({ nom: x.nom + "​", note: x.note, script: x.script, position: x.position }).eq("id", x.id); if (error) throw error; }
         for (const x of live.filter((y) => y.id)) { const { error } = await supabase.from("suivi_strategies").update({ nom: x.nom }).eq("id", x.id); if (error) throw error; }
         const fresh = live.filter((y) => !y.id);
-        if (fresh.length) { const { error } = await supabase.from("suivi_strategies").insert(fresh.map((x) => ({ user_id: user, nom: x.nom, note: x.note, position: x.position }))); if (error) throw error; }
+        if (fresh.length) { const { error } = await supabase.from("suivi_strategies").insert(fresh.map((x) => ({ user_id: user, nom: x.nom, note: x.note, script: x.script, position: x.position }))); if (error) throw error; }
         const reloaded = await load();
         strategies = reloaded.strategies; rows = reloaded.rows;
         close(); toast("Stratégies enregistrées ✓"); draw();

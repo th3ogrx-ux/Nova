@@ -64,6 +64,9 @@ begin
   end loop;
 end $$;
 
+-- Script de la stratégie : le message envoyé en DM (ajouté après coup, relançable).
+alter table public.suivi_strategies add column if not exists script text check (char_length(script) <= 4000);
+
 -- ---------- Départ : « Sans stratégie » (anciens chiffres) + Insta 1, 2, 3 ----------
 do $$
 declare v_admin uuid; v_none uuid;
