@@ -5,18 +5,18 @@ import { renderScripts } from "./pro-scripts.js";
 import { renderSuiviJour } from "./pro-suivi-jour.js";
 
 const TABS = [
-  { key: "scripts", label: "Offres", render: renderScripts, skel: "dashboard" },
-  { key: "suivi", label: "Suivi quotidien", render: (pane) => renderSuiviJour(pane), skel: "dashboard" }
+  { key: "suivi", label: "Suivi quotidien", render: (pane) => renderSuiviJour(pane), skel: "dashboard" },
+  { key: "scripts", label: "Offres", render: renderScripts, skel: "dashboard" }
 ];
 const TAB_KEY = "zenoa-pro-tab";
 
 // L'état (onglet, vue, période…) survit aux rafraîchissements de la page.
-const state = { tab: "scripts", detailId: null, stratView: "cards", period: "30", reviewOffset: 0 };
+const state = { tab: "suivi", detailId: null, stratView: "cards", period: "30", reviewOffset: 0 };
 try { const t = localStorage.getItem(TAB_KEY); if (TABS.some((x) => x.key === t)) state.tab = t; } catch { /* pas grave */ }
 
 export async function renderProspection(root) {
   root.innerHTML = `
-    <h1 class="page-title">Offres</h1>
+    <h1 class="page-title">Prospection</h1>
     <nav class="pro-tabs" role="tablist" aria-label="Sections">${TABS.map((t) => `<button type="button" role="tab" class="pro-tab" data-tab="${t.key}" aria-selected="false">${t.label}</button>`).join("")}</nav>
         <div class="pro-body" data-body aria-live="polite">${skeleton(TABS.find((t) => t.key === state.tab).skel)}</div>`;
   const body = root.querySelector("[data-body]");
