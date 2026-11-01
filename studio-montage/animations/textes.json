@@ -1,0 +1,46 @@
+{
+  "accent": "#E5303A",
+  "sousTitres": { "actif": true },
+  "scenes": [
+    {
+      "type": "titre",
+      "debut": 0.4,
+      "duree": 2.6,
+      "texte": "Teste tes Reels avant de les publier",
+      "sousTitre": "3 accroches, 1 gagnant"
+    },
+    {
+      "type": "comparaison",
+      "debut": 3.4,
+      "duree": 3.2,
+      "titre": "Reel d'essai ou reel normal ?",
+      "a": { "nom": "Normal", "points": ["Tes abonnés seulement", "Un seul essai"] },
+      "b": { "nom": "D'essai", "points": ["Des inconnus aussi", "3 accroches testées"] }
+    },
+    {
+      "type": "liste",
+      "debut": 7,
+      "duree": 3,
+      "titre": "La méthode",
+      "elements": ["Poste 3 accroches", "Compare les chiffres", "Garde la meilleure"]
+    },
+    {
+      "type": "score",
+      "debut": 10.4,
+      "duree": 3,
+      "titre": "Score des accroches",
+      "elements": [
+        { "nom": "Accroche 1", "valeur": 5, "max": 10 },
+        { "nom": "Accroche 2", "valeur": 9, "max": 10 },
+        { "nom": "Accroche 3", "valeur": 7, "max": 10 }
+      ]
+    },
+    {
+      "type": "fin",
+      "debut": 13.8,
+      "duree": 2.2,
+      "texte": "Commente MARQUE pour ton diagnostic gratuit",
+      "logo": "logo.png"
+    }
+  ]
+}

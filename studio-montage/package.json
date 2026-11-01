@@ -1,0 +1,10 @@
+{
+  "name": "studio-montage",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Studio de montage vidéo automatique : découpe, fond, animations, sous-titres",
+  "scripts": {
+    "montage": "node montage.js",
+    "installer": "node installer.js"
+  }
+}

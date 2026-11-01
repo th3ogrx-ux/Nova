@@ -1,0 +1,16 @@
+# Gros dossiers recréés par « node installer.js » : on ne les met pas dans git
+.venv/
+node_modules/
+animations/node_modules/
+modeles/
+
+# Vos vidéos et les résultats restent chez vous
+entree/*
+!entree/.gitkeep
+sortie/*
+!sortie/.gitkeep
+
+# Fichiers temporaires du rendu
+animations/public/camera.mp4
+animations/public/base.mp4
+__pycache__/
