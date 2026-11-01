@@ -42,9 +42,9 @@
     "hauteur": 200
   },
   "gros_plan": {
-    "hauteurTetePx": 820,
-    "hautTeteEcran": 330,
-    "y": 0.68,
+    "hauteurTetePx": 900,
+    "hautTeteEcran": 190,
+    "y": 0.66,
     "taille": 100,
     "zoom": 1.08
   }

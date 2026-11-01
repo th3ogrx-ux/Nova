@@ -44,7 +44,6 @@ export const Montage: React.FC<MontageProps> = ({ config: c, scenes, mots, perso
   const gx0 = (L - gvw) / 2;
   const gProg = gros ? (sec - gros.debut) / gros.duree : 0;
   const gZoom = 1 + (gp.zoom - 1) * gProg;
-  const tGros = { ...t, texte: "#FFFFFF" };
 
   // Les épaules sont coupées par les bords de la vidéo d'origine : on les estompe au lieu de les trancher net.
   const f = Math.max(0, Math.min(0.4, c.tete.fonduBords ?? 0.12)) * 100;
@@ -160,7 +159,8 @@ export const Montage: React.FC<MontageProps> = ({ config: c, scenes, mots, perso
         </div>
       )}
 
-      <TitreFixe c={c} t={g ? tGros : t} ombre={g} />
+      {/* Le titre du haut disparaît pendant les gros plans */}
+      {!g && <TitreFixe c={c} t={t} />}
       {audio && <Audio src={staticFile(audio)} />}
       {c.sous_titres.actif && <SousTitres mots={mots} c={c} gros={g ? { taille: gp.taille, y: gp.y } : undefined} />}
     </AbsoluteFill>
