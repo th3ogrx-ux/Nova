@@ -6,7 +6,7 @@ import { FONT, FONT_SERIF, L, MARGE, Theme } from "./theme";
 import type { Config } from "./types";
 
 /** Le titre qui reste en haut pendant toute la vidéo. Il arrive avec une petite animation, puis ne bouge plus. */
-export const TitreFixe: React.FC<{ c: Config; t: Theme }> = ({ c, t }) => {
+export const TitreFixe: React.FC<{ c: Config; t: Theme; ombre?: boolean }> = ({ c, t, ombre }) => {
   const tf = c.titre_fixe;
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -26,6 +26,7 @@ export const TitreFixe: React.FC<{ c: Config; t: Theme }> = ({ c, t }) => {
         alignItems: "center",
         textAlign: "center",
         fontFamily: FONT,
+        textShadow: ombre ? "0 3px 18px rgba(0,0,0,0.7)" : "none",
       }}
     >
       <div

@@ -10,6 +10,8 @@ export type Config = {
   sous_titres: { actif: boolean; police: string; taille: number; y: number; couleur: string; motsMax: number };
   animations: { zoneBas: number };
   /** Titre qui reste en haut de la vidéo, du début à la fin. */
+  /** Gros plan : votre tête en grand, plein écran, sur la photo du cadre. */
+  gros_plan?: { hauteurTetePx: number; hautTeteEcran: number; y: number; taille: number; zoom: number };
   titre_fixe?: { actif: boolean; ligne1: string; ligne2?: string; y: number; hauteur: number };
 };
 
@@ -76,7 +78,11 @@ export type Scene =
       elements: { nom: string; valeur: number; max?: number }[];
     };
 
+export type GrosPlan = { debut: number; duree: number };
+
 export type MontageProps = {
+  /** Moments où la tête passe en gros plan plein écran (en secondes). */
+  grosPlans?: GrosPlan[];
   config: Config;
   scenes: Scene[];
   mots: Caption[];

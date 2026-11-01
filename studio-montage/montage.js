@@ -147,6 +147,7 @@ if (fondOpt) config.fond = fondOpt;
 const props = {
   config,
   scenes: JSON.parse(fs.readFileSync(fichierScenes, "utf8")).scenes,
+  grosPlans: JSON.parse(fs.readFileSync(fichierScenes, "utf8")).grosPlans || [],
   mots: JSON.parse(fs.readFileSync(motsFichier, "utf8")),
   dureeSecondes: parseFloat(sonde(video, "format=duration")) || 10,
   personne: "personne.webm",

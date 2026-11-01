@@ -20,10 +20,15 @@ const decoupe = (pages: TikTokPage[], max: number): TikTokPage[] =>
   });
 
 /** Sous-titres mot par mot : 2 à 4 mots, apparition en léger zoom + fondu de 150 ms. */
-export const SousTitres: React.FC<{ mots: Caption[]; c: Config }> = ({ mots, c }) => {
+export const SousTitres: React.FC<{
+  mots: Caption[];
+  c: Config;
+  /** Gros plan : texte blanc, plus grand, avec ombre, à une autre hauteur. */
+  gros?: { taille: number; y: number };
+}> = ({ mots, c, gros }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const st = c.sous_titres;
+  const st = gros ? { ...c.sous_titres, couleur: "#FFFFFF", taille: gros.taille, y: gros.y } : c.sous_titres;
   const pages = useMemo(() => {
     const { pages: brutes } = createTikTokStyleCaptions({
       captions: mots.map((m) => ({ ...m, pageBreakAfter: /[.,?!]\s*$/.test(m.text) })),
@@ -44,19 +49,20 @@ export const SousTitres: React.FC<{ mots: Caption[]; c: Config }> = ({ mots, c }
         position: "absolute",
         left: MARGE,
         right: MARGE,
-        top: Math.round(st.y * H) - 60,
-        height: 120,
+        top: Math.round(st.y * H) - (gros ? 130 : 60),
+        height: gros ? 260 : 120,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         fontFamily: FONT,
-        fontWeight: 700,
+        fontWeight: gros ? 800 : 700,
         fontSize: st.taille,
         lineHeight: 1.1,
         letterSpacing: -0.5,
         textAlign: "center",
         whiteSpace: "pre",
         color: st.couleur,
+        textShadow: gros ? "0 4px 22px rgba(0,0,0,0.75), 0 2px 6px rgba(0,0,0,0.6)" : "none",
         opacity: e,
         transform: `scale(${0.92 + 0.08 * e})`,
       }}
