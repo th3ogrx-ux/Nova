@@ -32,6 +32,7 @@ const KEYWORDS: Record<string, IconName> = {
   mieux: "trophy",
   marque: "tag",
   vêtements: "tag",
+  vêtement: "tag",
   diagnostic: "clipboard",
   gratuitement: "gift",
 };
