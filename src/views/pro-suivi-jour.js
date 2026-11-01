@@ -232,7 +232,7 @@ export async function renderSuiviJour(root) {
         <button type="button" class="btn ghost btn-sm sj-mdel" data-del aria-label="Supprimer cette stratégie">✕</button></div>
       <input type="text" data-f="note" maxlength="500" placeholder="En quoi elle consiste : le message utilisé, la cible…" value="${escapeHtml(s && s.note ? s.note : "")}" aria-label="Description"></div>`;
     const { overlay, close } = openModal(`${modalHeader("Mes stratégies")}
-      <p class="pro-muted" style="margin:0 0 12px;">Renomme-les, décris-les en une phrase, ajoutes-en ou supprime-en. Supprimer une stratégie supprime aussi ses chiffres.</p>
+      <p class="pro-muted" style="margin:0 0 12px;">Renomme-les, décris-les en une phrase, ajoutes-en ou supprime-en. Pour supprimer : clique sur ✕, puis sur « Enregistrer ». Cela supprime aussi ses chiffres.</p>
       <form data-mform><div data-mlist>${editable.map(rowHtml).join("")}</div>
         <button type="button" class="btn ghost btn-sm" data-madd>+ Ajouter une stratégie</button>
         <div class="error-msg" data-merr></div>
