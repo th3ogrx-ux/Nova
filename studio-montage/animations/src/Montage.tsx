@@ -4,6 +4,7 @@ import { FondPage } from "./Fonds";
 import { SousTitres } from "./SousTitres";
 import { SceneComparaison, SceneCourbe, SceneListe, SceneScore, SceneTitre } from "./scenes";
 import { SceneCompteurs, SceneOrbite, SceneProfil } from "./ScenesPlus";
+import { TitreFixe } from "./TitreFixe";
 import { H, L, themeDe, zoneAnimations } from "./theme";
 import type { MontageProps, Scene } from "./types";
 
@@ -36,6 +37,13 @@ export const Montage: React.FC<MontageProps> = ({ config: c, scenes, mots, perso
   const masque = `linear-gradient(to right, transparent 0%, #000 ${f}%, #000 ${100 - f}%, transparent 100%)`;
   const fondu: React.CSSProperties = f > 0 ? { WebkitMaskImage: masque, maskImage: masque } : {};
 
+  // Le titre fixe prend de la place en haut : les animations sont réduites et descendues pour rester en dessous.
+  const tf = c.titre_fixe;
+  const reserve = tf && tf.actif ? tf.hauteur : 0;
+  const centreAvant = (z.top + z.bottom) / 2;
+  const k = (z.bottom - (z.top + reserve)) / (z.bottom - z.top);
+  const decale = reserve / 2;
+
   const rendre = (s: Scene, i: number) => {
     switch (s.type) {
       case "titre":
@@ -60,7 +68,10 @@ export const Montage: React.FC<MontageProps> = ({ config: c, scenes, mots, perso
   return (
     <AbsoluteFill style={{ background: c.fond === "blanc" ? c.couleurs.papier : c.couleurs.noir }}>
       <FondPage c={c} />
-      {scenes.map(rendre)}
+      <div style={{ position: "absolute", inset: 0, transform: `translateY(${decale}px) scale(${k})`, transformOrigin: `50% ${centreAvant}px` }}>
+        {scenes.map(rendre)}
+      </div>
+      <TitreFixe c={c} t={t} />
 
       {/* Le cadre : coins arrondis, photo en « cover », légèrement floutée */}
       <div

@@ -33,5 +33,12 @@
   },
   "animations": {
     "zoneBas": 0.55
+  },
+  "titre_fixe": {
+    "actif": true,
+    "ligne1": "Montre ta marque",
+    "ligne2": "à des inconnus",
+    "y": 150,
+    "hauteur": 200
   }
 }

@@ -9,6 +9,8 @@ export type Config = {
   tete: { hauteurPx: number; debordement: number; fractionHauteurTete: number; fonduBords?: number; epaulesPx?: number };
   sous_titres: { actif: boolean; police: string; taille: number; y: number; couleur: string; motsMax: number };
   animations: { zoneBas: number };
+  /** Titre qui reste en haut de la vidéo, du début à la fin. */
+  titre_fixe?: { actif: boolean; ligne1: string; ligne2?: string; y: number; hauteur: number };
 };
 
 export type Scene =
