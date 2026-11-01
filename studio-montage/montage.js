@@ -33,6 +33,7 @@ const nomSortie = opt("--sortie", "video.mp4");
 const langue = opt("--langue", "fr");
 const vocabulaire = opt("--vocabulaire", "");
 const qualite = opt("--qualite", "0.5");
+const epaulesOpt = opt("--epaules", ""); // largeur ajoutée de chaque côté (px), 0 = pas d'épaules créées
 const refaire = drapeau("--refaire");
 const retranscrire = drapeau("--retranscrire");
 const transcrireSeulement = drapeau("--transcrire-seulement");
@@ -49,6 +50,7 @@ if (aide) {
   --vocabulaire "Reels, Instagram"   mots que la transcription doit bien reconnaître
   --transcrire-seulement    s'arrête après la transcription : corrige le fichier, puis relance
   --retranscrire            refait la transcription (écrase tes corrections)
+  --epaules 150             largeur d'épaules créée de chaque côté, en pixels (0 = aucune)
   --refaire                 recalcule tout`);
   process.exit(0);
 }
@@ -109,7 +111,11 @@ const personne = path.join(tmp, "personne.webm");
 const mesuresF = path.join(tmp, "mesures.json");
 etape(2, "Silhouette transparente (contour nettoyé, sans liseré)");
 if (frais(personne) && fs.existsSync(mesuresF)) console.log("  (déjà faite, je la réutilise)");
-else lancer(PYTHON, [path.join(RACINE, "outils", "personne_alpha.py"), video, masque, personne, mesuresF]);
+else {
+  const cfg = JSON.parse(fs.readFileSync(fichierConfig, "utf8"));
+  const ext = epaulesOpt !== "" ? epaulesOpt : String(cfg.tete && cfg.tete.epaulesPx !== undefined ? cfg.tete.epaulesPx : 150);
+  lancer(PYTHON, [path.join(RACINE, "outils", "personne_alpha.py"), video, masque, personne, mesuresF, "--epaules", ext]);
+}
 
 // ---------- 3) transcription ----------
 etape(3, "Transcription de la voix (Whisper en local)");
