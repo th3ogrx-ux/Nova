@@ -45,7 +45,7 @@ const html = `<html><body style="margin:0;background:#000"><svg id="s" xmlns="ht
       if (f % 150 === 0) console.log('image', f, '/', total);
     }
     console.log('violations:', JSON.stringify(await p.evaluate(() => [...window.__viol])));
-    cp.execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', '30', '-i', path.join(tmp, 'f%05d.jpg'), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', '-preset', 'medium', '-r', '30', '-movflags', '+faststart', '-an', path.join(root, 'export/episode-01.mp4')]);
+    cp.execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', '30', '-i', path.join(tmp, 'f%05d.jpg'), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', '-preset', 'medium', '-r', '30', '-movflags', '+faststart', '-an', process.argv[4] || path.join(root, 'export/episode-01.mp4')]);
     console.log('video ok');
   }
   await b.close();

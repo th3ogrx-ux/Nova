@@ -34,7 +34,7 @@ def noise(d): return rng.standard_normal(int(d*SR))
 def click(): 
     t = t_(.03); return noise(.03) * np.exp(-t*220)
 
-musL = np.zeros(N); musR = np.zeros(N); sfx = np.zeros(N); voc = np.zeros(N)
+musL = np.zeros(N); musR = np.zeros(N); sfx = np.zeros(N); voc = np.zeros(N); drm = np.zeros(N)
 
 # ---------------------------------------------------------------- musique (nappes + cloches)
 def pad(notes, t0, t1, g=.10, brillance=1.0, rel=1.0):
@@ -107,6 +107,71 @@ d = 2.5; t = t_(d); r = lowpass(noise(d), 700) * (t/d)**2.2; put(sfx, r, 36.0, 1
 for k in range(8): put(sfx, thump(60, .25), 36.0 + k*(.5 - .04*k), .30 + .04*k)
 # la coupure : silence total entre 38.5 et 40.5 (rien n'est ajouté)
 
+# ---------------------------------------------------------------- rythme : batterie calée sur 120 battements/min (1 temps = 0,5 s)
+# toutes les coupes de la vidéo tombent sur des multiples de 0,5 s : image et son frappent ensemble.
+def kick(t0, g=.55):
+    t = t_(.38); ph = 2*np.pi*np.cumsum(48 + 120*np.exp(-t*26))/SR
+    put(drm, np.sin(ph) * np.exp(-t*8.5) * (1 - np.exp(-t*900)), t0, g)
+def snare(t0, g=.40):
+    t = t_(.26); n = noise(.26); n = np.diff(n, prepend=0)
+    put(drm, (n*.55*np.exp(-t*20) + np.sin(2*np.pi*190*t)*.5*np.exp(-t*28)), t0, g)
+def hat(t0, g=.09, d=.06):
+    t = t_(d); n = np.diff(noise(d), 2, prepend=[0, 0]); put(drm, n * np.exp(-t*(70 if d < .1 else 25)), t0, g)
+def crash(t0, g=.16):
+    t = t_(1.6); n = np.diff(noise(1.6), 2, prepend=[0, 0]); put(drm, n * np.exp(-t*3.2), t0, g)
+def pluck(f, t0, g=.07):
+    t = t_(.28); put(sfx, (np.sin(2*np.pi*f*t) + .4*np.sin(2*np.pi*2*f*t) + .2*np.sin(2*np.pi*3*f*t)) * np.exp(-t*14) * (1 - np.exp(-t*600)), t0, g)
+def whoosh(t_fin, d=.32, g=.16):
+    t = t_(d); n = np.diff(noise(d), prepend=0); put(sfx, n * (t/d)**2 * env_ar(len(t), .01, .02), t_fin - d, g)
+def riser(t0, t1, g=.18):
+    d = t1 - t0; t = t_(d); n = np.diff(noise(d), prepend=0)
+    sw = np.sin(2*np.pi*np.cumsum(180 + 1400*(t/d)**2)/SR) * .3
+    put(sfx, (n*.7 + sw) * (t/d)**2.2, t0, g)
+beat = .5
+# 0-2 s : l'accroche, un coeur qui s'accélère
+for i, t0 in enumerate((0.0, .5, 1.0, 1.25, 1.5, 1.75)): kick(t0, .35 + .05*i)
+riser(0.0, 2.0, .22)
+# 2-4,5 s : la brume, pouls grave
+for t0 in (2.0, 3.0, 4.0): kick(t0, .55)
+# 4,5-11,5 s : rythme mystérieux, un temps sur deux, contretemps de charleston
+for t0 in np.arange(4.5, 11.5, 1.0): kick(t0, .50)
+for t0 in np.arange(5.0, 11.5, 1.0): hat(t0, .07)
+for t0 in np.arange(6.0, 11.5, 2.0): snare(t0 + .5 - .5, .30)
+# 11,5-15 s : on respire (boîte à musique seule)
+# 15-18,5 s : le téléphone, pulsation qui s'accélère
+for t0 in np.arange(15.0, 18.5, .5): kick(t0, .42)
+for t0 in np.arange(16.5, 18.5, .25): hat(t0, .06)
+# 18,5-24 s : la carte, groove complet (kick à chaque temps, caisse claire sur 2 et 4, charleston en croches)
+crash(18.5, .18)
+for t0 in np.arange(18.5, 24.0, .5): kick(t0, .55)
+for t0 in np.arange(19.0, 24.0, 1.0): snare(t0, .38)
+for t0 in np.arange(18.5, 24.0, .25): hat(t0 + .0, .07 + (0.03 if (round((t0-18.5)/.25) % 2) else 0))
+arp = [81, 84, 88, 91, 88, 84, 86, 91]
+for i, t0 in enumerate(np.arange(18.5, 24.0, .25)): pluck(midi(arp[i % 8] - 12), t0, .05)
+# 24-28 s : ça s'éteint, demi-temps lourd
+for t0 in np.arange(24.0, 28.0, 1.0): kick(t0, .60)
+snare(25.0, .30); snare(27.0, .30)
+# 28-32,5 s : le message, pouls + roulement final
+for t0 in np.arange(28.0, 32.0, 1.0): kick(t0, .50)
+for t0 in np.arange(29.0, 32.0, 2.0): snare(t0, .26)
+for i, t0 in enumerate(np.arange(31.5, 32.5, .125)): snare(t0, .12 + .03*i)
+whoosh(32.5, .35, .20)
+# 32,5-36 s : Noé décidé, la montée
+crash(32.5, .18)
+for t0 in np.arange(32.5, 36.0, .5): kick(t0, .58)
+for t0 in np.arange(33.0, 36.0, 1.0): snare(t0, .36)
+for t0 in np.arange(32.5, 36.0, .25): hat(t0, .07)
+for i, t0 in enumerate(np.arange(32.5, 36.0, .25)): pluck(midi([77, 81, 84, 89, 84, 81, 79, 83][i % 8] - 12), t0, .05)
+# 36-38,5 s : la brume avance, roulement et montée coupés net
+for i, t0 in enumerate(np.arange(36.0, 38.5, .125)): snare(t0, .10 + .008*i)
+riser(36.0, 38.5, .30)
+# 40,5 s : impact final + accord
+kick(40.5, .7); crash(40.5, .20)
+# petits "whoosh" qui accompagnent les coupes
+for tc in (2.0, 4.5, 8.0, 11.5, 15.0, 18.5, 24.0, 28.0, 36.0): whoosh(tc)
+# coups d'impact aux moments forts : mur (3.15), surprise (5.5), téléphone (15.45), extinctions (25.35, 27.2), regard (33.7)
+for tt in (3.15, 5.5, 15.45, 25.35, 27.2, 33.7): put(sfx, thump(48, .9), tt, .55)
+
 # ---------------------------------------------------------------- voix
 VOIX = [  # (nom, texte, début, fin, timbre)
  ('p01', "Hier, cette boulangerie existait.", .05, 2.0, 'nar'),
@@ -149,7 +214,8 @@ def lisse(x, f):
     k = int(f * SR); return np.convolve(x, np.ones(k)/k, mode='same')
 env = lisse(np.abs(voc), .12); env = np.clip(env / (env.max()*.35 + 1e-9), 0, 1)
 duck = 1 - .55*lisse(env, .25)
-gL = musL*duck + sfx*.9 + voc*1.0; gR = musR*duck + sfx*.9 + voc*1.0
+duck2 = 1 - .35*lisse(env, .25)
+gL = musL*duck + drm*duck2*.9 + sfx*.9 + voc*1.0; gR = musR*duck + drm*duck2*.9 + sfx*.9 + voc*1.0
 # silence net sur la coupure 38.5 -> 40.5
 cut = (np.arange(N)/SR >= 38.5) & (np.arange(N)/SR < 40.5)
 for g in (gL, gR):
