@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 640" width="400" height="640">
+  <title>Passant - neutre</title>
+  <rect x="142" y="480" width="52" height="110" rx="22" fill="#3a3f55"/>
+  <rect x="208" y="480" width="52" height="110" rx="22" fill="#3a3f55"/>
+  <ellipse cx="164" cy="592" rx="38" ry="17" fill="#1c2236"/>
+  <ellipse cx="238" cy="592" rx="38" ry="17" fill="#1c2236"/>
+  <rect x="84" y="292" width="46" height="170" rx="23" fill="#9a7038"/>
+  <circle cx="107" cy="468" r="20" fill="#ecc7a6"/>
+  <rect x="112" y="266" width="176" height="270" rx="48" fill="#b98b4e"/>
+  <rect x="196" y="300" width="8" height="236" rx="4" fill="#9a7038"/>
+  <circle cx="214" cy="400" r="6" fill="#9a7038"/><circle cx="214" cy="450" r="6" fill="#9a7038"/>
+  <path d="M150 262 L200 330 L170 268Z M250 262 L200 330 L230 268Z" fill="#9a7038"/>
+  <rect x="178" y="236" width="44" height="40" rx="14" fill="#ecc7a6"/>
+  <!-- canne -->
+  <rect x="296" y="452" width="10" height="152" rx="5" fill="#5a3b22"/>
+  <path d="M282 452 Q300 424 318 452" fill="none" stroke="#5a3b22" stroke-width="10" stroke-linecap="round"/>
+  <rect x="270" y="296" width="46" height="150" rx="23" fill="#9a7038"/>
+  <circle cx="297" cy="456" r="20" fill="#ecc7a6"/>
+  <circle cx="115" cy="184" r="17" fill="#ecc7a6"/><circle cx="285" cy="184" r="17" fill="#ecc7a6"/>
+  <circle cx="200" cy="176" r="88" fill="#ecc7a6"/>
+  <circle cx="118" cy="150" r="22" fill="#c9d0e0"/><circle cx="282" cy="150" r="22" fill="#c9d0e0"/>
+  <!-- casquette -->
+  <path d="M104 150 C100 80 150 62 202 62 C256 62 300 84 296 150 C260 128 150 128 104 150Z" fill="#6b4f3a"/>
+  <path d="M104 150 C150 132 262 132 296 150 L310 160 C250 146 150 146 90 160Z" fill="#4e3a2b"/>
+  <!-- lunettes rondes -->
+  <circle cx="162" cy="186" r="26" fill="#fff" opacity=".35" stroke="#12193a" stroke-width="6"/>
+  <circle cx="238" cy="186" r="26" fill="#fff" opacity=".35" stroke="#12193a" stroke-width="6"/>
+  <path d="M188 184 Q200 176 212 184" fill="none" stroke="#12193a" stroke-width="6"/>
+  <circle cx="162" cy="188" r="7" fill="#12193a"/><circle cx="238" cy="188" r="7" fill="#12193a"/>
+  <path d="M136 150 Q160 140 186 150" fill="none" stroke="#9aa3b8" stroke-width="9" stroke-linecap="round"/><path d="M214 150 Q240 140 264 150" fill="none" stroke="#9aa3b8" stroke-width="9" stroke-linecap="round"/>
+  <!-- moustache et bouche -->
+  <path d="M164 222 Q182 210 200 220 Q218 210 236 222 Q218 238 200 230 Q182 238 164 222Z" fill="#c9d0e0"/>
+  <path d="M186 246 Q200 250 214 246" fill="none" stroke="#12193a" stroke-width="5" stroke-linecap="round"/>
+</svg>

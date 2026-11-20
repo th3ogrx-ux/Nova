@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-300 -520 600 1040" width="600" height="1040">
+  <title>telephone</title>
+  <defs><clipPath id="ecran"><rect x="-260" y="-480" width="520" height="960" rx="58"/></clipPath></defs>
+  <rect x="-280" y="-500" width="560" height="1000" rx="76" fill="#0b1330" stroke="#1d2a55" stroke-width="8"/>
+  <rect x="-260" y="-480" width="520" height="960" rx="58" fill="#050d24"/>
+  <rect x="-70" y="-474" width="140" height="30" rx="15" fill="#0b1330"/>
+</svg>

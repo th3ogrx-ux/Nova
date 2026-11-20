@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <title>boulangerie-interieur</title>
+  <rect width="1080" height="1920" fill="#f1e3c6"/><rect y="1050" width="1080" height="330" fill="#e6d2a8"/>
+  <rect y="1380" width="1080" height="540" fill="#cdb48a"/>
+  <rect x="60" y="300" width="300" height="560" rx="16" fill="#f7f0de"/><rect x="80" y="320" width="260" height="520" rx="10" fill="#cfe3ff"/>
+  <rect x="204" y="320" width="12" height="520" fill="#f7f0de"/>
+  <rect x="500" y="640" width="560" height="22" fill="#8a5a2b"/><rect x="560" y="700" width="38" height="120" rx="19" fill="#c97a22" transform="rotate(-10 579 760)"/><rect x="635" y="700" width="38" height="120" rx="19" fill="#c97a22" transform="rotate(10 654 760)"/><rect x="710" y="700" width="38" height="120" rx="19" fill="#c97a22" transform="rotate(-10 729 760)"/><rect x="785" y="700" width="38" height="120" rx="19" fill="#c97a22" transform="rotate(10 804 760)"/><rect x="860" y="700" width="38" height="120" rx="19" fill="#c97a22" transform="rotate(-10 879 760)"/><rect x="935" y="700" width="38" height="120" rx="19" fill="#c97a22" transform="rotate(10 954 760)"/>
+  <rect x="500" y="840" width="560" height="22" fill="#8a5a2b"/><ellipse cx="600" cy="900" rx="40" ry="28" fill="#d99a3a"/><ellipse cx="690" cy="900" rx="40" ry="28" fill="#d99a3a"/><ellipse cx="780" cy="900" rx="40" ry="28" fill="#d99a3a"/><ellipse cx="870" cy="900" rx="40" ry="28" fill="#d99a3a"/><ellipse cx="960" cy="900" rx="40" ry="28" fill="#d99a3a"/>
+  
+</svg>

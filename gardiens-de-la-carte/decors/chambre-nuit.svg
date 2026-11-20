@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <title>chambre-nuit</title>
+  <rect width="1080" height="1920" fill="#0a1634"/>
+  <rect y="1390" width="1080" height="530" fill="#07102a"/><rect y="1370" width="1080" height="30" fill="#0f1f4d"/>
+  <rect x="110" y="300" width="360" height="520" rx="14" fill="#10214f"/><rect x="128" y="318" width="324" height="484" rx="8" fill="#123070"/>
+  <circle cx="350" cy="450" r="56" fill="#cfe0ff"/><circle cx="378" cy="436" r="48" fill="#123070"/>
+  <circle cx="190" cy="400" r="4" fill="#cfe0ff"/><circle cx="240" cy="520" r="3" fill="#cfe0ff"/><circle cx="170" cy="610" r="3" fill="#cfe0ff"/>
+  <rect x="286" y="318" width="12" height="484" fill="#10214f"/><rect x="128" y="540" width="324" height="12" fill="#10214f"/>
+  <rect x="96" y="812" width="388" height="22" rx="8" fill="#1d3a82"/>
+  <rect x="-20" y="1150" width="580" height="260" rx="30" fill="#162a63"/>
+  <ellipse cx="130" cy="1200" rx="120" ry="44" fill="#cfd8f0"/>
+  <circle cx="130" cy="1196" r="56" fill="#f2c7a0"/>
+  <path d="M72 1196 C70 1120 190 1110 190 1196 C170 1166 110 1166 72 1196Z" fill="#2a3566"/>
+  <rect x="70" y="1214" width="500" height="170" rx="50" fill="#1a6bff"/><rect x="70" y="1214" width="500" height="50" rx="25" fill="#1457d1"/>
+  <rect x="610" y="1170" width="310" height="240" rx="12" fill="#162a63"/><rect x="590" y="1146" width="350" height="32" rx="12" fill="#1d3a82"/>
+  <rect x="640" y="1210" width="250" height="80" rx="8" fill="#10214f"/><circle cx="765" cy="1250" r="10" fill="#6fa8ff"/>
+  <path d="M630 1146 L650 1060 H710 L730 1146Z" fill="#243a7a"/><rect x="676" y="1100" width="8" height="46" fill="#1d3a82"/>
+</svg>

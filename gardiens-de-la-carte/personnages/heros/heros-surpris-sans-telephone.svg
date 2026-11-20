@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 640" width="400" height="640">
+  <title>Heros - surpris-sans-telephone</title>
+  <!-- sac de cours (derrière le corps) -->
+  <rect x="96" y="262" width="208" height="196" rx="44" fill="#0f2f7a"/>
+  <rect x="150" y="410" width="100" height="44" rx="14" fill="#0b2461"/>
+  <!-- jambes et chaussures -->
+  <rect x="138" y="430" width="54" height="150" rx="22" fill="#26304f"/>
+  <rect x="208" y="430" width="54" height="150" rx="22" fill="#26304f"/>
+  <ellipse cx="160" cy="590" rx="38" ry="18" fill="#f4f6fb"/>
+  <ellipse cx="240" cy="590" rx="38" ry="18" fill="#f4f6fb"/>
+  <!-- bras gauche (le long du corps) -->
+  <rect x="84" y="292" width="46" height="150" rx="23" fill="#1457d1"/>
+  <circle cx="107" cy="448" r="21" fill="#f2c7a0"/>
+  <!-- veste -->
+  <rect x="116" y="266" width="168" height="190" rx="52" fill="#1a6bff"/>
+  <rect x="196" y="300" width="8" height="156" rx="4" fill="#1457d1"/>
+  <!-- sangles du sac -->
+  <rect x="142" y="282" width="20" height="150" rx="8" fill="#0f2f7a"/>
+  <rect x="238" y="282" width="20" height="150" rx="8" fill="#0f2f7a"/>
+  <rect x="140" y="400" width="24" height="12" rx="4" fill="#f5a623"/>
+  <rect x="236" y="400" width="24" height="12" rx="4" fill="#f5a623"/>
+  <!-- cou -->
+  <rect x="178" y="236" width="44" height="40" rx="14" fill="#f2c7a0"/>
+  <!-- écharpe ambre : détail signature -->
+  <rect x="126" y="252" width="148" height="38" rx="19" fill="#f5a623"/>
+  <rect x="226" y="270" width="36" height="92" rx="16" fill="#f5a623"/>
+  <rect x="226" y="338" width="36" height="12" fill="#d98a0f"/>
+  <!-- bras droit le long du corps -->
+  <rect x="270" y="292" width="46" height="150" rx="23" fill="#1457d1"/>
+  <circle cx="293" cy="448" r="21" fill="#f2c7a0"/>
+  <!-- oreilles -->
+  <circle cx="113" cy="180" r="17" fill="#f2c7a0"/>
+  <circle cx="287" cy="180" r="17" fill="#f2c7a0"/>
+  <!-- tête -->
+  <circle cx="200" cy="172" r="90" fill="#f2c7a0"/>
+  <!-- cheveux : frange simple + mèche -->
+  <path d="M108 168 C100 84 160 62 206 66 C260 66 304 100 292 168 C276 134 246 118 222 120 C196 136 150 126 108 168Z" fill="#2a3566"/>
+  <path d="M196 70 C188 46 214 36 226 48 C214 50 210 58 214 68Z" fill="#2a3566"/>
+  <circle cx="140" cy="212" r="13" fill="#ec9a86" opacity=".45"/><circle cx="260" cy="212" r="13" fill="#ec9a86" opacity=".45"/>
+    <circle cx="162" cy="182" r="19" fill="#fff"/><circle cx="238" cy="182" r="19" fill="#fff"/>
+    <circle cx="162" cy="184" r="9" fill="#12193a"/><circle cx="238" cy="184" r="9" fill="#12193a"/>
+    <circle cx="165" cy="180" r="3" fill="#fff"/><circle cx="241" cy="180" r="3" fill="#fff"/>
+    <path d="M146 148 Q164 130 182 144" fill="none" stroke="#2a3566" stroke-width="6" stroke-linecap="round"/>
+    <path d="M218 142 Q238 126 258 146" fill="none" stroke="#2a3566" stroke-width="6" stroke-linecap="round"/>
+    <ellipse cx="200" cy="230" rx="12" ry="16" fill="#12193a"/>
+    <ellipse cx="200" cy="237" rx="7" ry="6" fill="#e0606e"/>
+</svg>

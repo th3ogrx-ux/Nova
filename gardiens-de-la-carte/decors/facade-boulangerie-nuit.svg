@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" width="900" height="900">
+  <title>facade-boulangerie-nuit</title>
+  <rect x="60" y="140" width="780" height="760" fill="#1b2f6b"/>
+  <rect x="40" y="120" width="820" height="50" rx="8" fill="#10214f"/>
+  <rect x="150" y="220" width="180" height="200" rx="10" fill="#10214f"/><rect x="164" y="234" width="152" height="172" rx="6" fill="#0a1634"/>
+  <rect x="570" y="220" width="180" height="200" rx="10" fill="#10214f"/><rect x="584" y="234" width="152" height="172" rx="6" fill="#0a1634"/>
+  <rect x="236" y="234" width="8" height="172" fill="#10214f"/><rect x="656" y="234" width="8" height="172" fill="#10214f"/>
+  <rect x="150" y="450" width="600" height="120" rx="20" fill="#0b1738" stroke="#f5a623" stroke-width="4"/>
+  <text x="450" y="530" text-anchor="middle" font-family="Inter, sans-serif" font-weight="800" font-size="74" fill="#26397a">Boulangerie</text>
+  <rect x="120" y="590" width="660" height="90" fill="#10214f"/><rect x="130" y="590" width="70" height="90" fill="#d98a0f"/><rect x="200" y="590" width="70" height="90" fill="#e8d9b4"/><rect x="270" y="590" width="70" height="90" fill="#d98a0f"/><rect x="340" y="590" width="70" height="90" fill="#e8d9b4"/><rect x="410" y="590" width="70" height="90" fill="#d98a0f"/><rect x="480" y="590" width="70" height="90" fill="#e8d9b4"/><rect x="550" y="590" width="70" height="90" fill="#d98a0f"/><rect x="620" y="590" width="70" height="90" fill="#e8d9b4"/><rect x="690" y="590" width="70" height="90" fill="#d98a0f"/><circle cx="165" cy="680" r="35" fill="#d98a0f"/><circle cx="235" cy="680" r="35" fill="#e8d9b4"/><circle cx="305" cy="680" r="35" fill="#d98a0f"/><circle cx="375" cy="680" r="35" fill="#e8d9b4"/><circle cx="445" cy="680" r="35" fill="#d98a0f"/><circle cx="515" cy="680" r="35" fill="#e8d9b4"/><circle cx="585" cy="680" r="35" fill="#d98a0f"/><circle cx="655" cy="680" r="35" fill="#e8d9b4"/><circle cx="725" cy="680" r="35" fill="#d98a0f"/>
+  <rect x="140" y="700" width="430" height="180" rx="10" fill="#10214f"/><rect x="154" y="714" width="402" height="152" rx="6" fill="#0a1634"/>
+  <rect x="590" y="700" width="180" height="200" rx="10" fill="#10214f"/><rect x="606" y="716" width="148" height="184" rx="6" fill="#0a1634"/>
+  <rect x="40" y="880" width="820" height="20" fill="#0f1c44"/>
+  <g id="halo" opacity="1">
+    <circle cx="355" cy="790" r="340" fill="#f5a623" opacity=".08"/><circle cx="355" cy="790" r="240" fill="#f5a623" opacity=".10"/>
+    <circle cx="680" cy="800" r="170" fill="#f5a623" opacity=".10"/>
+  </g>
+  <g id="lumiere" opacity="1">
+    <text x="450" y="530" text-anchor="middle" font-family="Inter, sans-serif" font-weight="800" font-size="74" fill="#f5a623">Boulangerie</text>
+    <rect x="154" y="714" width="402" height="152" rx="6" fill="#f5a623"/><rect x="154" y="714" width="402" height="40" rx="6" fill="#ffd27a"/>
+    <rect x="154" y="800" width="402" height="8" fill="#b8651b"/>
+    <g fill="#b8651b"><rect x="190" y="745" width="26" height="130" rx="13" transform="rotate(14 203 810)"/><rect x="236" y="745" width="26" height="130" rx="13" transform="rotate(8 249 810)"/><rect x="282" y="745" width="26" height="130" rx="13" transform="rotate(-6 295 810)"/><ellipse cx="400" cy="835" rx="46" ry="28"/><ellipse cx="480" cy="840" rx="40" ry="26"/></g>
+    <rect x="606" y="716" width="148" height="184" rx="6" fill="#f5a623"/><rect x="606" y="716" width="148" height="36" rx="6" fill="#ffd27a"/>
+    <circle cx="624" cy="830" r="8" fill="#b8651b"/>
+  </g>
+</svg>

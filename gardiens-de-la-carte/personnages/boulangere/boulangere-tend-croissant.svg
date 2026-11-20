@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 640" width="400" height="640">
+  <title>Boulangere - tend un croissant</title>
+  <rect x="148" y="480" width="50" height="110" rx="22" fill="#26304f"/>
+  <rect x="206" y="480" width="50" height="110" rx="22" fill="#26304f"/>
+  <ellipse cx="170" cy="592" rx="36" ry="16" fill="#1c2236"/><ellipse cx="236" cy="592" rx="36" ry="16" fill="#1c2236"/>
+  <rect x="106" y="266" width="188" height="230" rx="52" fill="#e0674f"/>
+  <rect x="140" y="300" width="120" height="196" rx="30" fill="#f4f6fb"/>
+  <path d="M150 300 L172 262 M250 300 L228 262" stroke="#f4f6fb" stroke-width="14" stroke-linecap="round"/>
+  <rect x="170" y="400" width="60" height="42" rx="10" fill="#e3e8f4"/>
+  <rect x="178" y="236" width="44" height="40" rx="14" fill="#f0c6a4"/>
+  <rect x="270" y="292" width="46" height="150" rx="23" fill="#c9553f"/>
+  <circle cx="293" cy="448" r="21" fill="#f0c6a4"/>
+  <polyline points="130,314 74,356 42,352" fill="none" stroke="#c9553f" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+       <circle cx="30" cy="350" r="21" fill="#f0c6a4"/><g transform="translate(16 332) rotate(-24)">
+    <path d="M-30 8 C-26 -20 26 -20 30 8 C20 -2 -20 -2 -30 8Z" fill="#d99a3a"/>
+    <path d="M-12 -6 L-8 8 M0 -9 L0 6 M12 -6 L8 8" stroke="#a96d1f" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <circle cx="113" cy="180" r="17" fill="#f0c6a4"/><circle cx="287" cy="180" r="17" fill="#f0c6a4"/>
+  <circle cx="200" cy="74" r="34" fill="#7a4a2b"/>
+  <circle cx="200" cy="172" r="90" fill="#f0c6a4"/>
+  <path d="M110 160 C106 90 156 78 202 78 C252 78 298 94 290 160 C272 130 232 124 200 126 C166 124 128 130 110 160Z" fill="#7a4a2b"/>
+  <path d="M116 120 C118 76 160 66 202 66 C246 66 286 78 286 120 C250 104 154 104 116 120Z" fill="#f4f6fb"/>
+  <rect x="112" y="116" width="176" height="14" rx="7" fill="#dfe5f2"/>
+  <circle cx="140" cy="212" r="14" fill="#ec9a86" opacity=".5"/><circle cx="260" cy="212" r="14" fill="#ec9a86" opacity=".5"/>
+  <path d="M146 188 Q162 168 178 188" fill="none" stroke="#12193a" stroke-width="7" stroke-linecap="round"/>
+  <path d="M222 188 Q238 168 254 188" fill="none" stroke="#12193a" stroke-width="7" stroke-linecap="round"/>
+  <path d="M170 220 Q200 258 230 220Z" fill="#12193a"/><path d="M184 236 Q200 246 216 236 Q200 232 184 236Z" fill="#e0606e"/>
+</svg>
