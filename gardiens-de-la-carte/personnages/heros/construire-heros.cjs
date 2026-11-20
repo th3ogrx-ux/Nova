@@ -64,6 +64,21 @@ const sangles = `
 const corpsAvecTel = glow + jambes + brasGauche + veste + cou + echarpe + brasDroitTel;
 const corpsSansTel = sacDos + jambes + brasGauche + veste + sangles + cou + echarpe + brasDroitLibre;
 
+// ---- poses de course (deux positions alternées pour animer la foulée)
+const corpsCourse = (pose) => {
+  const a = pose === 'a';
+  const jambesC = `
+  <g transform="rotate(${a ? 30 : 8} 165 440)"><rect x="138" y="430" width="54" height="150" rx="22" fill="${C.pantalon}"/><ellipse cx="160" cy="590" rx="38" ry="18" fill="#f4f6fb"/></g>
+  <g transform="rotate(${a ? -8 : -30} 235 440)"><rect x="208" y="430" width="54" height="150" rx="22" fill="${C.pantalon}"/><ellipse cx="240" cy="590" rx="38" ry="18" fill="#f4f6fb"/></g>`;
+  const brasC = `
+  <g transform="rotate(${a ? 55 : 14} 107 305)"><rect x="84" y="292" width="46" height="150" rx="23" fill="${C.vesteOmbre}"/><circle cx="107" cy="448" r="21" fill="${C.peau}"/></g>
+  <g transform="rotate(${a ? -14 : -55} 293 305)"><rect x="270" y="292" width="46" height="150" rx="23" fill="${C.vesteOmbre}"/><circle cx="293" cy="448" r="21" fill="${C.peau}"/></g>`;
+  const echC = `
+  <rect x="126" y="252" width="148" height="38" rx="19" fill="${C.ambre}"/>
+  <g transform="rotate(${a ? -34 : -48} 244 272)"><rect x="226" y="270" width="36" height="118" rx="16" fill="${C.ambre}"/><rect x="226" y="360" width="36" height="12" fill="${C.ambreOmbre}"/></g>`;
+  return sacDos + jambesC + brasC + veste + sangles + cou + echC;
+};
+
 const tete = (visage) => `
   <!-- oreilles -->
   <circle cx="113" cy="180" r="17" fill="${C.peau}"/>
@@ -97,6 +112,12 @@ const visages = {
     <path d="M218 142 Q238 126 258 146" fill="none" stroke="${C.cheveux}" stroke-width="6" stroke-linecap="round"/>
     <ellipse cx="200" cy="230" rx="12" ry="16" fill="${C.oeil}"/>
     <ellipse cx="200" cy="237" rx="7" ry="6" fill="#e0606e"/>`,
+  essouffle: () => `${joues}
+    ${oeil(162,188,9,7)}${oeil(238,188,9,7)}
+    <path d="M142 170 L182 154" fill="none" stroke="${C.cheveux}" stroke-width="7" stroke-linecap="round"/>
+    <path d="M258 170 L218 154" fill="none" stroke="${C.cheveux}" stroke-width="7" stroke-linecap="round"/>
+    <ellipse cx="200" cy="234" rx="17" ry="21" fill="${C.oeil}"/><ellipse cx="200" cy="244" rx="10" ry="8" fill="#e0606e"/>
+    <path d="M292 118 C282 138 282 150 292 152 C302 150 302 138 292 118Z" fill="#9fd2ff"/>`,
   determine: (dx=0, dy=0) => `${joues}
     ${oeil(162+dx,186+dy,9,8)}${oeil(238+dx,186+dy,9,8)}
     <path d="M142 160 L182 172" fill="none" stroke="${C.cheveux}" stroke-width="8" stroke-linecap="round"/>
@@ -123,4 +144,10 @@ ecrire('neutre-sans-telephone', corpsSansTel, visages.neutre());
 ecrire('content-sans-telephone', corpsSansTel, visages.content());
 ecrire('surpris-sans-telephone', corpsSansTel, visages.surpris());
 ecrire('determine-sans-telephone', corpsSansTel, visages.determine());
+// Noé qui court (deux poses alternées), essoufflé ou déterminé
+for (const p of ['a', 'b']) {
+  ecrire(`essouffle-course-${p}`, corpsCourse(p), visages.essouffle());
+  ecrire(`determine-course-${p}`, corpsCourse(p), visages.determine());
+}
+ecrire('essouffle-sans-telephone', corpsSansTel, visages.essouffle());
 console.log('SVG heros generes');

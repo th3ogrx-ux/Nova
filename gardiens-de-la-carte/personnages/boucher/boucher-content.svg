@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 640" width="400" height="640">
+  <title>Boucher - content</title>
+  <rect x="148" y="480" width="50" height="110" rx="22" fill="#26304f"/><rect x="206" y="480" width="50" height="110" rx="22" fill="#26304f"/>
+  <ellipse cx="170" cy="592" rx="36" ry="16" fill="#1c2236"/><ellipse cx="236" cy="592" rx="36" ry="16" fill="#1c2236"/>
+  <rect x="84" y="292" width="46" height="150" rx="23" fill="#f4f6fb"/><circle cx="107" cy="448" r="21" fill="#eeb08e"/>
+  <rect x="270" y="292" width="46" height="150" rx="23" fill="#f4f6fb"/><circle cx="293" cy="448" r="21" fill="#eeb08e"/>
+  <rect x="106" y="266" width="188" height="230" rx="52" fill="#f4f6fb"/>
+  <rect x="136" y="296" width="128" height="200" rx="28" fill="#f4f6fb"/><rect x="140" y="296" width="10" height="200" fill="#d9473f"/><rect x="160" y="296" width="10" height="200" fill="#d9473f"/><rect x="180" y="296" width="10" height="200" fill="#d9473f"/><rect x="200" y="296" width="10" height="200" fill="#d9473f"/><rect x="220" y="296" width="10" height="200" fill="#d9473f"/><rect x="240" y="296" width="10" height="200" fill="#d9473f"/>
+  <rect x="136" y="296" width="128" height="200" rx="28" fill="none" stroke="#d9473f" stroke-width="6"/>
+  <rect x="178" y="236" width="44" height="40" rx="14" fill="#eeb08e"/>
+  <circle cx="112" cy="184" r="17" fill="#eeb08e"/><circle cx="288" cy="184" r="17" fill="#eeb08e"/>
+  <circle cx="200" cy="176" r="88" fill="#eeb08e"/>
+  <path d="M130 120 C150 92 250 92 270 120 C240 108 160 108 130 120Z" fill="#5a3b22"/>
+  <circle cx="134" cy="150" r="16" fill="#5a3b22"/><circle cx="266" cy="150" r="16" fill="#5a3b22"/>
+  <circle cx="140" cy="210" r="15" fill="#e0606e" opacity=".5"/><circle cx="260" cy="210" r="15" fill="#e0606e" opacity=".5"/>
+  <path d="M146 180 Q164 160 182 180" fill="none" stroke="#12193a" stroke-width="7" stroke-linecap="round"/><path d="M218 180 Q236 160 254 180" fill="none" stroke="#12193a" stroke-width="7" stroke-linecap="round"/>
+    <path d="M168 246 Q200 280 232 246Z" fill="#12193a"/><path d="M182 262 Q200 270 218 262 Q200 258 182 262Z" fill="#e0606e"/>
+  <path d="M150 220 Q176 200 200 216 Q224 200 250 220 Q226 244 200 232 Q174 244 150 220Z" fill="#5a3b22"/>
+</svg>

@@ -81,4 +81,53 @@ const boulTete = `
   <path d="M170 220 Q200 258 230 220Z" fill="${B.oeil}"/><path d="M184 236 Q200 246 216 236 Q200 232 184 236Z" fill="#e0606e"/>`;
 writeFileSync(`${dir}/boulangere/boulangere-neutre.svg`, svg('Boulangere - neutre', boulCorps(false) + boulTete));
 writeFileSync(`${dir}/boulangere/boulangere-tend-croissant.svg`, svg('Boulangere - tend un croissant', boulCorps(true) + boulTete));
+
+// ---------- Le Gris : grande silhouette grise, capuche, yeux pâles, manteau qui se fond dans la brume ----------
+const G = { manteau:'#4a526a', ombre:'#353c52', visage:'#8b93a7', capuche:'#5d667c', oeil:'#e8eefc', brume:'#aab2c4' };
+const grisCorps = `
+  <ellipse cx="120" cy="612" rx="110" ry="30" fill="${G.brume}" opacity=".55"/><ellipse cx="290" cy="620" rx="120" ry="26" fill="${G.brume}" opacity=".55"/>
+  <path d="M138 236 L262 236 C300 300 330 470 350 618 C300 640 260 600 220 628 C180 596 130 640 50 618 C70 470 100 300 138 236Z" fill="${G.manteau}"/>
+  <path d="M200 250 L212 620 L196 626Z" fill="${G.ombre}"/>
+  <path d="M138 240 C96 330 78 470 66 560 L112 570 C124 470 140 350 168 262Z" fill="${G.ombre}"/>
+  <path d="M262 240 C304 330 322 470 334 560 L288 570 C276 470 260 350 232 262Z" fill="${G.ombre}"/>
+  <rect x="52" y="540" width="40" height="80" rx="20" fill="${G.visage}"/><rect x="308" y="540" width="40" height="80" rx="20" fill="${G.visage}"/>`;
+const grisTete = (bouche) => `
+  <path d="M110 190 C104 96 160 70 200 70 C240 70 296 96 290 190 C292 220 270 250 250 256 L150 256 C130 250 108 220 110 190Z" fill="${G.capuche}"/>
+  <circle cx="200" cy="178" r="72" fill="${G.visage}"/>
+  <ellipse cx="170" cy="172" rx="17" ry="10" fill="${G.oeil}" transform="rotate(10 170 172)"/><ellipse cx="230" cy="172" rx="17" ry="10" fill="${G.oeil}" transform="rotate(-10 230 172)"/>
+  <circle cx="170" cy="172" r="4" fill="#12193a"/><circle cx="230" cy="172" r="4" fill="#12193a"/>
+  ${bouche}`;
+writeFileSync(`${dir}/gris/gris-neutre.svg`, svg('Le Gris - neutre', grisCorps + grisTete(`<path d="M178 218 Q200 212 222 218" fill="none" stroke="#12193a" stroke-width="5" stroke-linecap="round"/>`)));
+writeFileSync(`${dir}/gris/gris-parle.svg`, svg('Le Gris - parle', grisCorps + grisTete(`<ellipse cx="200" cy="220" rx="14" ry="6" fill="#12193a"/>`)));
+
+// ---------- Le boucher : tête ronde, grosse moustache, tablier rayé rouge et blanc ----------
+const Bo = { peau:'#eeb08e', cheveux:'#5a3b22', rouge:'#d9473f', blanc:'#f4f6fb', oeil:'#12193a' };
+let rayures = '';
+for (let i = 0; i < 6; i++) rayures += `<rect x="${140 + i*20}" y="296" width="10" height="200" fill="${Bo.rouge}"/>`;
+const boucherCorps = `
+  <rect x="148" y="480" width="50" height="110" rx="22" fill="#26304f"/><rect x="206" y="480" width="50" height="110" rx="22" fill="#26304f"/>
+  <ellipse cx="170" cy="592" rx="36" ry="16" fill="#1c2236"/><ellipse cx="236" cy="592" rx="36" ry="16" fill="#1c2236"/>
+  <rect x="84" y="292" width="46" height="150" rx="23" fill="${Bo.blanc}"/><circle cx="107" cy="448" r="21" fill="${Bo.peau}"/>
+  <rect x="270" y="292" width="46" height="150" rx="23" fill="${Bo.blanc}"/><circle cx="293" cy="448" r="21" fill="${Bo.peau}"/>
+  <rect x="106" y="266" width="188" height="230" rx="52" fill="${Bo.blanc}"/>
+  <rect x="136" y="296" width="128" height="200" rx="28" fill="${Bo.blanc}"/>${rayures}
+  <rect x="136" y="296" width="128" height="200" rx="28" fill="none" stroke="${Bo.rouge}" stroke-width="6"/>
+  <rect x="178" y="236" width="44" height="40" rx="14" fill="${Bo.peau}"/>`;
+const boucherTete = (visage) => `
+  <circle cx="112" cy="184" r="17" fill="${Bo.peau}"/><circle cx="288" cy="184" r="17" fill="${Bo.peau}"/>
+  <circle cx="200" cy="176" r="88" fill="${Bo.peau}"/>
+  <path d="M130 120 C150 92 250 92 270 120 C240 108 160 108 130 120Z" fill="${Bo.cheveux}"/>
+  <circle cx="134" cy="150" r="16" fill="${Bo.cheveux}"/><circle cx="266" cy="150" r="16" fill="${Bo.cheveux}"/>
+  <circle cx="140" cy="210" r="15" fill="#e0606e" opacity=".5"/><circle cx="260" cy="210" r="15" fill="#e0606e" opacity=".5"/>
+  ${visage}
+  <path d="M150 220 Q176 200 200 216 Q224 200 250 220 Q226 244 200 232 Q174 244 150 220Z" fill="${Bo.cheveux}"/>`;
+const bVis = {
+  inquiet: `<ellipse cx="164" cy="178" rx="9" ry="11" fill="${Bo.oeil}"/><ellipse cx="236" cy="178" rx="9" ry="11" fill="${Bo.oeil}"/>
+    <path d="M142 156 L184 144" fill="none" stroke="${Bo.cheveux}" stroke-width="8" stroke-linecap="round"/><path d="M258 156 L216 144" fill="none" stroke="${Bo.cheveux}" stroke-width="8" stroke-linecap="round"/>
+    <path d="M184 252 Q200 244 216 252" fill="none" stroke="${Bo.oeil}" stroke-width="5" stroke-linecap="round"/>`,
+  content: `<path d="M146 180 Q164 160 182 180" fill="none" stroke="${Bo.oeil}" stroke-width="7" stroke-linecap="round"/><path d="M218 180 Q236 160 254 180" fill="none" stroke="${Bo.oeil}" stroke-width="7" stroke-linecap="round"/>
+    <path d="M168 246 Q200 280 232 246Z" fill="${Bo.oeil}"/><path d="M182 262 Q200 270 218 262 Q200 258 182 262Z" fill="#e0606e"/>`
+};
+writeFileSync(`${dir}/boucher/boucher-inquiet.svg`, svg('Boucher - inquiet', boucherCorps + boucherTete(bVis.inquiet)));
+writeFileSync(`${dir}/boucher/boucher-content.svg`, svg('Boucher - content', boucherCorps + boucherTete(bVis.content)));
 console.log('personnages ok');

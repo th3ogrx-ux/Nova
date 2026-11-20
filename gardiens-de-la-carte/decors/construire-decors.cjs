@@ -197,4 +197,50 @@ const rb = mulberry(5);
 for (let i = 0; i < 16; i++) b += `<ellipse cx="${100 + i*95}" cy="${380 + Math.round(rb()*60)}" rx="${150 + Math.round(rb()*60)}" ry="${110 + Math.round(rb()*50)}" fill="${['#5d667c','#7c859b','#aab2c4'][i%3]}"/>`;
 out('brume', 1600, 700, b + `<rect y="440" width="1600" height="260" fill="#aab2c4"/>`);
 out('epingle', 100, 130, `<path d="M50 125 C20 90 10 66 10 50 A40 40 0 1 1 90 50 C90 66 80 90 50 125Z" fill="#f5a623"/><circle cx="50" cy="50" r="15" fill="#fff3d6"/>`);
+
+// ---------- Boucherie (façade de nuit) : 'enseigne', 'halo' et 'lumiere' sont animables ----------
+let rayBoucher = '';
+for (let i = 0; i < 9; i++) rayBoucher += `<rect x="${120 + i*70}" y="560" width="70" height="80" fill="${i%2 ? '#e8d9b4' : '#c23a34'}"/>`;
+let scBou = '';
+for (let i = 0; i < 9; i++) scBou += `<circle cx="${155 + i*70}" cy="640" r="35" fill="${i%2 ? '#e8d9b4' : '#c23a34'}"/>`;
+out('boucherie-facade-nuit', 900, 900, `
+  <rect x="60" y="140" width="780" height="760" fill="#2a2f66"/><rect x="40" y="120" width="820" height="50" rx="8" fill="#161a48"/>
+  <rect x="150" y="200" width="180" height="200" rx="10" fill="#161a48"/><rect x="164" y="214" width="152" height="172" rx="6" fill="#0a1634"/>
+  <rect x="570" y="200" width="180" height="200" rx="10" fill="#161a48"/><rect x="584" y="214" width="152" height="172" rx="6" fill="#0a1634"/>
+  <g id="enseigne" opacity="1">
+    <rect x="200" y="430" width="500" height="100" rx="20" fill="#0b1738" stroke="#f5a623" stroke-width="4"/>
+    <circle cx="450" cy="480" r="32" fill="#f5a623"/><circle cx="450" cy="480" r="12" fill="#0b1738"/>
+    <rect x="360" y="466" width="60" height="28" rx="14" fill="#f5a623"/><rect x="480" y="466" width="60" height="28" rx="14" fill="#f5a623"/>
+  </g>
+  <rect x="100" y="550" width="700" height="14" fill="#161a48"/>${rayBoucher}${scBou}
+  <rect x="120" y="680" width="470" height="210" rx="10" fill="#161a48"/><rect x="134" y="694" width="442" height="182" rx="6" fill="#0a1634"/>
+  <rect x="620" y="660" width="180" height="240" rx="10" fill="#161a48"/><rect x="636" y="676" width="148" height="224" rx="6" fill="#0a1634"/>
+  <rect x="40" y="880" width="820" height="20" fill="#10143a"/>
+  <g id="halo" opacity="1"><circle cx="355" cy="790" r="340" fill="#f5a623" opacity=".08"/><circle cx="355" cy="790" r="240" fill="#f5a623" opacity=".10"/><circle cx="710" cy="800" r="170" fill="#f5a623" opacity=".10"/></g>
+  <g id="lumiere" opacity="1">
+    <rect x="134" y="694" width="442" height="182" rx="6" fill="#f5a623"/><rect x="134" y="694" width="442" height="36" rx="6" fill="#ffd27a"/>
+    <rect x="636" y="676" width="148" height="224" rx="6" fill="#f5a623"/>
+    <g stroke="#7a3a1b" stroke-width="5" stroke-linecap="round"><path d="M180 700 V760 M250 700 V780 M320 700 V760 M390 700 V780 M460 700 V760 M530 700 V780"/></g>
+    <g fill="#c23a34"><ellipse cx="180" cy="770" rx="14" ry="26"/><ellipse cx="250" cy="790" rx="14" ry="26"/><ellipse cx="320" cy="770" rx="14" ry="26"/><ellipse cx="390" cy="790" rx="14" ry="26"/><ellipse cx="460" cy="770" rx="14" ry="26"/><ellipse cx="530" cy="790" rx="14" ry="26"/></g>
+  </g>`);
+out('boucherie-vitre', 900, 900, `<g fill="#fff" opacity=".12"><path d="M150 694 L260 694 L190 876 L134 876Z"/><path d="M300 694 L330 694 L260 876 L230 876Z"/></g><rect x="134" y="694" width="442" height="182" rx="6" fill="none" stroke="#161a48" stroke-width="10"/>`);
+
+// ---------- Boucherie, intérieur (carrelage, crochets, comptoir rouge) ----------
+let carreaux = '';
+for (let x = 0; x < 1080; x += 120) carreaux += `<rect x="${x}" y="0" width="3" height="1380" fill="#d7dfee"/>`;
+for (let y = 0; y < 1380; y += 120) carreaux += `<rect x="0" y="${y}" width="1080" height="3" fill="#d7dfee"/>`;
+let crochets = '';
+for (let i = 0; i < 6; i++) crochets += `<path d="M${560 + i*85} 420 V500" stroke="#7a3a1b" stroke-width="6"/><ellipse cx="${560 + i*85}" cy="540" rx="24" ry="50" fill="${i%2 ? '#c23a34' : '#d9605a'}"/>`;
+out('boucherie-interieur', 1080, 1920, `
+  <rect width="1080" height="1920" fill="#f0e6cf"/><rect width="1080" height="1380" fill="#eef2fa"/>${carreaux}
+  <rect y="1380" width="1080" height="540" fill="#bfae8c"/>
+  <rect x="520" y="400" width="520" height="14" fill="#8a5a2b"/>${crochets}`);
+out('boucherie-comptoir', 1080, 1920, `<rect x="420" y="1180" width="700" height="260" rx="14" fill="#b3342f"/><rect x="400" y="1160" width="740" height="40" rx="14" fill="#e8e8ee"/><rect x="440" y="1226" width="660" height="180" rx="10" fill="#9a2b27"/>`);
+
+// ---------- Toit (le Gris domine la ville) ----------
+out('toit-nuit', 1080, 1920, `
+  <rect x="330" y="760" width="800" height="700" fill="#0d1c45"/><rect x="300" y="730" width="840" height="46" rx="8" fill="#08122f"/>
+  <rect x="860" y="600" width="70" height="140" fill="#08122f"/><rect x="852" y="590" width="86" height="18" fill="#08122f"/>
+  <rect x="420" y="690" width="10" height="50" fill="#08122f"/>
+  <g fill="#f5a623" opacity=".25"><rect x="400" y="860" width="60" height="90" rx="6"/><rect x="560" y="860" width="60" height="90" rx="6"/><rect x="720" y="1000" width="60" height="90" rx="6"/></g>`);
 console.log('decors ok');

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <title>toit-nuit</title>
+  <rect x="330" y="760" width="800" height="700" fill="#0d1c45"/><rect x="300" y="730" width="840" height="46" rx="8" fill="#08122f"/>
+  <rect x="860" y="600" width="70" height="140" fill="#08122f"/><rect x="852" y="590" width="86" height="18" fill="#08122f"/>
+  <rect x="420" y="690" width="10" height="50" fill="#08122f"/>
+  <g fill="#f5a623" opacity=".25"><rect x="400" y="860" width="60" height="90" rx="6"/><rect x="560" y="860" width="60" height="90" rx="6"/><rect x="720" y="1000" width="60" height="90" rx="6"/></g>
+</svg>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" width="900" height="900">
+  <title>boucherie-facade-nuit</title>
+  <rect x="60" y="140" width="780" height="760" fill="#2a2f66"/><rect x="40" y="120" width="820" height="50" rx="8" fill="#161a48"/>
+  <rect x="150" y="200" width="180" height="200" rx="10" fill="#161a48"/><rect x="164" y="214" width="152" height="172" rx="6" fill="#0a1634"/>
+  <rect x="570" y="200" width="180" height="200" rx="10" fill="#161a48"/><rect x="584" y="214" width="152" height="172" rx="6" fill="#0a1634"/>
+  <g id="enseigne" opacity="1">
+    <rect x="200" y="430" width="500" height="100" rx="20" fill="#0b1738" stroke="#f5a623" stroke-width="4"/>
+    <circle cx="450" cy="480" r="32" fill="#f5a623"/><circle cx="450" cy="480" r="12" fill="#0b1738"/>
+    <rect x="360" y="466" width="60" height="28" rx="14" fill="#f5a623"/><rect x="480" y="466" width="60" height="28" rx="14" fill="#f5a623"/>
+  </g>
+  <rect x="100" y="550" width="700" height="14" fill="#161a48"/><rect x="120" y="560" width="70" height="80" fill="#c23a34"/><rect x="190" y="560" width="70" height="80" fill="#e8d9b4"/><rect x="260" y="560" width="70" height="80" fill="#c23a34"/><rect x="330" y="560" width="70" height="80" fill="#e8d9b4"/><rect x="400" y="560" width="70" height="80" fill="#c23a34"/><rect x="470" y="560" width="70" height="80" fill="#e8d9b4"/><rect x="540" y="560" width="70" height="80" fill="#c23a34"/><rect x="610" y="560" width="70" height="80" fill="#e8d9b4"/><rect x="680" y="560" width="70" height="80" fill="#c23a34"/><circle cx="155" cy="640" r="35" fill="#c23a34"/><circle cx="225" cy="640" r="35" fill="#e8d9b4"/><circle cx="295" cy="640" r="35" fill="#c23a34"/><circle cx="365" cy="640" r="35" fill="#e8d9b4"/><circle cx="435" cy="640" r="35" fill="#c23a34"/><circle cx="505" cy="640" r="35" fill="#e8d9b4"/><circle cx="575" cy="640" r="35" fill="#c23a34"/><circle cx="645" cy="640" r="35" fill="#e8d9b4"/><circle cx="715" cy="640" r="35" fill="#c23a34"/>
+  <rect x="120" y="680" width="470" height="210" rx="10" fill="#161a48"/><rect x="134" y="694" width="442" height="182" rx="6" fill="#0a1634"/>
+  <rect x="620" y="660" width="180" height="240" rx="10" fill="#161a48"/><rect x="636" y="676" width="148" height="224" rx="6" fill="#0a1634"/>
+  <rect x="40" y="880" width="820" height="20" fill="#10143a"/>
+  <g id="halo" opacity="1"><circle cx="355" cy="790" r="340" fill="#f5a623" opacity=".08"/><circle cx="355" cy="790" r="240" fill="#f5a623" opacity=".10"/><circle cx="710" cy="800" r="170" fill="#f5a623" opacity=".10"/></g>
+  <g id="lumiere" opacity="1">
+    <rect x="134" y="694" width="442" height="182" rx="6" fill="#f5a623"/><rect x="134" y="694" width="442" height="36" rx="6" fill="#ffd27a"/>
+    <rect x="636" y="676" width="148" height="224" rx="6" fill="#f5a623"/>
+    <g stroke="#7a3a1b" stroke-width="5" stroke-linecap="round"><path d="M180 700 V760 M250 700 V780 M320 700 V760 M390 700 V780 M460 700 V760 M530 700 V780"/></g>
+    <g fill="#c23a34"><ellipse cx="180" cy="770" rx="14" ry="26"/><ellipse cx="250" cy="790" rx="14" ry="26"/><ellipse cx="320" cy="770" rx="14" ry="26"/><ellipse cx="390" cy="790" rx="14" ry="26"/><ellipse cx="460" cy="770" rx="14" ry="26"/><ellipse cx="530" cy="790" rx="14" ry="26"/></g>
+  </g>
+</svg>
