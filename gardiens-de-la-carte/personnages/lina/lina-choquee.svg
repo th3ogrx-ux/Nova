@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 640" width="400" height="640">
+  <title>Lina - choquee</title>
+  <circle cx="208" cy="380" r="175" fill="#6fa8ff" opacity=".07"/><circle cx="208" cy="380" r="125" fill="#6fa8ff" opacity=".10"/><circle cx="208" cy="380" r="82" fill="#6fa8ff" opacity=".16"/>
+  <rect x="138" y="440" width="54" height="130" rx="22" fill="#2b3f4f"/><rect x="208" y="440" width="54" height="130" rx="22" fill="#2b3f4f"/>
+  <rect x="124" y="552" width="76" height="48" rx="18" fill="#7a3326"/><rect x="200" y="552" width="76" height="48" rx="18" fill="#7a3326"/><rect x="84" y="292" width="46" height="170" rx="23" fill="#a8800f"/><circle cx="107" cy="468" r="21" fill="#c98f66"/>
+  <rect x="112" y="262" width="176" height="262" rx="46" fill="#d0a11f"/>
+  <rect x="112" y="388" width="176" height="18" fill="#a8800f"/><rect x="190" y="384" width="20" height="26" rx="5" fill="#e8c860"/>
+  <rect x="196" y="300" width="8" height="224" rx="4" fill="#a8800f"/>
+  <circle cx="178" cy="340" r="7" fill="#a8800f"/><circle cx="178" cy="450" r="7" fill="#a8800f"/>
+  <rect x="136" y="440" width="44" height="12" rx="6" fill="#a8800f"/>
+  <rect x="178" y="236" width="44" height="40" rx="14" fill="#c98f66"/>
+  <ellipse cx="200" cy="268" rx="78" ry="28" fill="#a8800f"/>
+  <polyline points="268,312 292,396 236,408" fill="none" stroke="#a8800f" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+  <g transform="rotate(-8 208 380)"><rect x="168" y="322" width="84" height="130" rx="14" fill="#0b1330"/><rect x="175" y="330" width="70" height="114" rx="9" fill="#6fa8ff"/>
+    <circle cx="210" cy="374" r="19" fill="#fff" opacity=".35"/><path d="M210 394 C196 376 196 362 210 360 C224 362 224 376 210 394Z" fill="#f5a623"/><circle cx="210" cy="371" r="5" fill="#fff"/><rect x="195" y="418" width="30" height="6" rx="3" fill="#fff" opacity=".6"/></g>
+  <circle cx="240" cy="410" r="20" fill="#c98f66"/>
+  <!-- queue-de-cheval (derrière la tête) -->
+  <path d="M268 104 C346 90 372 196 336 262 C326 290 300 280 308 248 C320 196 296 150 262 130Z" fill="#3b2220"/>
+  <circle cx="276" cy="112" r="12" fill="#1a6bff"/>
+  <circle cx="113" cy="180" r="17" fill="#c98f66"/><circle cx="287" cy="180" r="17" fill="#c98f66"/>
+  <circle cx="200" cy="172" r="90" fill="#c98f66"/>
+  <path d="M106 172 C94 80 156 56 206 60 C264 60 308 96 294 172 C280 134 256 110 214 116 C186 126 150 122 106 172Z" fill="#3b2220"/>
+  <path d="M112 156 C134 102 190 92 216 118 C182 108 150 128 112 156Z" fill="#3b2220"/>
+  <circle cx="142" cy="214" r="13" fill="#e08a7a" opacity=".45"/><circle cx="258" cy="214" r="13" fill="#e08a7a" opacity=".45"/>
+    <circle cx="162" cy="184" r="19" fill="#fff"/><circle cx="238" cy="184" r="19" fill="#fff"/><circle cx="162" cy="186" r="8" fill="#12193a"/><circle cx="238" cy="186" r="8" fill="#12193a"/>
+    <circle cx="165" cy="182" r="3" fill="#fff"/><circle cx="241" cy="182" r="3" fill="#fff"/>
+    <path d="M144 146 Q164 126 184 142" fill="none" stroke="#3b2220" stroke-width="6" stroke-linecap="round"/><path d="M216 142 Q236 126 256 146" fill="none" stroke="#3b2220" stroke-width="6" stroke-linecap="round"/>
+    <ellipse cx="200" cy="232" rx="13" ry="17" fill="#12193a"/><ellipse cx="200" cy="239" rx="7" ry="6" fill="#e0606e"/>
+</svg>

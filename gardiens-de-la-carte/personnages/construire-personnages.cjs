@@ -130,4 +130,42 @@ const bVis = {
 };
 writeFileSync(`${dir}/boucher/boucher-inquiet.svg`, svg('Boucher - inquiet', boucherCorps + boucherTete(bVis.inquiet)));
 writeFileSync(`${dir}/boucher/boucher-content.svg`, svg('Boucher - content', boucherCorps + boucherTete(bVis.content)));
+
+// ---------- Le Gris assis (sur un lampadaire) et en colère (bras levés) ----------
+const grisAssisCorps = `
+  <ellipse cx="200" cy="560" rx="170" ry="34" fill="${G.brume}" opacity=".5"/>
+  <path d="M130 250 L270 250 C312 330 334 420 346 520 C294 548 250 516 200 548 C150 516 106 548 54 520 C66 420 88 330 130 250Z" fill="${G.manteau}"/>
+  <path d="M200 262 L208 548 L194 548Z" fill="${G.ombre}"/>
+  <path d="M142 270 C94 330 80 410 112 444 L172 420 C152 380 160 330 176 284Z" fill="${G.ombre}"/>
+  <path d="M258 270 C306 330 320 410 288 444 L228 420 C248 380 240 330 224 284Z" fill="${G.ombre}"/>
+  <circle cx="128" cy="446" r="24" fill="${G.visage}"/><circle cx="272" cy="446" r="24" fill="${G.visage}"/>
+  <ellipse cx="156" cy="556" rx="34" ry="15" fill="#2a3042"/><ellipse cx="244" cy="556" rx="34" ry="15" fill="#2a3042"/>`;
+writeFileSync(`${dir}/gris/gris-assis.svg`, svg('Le Gris - assis', grisAssisCorps + grisTete(`<path d="M176 218 Q200 226 226 214" fill="none" stroke="#12193a" stroke-width="5" stroke-linecap="round"/>`)));
+const grisColereCorps = `
+  <ellipse cx="120" cy="612" rx="130" ry="32" fill="${G.brume}" opacity=".55"/><ellipse cx="290" cy="620" rx="130" ry="28" fill="${G.brume}" opacity=".55"/>
+  <polyline points="152,262 84,196 44,110" fill="none" stroke="${G.ombre}" stroke-width="54" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="248,262 316,196 356,110" fill="none" stroke="${G.ombre}" stroke-width="54" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="40" cy="92" r="28" fill="${G.visage}"/><circle cx="360" cy="92" r="28" fill="${G.visage}"/>
+  <path d="M138 236 L262 236 C300 300 330 470 350 618 C300 640 260 600 220 628 C180 596 130 640 50 618 C70 470 100 300 138 236Z" fill="${G.manteau}"/>
+  <path d="M200 250 L212 620 L196 626Z" fill="${G.ombre}"/>`;
+const grisColereTete = `
+  <path d="M110 190 C104 96 160 70 200 70 C240 70 296 96 290 190 C292 220 270 250 250 256 L150 256 C130 250 108 220 110 190Z" fill="${G.capuche}"/>
+  <circle cx="200" cy="178" r="72" fill="${G.visage}"/>
+  <circle cx="170" cy="174" r="22" fill="${G.oeil}" opacity=".35"/><circle cx="230" cy="174" r="22" fill="${G.oeil}" opacity=".35"/>
+  <ellipse cx="170" cy="174" rx="17" ry="10" fill="${G.oeil}" transform="rotate(18 170 174)"/><ellipse cx="230" cy="174" rx="17" ry="10" fill="${G.oeil}" transform="rotate(-18 230 174)"/>
+  <circle cx="170" cy="176" r="4" fill="#12193a"/><circle cx="230" cy="176" r="4" fill="#12193a"/>
+  <path d="M146 150 L190 164 M254 150 L210 164" fill="none" stroke="#12193a" stroke-width="8" stroke-linecap="round"/>
+  <path d="M178 214 Q200 252 222 214Z" fill="#12193a"/>`;
+writeFileSync(`${dir}/gris/gris-colere.svg`, svg('Le Gris - colere', grisColereCorps + grisColereTete));
+
+// ---------- La boulangère qui salue de la main (derrière une vitrine) ----------
+writeFileSync(`${dir}/boulangere/boulangere-salue.svg`, svg('Boulangere - salue', `
+  <rect x="148" y="480" width="50" height="110" rx="22" fill="#26304f"/><rect x="206" y="480" width="50" height="110" rx="22" fill="#26304f"/>
+  <ellipse cx="170" cy="592" rx="36" ry="16" fill="#1c2236"/><ellipse cx="236" cy="592" rx="36" ry="16" fill="#1c2236"/>
+  <rect x="106" y="266" width="188" height="230" rx="52" fill="${B.chemise}"/><rect x="140" y="300" width="120" height="196" rx="30" fill="${B.tablier}"/>
+  <path d="M150 300 L172 262 M250 300 L228 262" stroke="${B.tablier}" stroke-width="14" stroke-linecap="round"/><rect x="170" y="400" width="60" height="42" rx="10" fill="#e3e8f4"/>
+  <rect x="178" y="236" width="44" height="40" rx="14" fill="${B.peau}"/>
+  <rect x="84" y="292" width="46" height="150" rx="23" fill="${B.chemiseOmbre}"/><circle cx="107" cy="448" r="21" fill="${B.peau}"/>
+  <polyline points="272,312 336,262 348,196" fill="none" stroke="${B.chemiseOmbre}" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="350" cy="172" r="26" fill="${B.peau}"/><g stroke="${B.peau}" stroke-width="12" stroke-linecap="round"><path d="M332 152 L326 132 M346 146 L346 124 M360 148 L368 128"/></g>` + boulTete));
 console.log('personnages ok');

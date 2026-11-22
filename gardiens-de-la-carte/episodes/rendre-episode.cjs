@@ -10,7 +10,7 @@ const inner = s => s.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '
 const charger = (d, prefixe) => Object.fromEntries(fs.readdirSync(path.join(root, d)).filter(f => f.endsWith('.svg') && f.startsWith(prefixe)).map(f => [f.slice(prefixe.length, -4), inner(lire(`${d}/${f}`))]));
 const A = {
   hero: charger('personnages/heros', 'heros-'), passant: charger('personnages/passant', 'passant-'), boulangere: charger('personnages/boulangere', 'boulangere-'),
-  gris: charger('personnages/gris', 'gris-'), boucher: charger('personnages/boucher', 'boucher-'), decor: charger('decors', ''),
+  gris: charger('personnages/gris', 'gris-'), lina: charger('personnages/lina', 'lina-'), boucher: charger('personnages/boucher', 'boucher-'), decor: charger('decors', ''),
   points: JSON.parse(lire('decors/carte-points.json')),
 };
 const html = `<html><body style="margin:0;background:#000"><svg id="s" xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920" style="display:block">

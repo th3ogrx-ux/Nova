@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 640" width="400" height="640">
+  <title>Le Gris - colere</title>
+  <ellipse cx="120" cy="612" rx="130" ry="32" fill="#aab2c4" opacity=".55"/><ellipse cx="290" cy="620" rx="130" ry="28" fill="#aab2c4" opacity=".55"/>
+  <polyline points="152,262 84,196 44,110" fill="none" stroke="#353c52" stroke-width="54" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="248,262 316,196 356,110" fill="none" stroke="#353c52" stroke-width="54" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="40" cy="92" r="28" fill="#8b93a7"/><circle cx="360" cy="92" r="28" fill="#8b93a7"/>
+  <path d="M138 236 L262 236 C300 300 330 470 350 618 C300 640 260 600 220 628 C180 596 130 640 50 618 C70 470 100 300 138 236Z" fill="#4a526a"/>
+  <path d="M200 250 L212 620 L196 626Z" fill="#353c52"/>
+  <path d="M110 190 C104 96 160 70 200 70 C240 70 296 96 290 190 C292 220 270 250 250 256 L150 256 C130 250 108 220 110 190Z" fill="#5d667c"/>
+  <circle cx="200" cy="178" r="72" fill="#8b93a7"/>
+  <circle cx="170" cy="174" r="22" fill="#e8eefc" opacity=".35"/><circle cx="230" cy="174" r="22" fill="#e8eefc" opacity=".35"/>
+  <ellipse cx="170" cy="174" rx="17" ry="10" fill="#e8eefc" transform="rotate(18 170 174)"/><ellipse cx="230" cy="174" rx="17" ry="10" fill="#e8eefc" transform="rotate(-18 230 174)"/>
+  <circle cx="170" cy="176" r="4" fill="#12193a"/><circle cx="230" cy="176" r="4" fill="#12193a"/>
+  <path d="M146 150 L190 164 M254 150 L210 164" fill="none" stroke="#12193a" stroke-width="8" stroke-linecap="round"/>
+  <path d="M178 214 Q200 252 222 214Z" fill="#12193a"/>
+</svg>

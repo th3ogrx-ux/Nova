@@ -243,4 +243,65 @@ out('toit-nuit', 1080, 1920, `
   <rect x="860" y="600" width="70" height="140" fill="#08122f"/><rect x="852" y="590" width="86" height="18" fill="#08122f"/>
   <rect x="420" y="690" width="10" height="50" fill="#08122f"/>
   <g fill="#f5a623" opacity=".25"><rect x="400" y="860" width="60" height="90" rx="6"/><rect x="560" y="860" width="60" height="90" rx="6"/><rect x="720" y="1000" width="60" height="90" rx="6"/></g>`);
+
+// ---------- Librairie (façade de nuit) ----------
+let livres = '', xl = 140;
+const couleursLivres = ['#c23a34', '#1a6bff', '#3f9b6a', '#f4f6fb', '#7a3a1b', '#6a3fa0', '#e8a21a'];
+for (let r = 0; r < 2; r++) { xl = 140; for (let i = 0; i < 12; i++) { const w = 22 + (i * 7) % 14, h = 50 + (i * 13) % 26; livres += `<rect x="${xl}" y="${(r ? 836 : 760) - h}" width="${w}" height="${h}" rx="3" fill="${couleursLivres[(i + r * 3) % 7]}"/>`; xl += w + 6; } }
+let rayLib = '', scLib = '';
+for (let i = 0; i < 9; i++) { rayLib += `<rect x="${120 + i*70}" y="560" width="70" height="80" fill="${i%2 ? '#e8d9b4' : '#1f7a5c'}"/>`; scLib += `<circle cx="${155 + i*70}" cy="640" r="35" fill="${i%2 ? '#e8d9b4' : '#1f7a5c'}"/>`; }
+out('librairie-facade-nuit', 900, 900, `
+  <rect x="60" y="140" width="780" height="760" fill="#23405f"/><rect x="40" y="120" width="820" height="50" rx="8" fill="#142a44"/>
+  <rect x="150" y="200" width="180" height="200" rx="10" fill="#142a44"/><rect x="164" y="214" width="152" height="172" rx="6" fill="#0a1634"/>
+  <rect x="570" y="200" width="180" height="200" rx="10" fill="#142a44"/><rect x="584" y="214" width="152" height="172" rx="6" fill="#0a1634"/>
+  <g id="enseigne" opacity="1"><rect x="200" y="430" width="500" height="100" rx="20" fill="#0b1738" stroke="#f5a623" stroke-width="4"/>
+    <path d="M450 468 C420 452 392 456 372 462 V510 C392 504 420 500 450 514Z M450 468 C480 452 508 456 528 462 V510 C508 504 480 500 450 514Z" fill="#f5a623"/></g>
+  <rect x="100" y="550" width="700" height="14" fill="#142a44"/>${rayLib}${scLib}
+  <rect x="110" y="680" width="490" height="210" rx="10" fill="#142a44"/><rect x="124" y="694" width="462" height="182" rx="6" fill="#0a1634"/>
+  <rect x="620" y="660" width="180" height="240" rx="10" fill="#142a44"/><rect x="636" y="676" width="148" height="224" rx="6" fill="#0a1634"/>
+  <rect x="40" y="880" width="820" height="20" fill="#0f1c34"/>
+  <g id="halo" opacity="1"><circle cx="355" cy="790" r="340" fill="#f5a623" opacity=".08"/><circle cx="355" cy="790" r="240" fill="#f5a623" opacity=".10"/><circle cx="710" cy="800" r="170" fill="#f5a623" opacity=".10"/></g>
+  <g id="lumiere" opacity="1"><rect x="124" y="694" width="462" height="182" rx="6" fill="#f5a623"/><rect x="124" y="694" width="462" height="30" rx="6" fill="#ffd27a"/>
+    <rect x="124" y="760" width="462" height="8" fill="#b8651b"/><rect x="124" y="836" width="462" height="8" fill="#b8651b"/>${livres}
+    <rect x="636" y="676" width="148" height="224" rx="6" fill="#f5a623"/></g>`);
+
+// ---------- Fleuriste (façade de nuit) ----------
+let rayFl = '', scFl = '';
+for (let i = 0; i < 9; i++) { rayFl += `<rect x="${120 + i*70}" y="560" width="70" height="80" fill="${i%2 ? '#f4e6c8' : '#d96a9a'}"/>`; scFl += `<circle cx="${155 + i*70}" cy="640" r="35" fill="${i%2 ? '#f4e6c8' : '#d96a9a'}"/>`; }
+const fleur = (x, y, r, c) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/><circle cx="${x}" cy="${y}" r="${r*0.35}" fill="#f5d36b"/>`;
+let fleursVitre = '', seaux = '';
+const cf = ['#e0606e', '#f4f6fb', '#f5d36b', '#d96a9a', '#c23a34'];
+for (let i = 0; i < 11; i++) fleursVitre += fleur(160 + i*36, 770 + (i % 3) * 22, 18, cf[i % 5]) + `<path d="M${160 + i*36} ${790 + (i % 3) * 22} V876" stroke="#3f9b6a" stroke-width="5"/>`;
+for (let k = 0; k < 3; k++) { const bx = 130 + k*150; seaux += `<path d="M${bx} 840 H${bx + 110} L${bx + 98} 892 H${bx + 12}Z" fill="#8a5a2b"/>` + [0, 1, 2, 3].map(i => fleur(bx + 18 + i*26, 818 - (i % 2) * 14, 15, cf[(i + k) % 5])).join(''); }
+out('fleuriste-facade-nuit', 900, 900, `
+  <rect x="60" y="140" width="780" height="760" fill="#3b2a63"/><rect x="40" y="120" width="820" height="50" rx="8" fill="#241a45"/>
+  <rect x="150" y="200" width="180" height="200" rx="10" fill="#241a45"/><rect x="164" y="214" width="152" height="172" rx="6" fill="#0a1634"/>
+  <rect x="570" y="200" width="180" height="200" rx="10" fill="#241a45"/><rect x="584" y="214" width="152" height="172" rx="6" fill="#0a1634"/>
+  <g id="enseigne" opacity="1"><rect x="200" y="430" width="500" height="100" rx="20" fill="#0b1738" stroke="#f5a623" stroke-width="4"/>
+    ${[0, 1, 2, 3, 4].map(i => `<circle cx="${450 + Math.cos(i*1.2566)*26}" cy="${480 + Math.sin(i*1.2566)*26}" r="16" fill="#f5a623"/>`).join('')}<circle cx="450" cy="480" r="12" fill="#0b1738"/></g>
+  <rect x="100" y="550" width="700" height="14" fill="#241a45"/>${rayFl}${scFl}
+  <rect x="110" y="680" width="490" height="210" rx="10" fill="#241a45"/><rect x="124" y="694" width="462" height="182" rx="6" fill="#0a1634"/>
+  <rect x="620" y="660" width="180" height="240" rx="10" fill="#241a45"/><rect x="636" y="676" width="148" height="224" rx="6" fill="#0a1634"/>
+  <rect x="40" y="880" width="820" height="20" fill="#1a1236"/>
+  <g id="halo" opacity="1"><circle cx="355" cy="790" r="340" fill="#f5a623" opacity=".08"/><circle cx="355" cy="790" r="240" fill="#f5a623" opacity=".10"/><circle cx="710" cy="800" r="170" fill="#f5a623" opacity=".10"/></g>
+  <g id="lumiere" opacity="1"><rect x="124" y="694" width="462" height="182" rx="6" fill="#f5a623"/><rect x="124" y="694" width="462" height="30" rx="6" fill="#ffd27a"/>${fleursVitre}
+    <rect x="636" y="676" width="148" height="224" rx="6" fill="#f5a623"/></g>
+  <g id="seaux">${seaux}</g>`);
+
+// ---------- Grand lampadaire (le Gris s'assoit tout en haut ; plate-forme à y=236) ----------
+out('lampadaire-haut', 400, 1500, `
+  <rect x="190" y="340" width="20" height="1160" fill="#0a1630"/><rect x="160" y="1440" width="80" height="60" rx="8" fill="#0a1630"/>
+  <rect x="150" y="236" width="100" height="14" rx="6" fill="#0a1630"/>
+  <path d="M158 250 H242 L228 340 H172Z" fill="#0d1c45" stroke="#0a1630" stroke-width="6"/>
+  <g id="lampe" opacity="1"><circle cx="200" cy="300" r="170" fill="#f5a623" opacity=".10"/><circle cx="200" cy="300" r="96" fill="#f5a623" opacity=".16"/><path d="M172 256 H228 L218 330 H182Z" fill="#ffe6b0"/></g>`);
+
+// ---------- Énorme vague de brume (se dresse derrière le Gris) ----------
+{ const rw = mulberry(33); let v = '';
+  const teintes = [['#5d667c', 1.0], ['#7c859b', 0.78], ['#aab2c4', 0.56]];
+  for (const [col, k] of teintes) {
+    v += `<path d="M0 1400 V760 C300 ${700 + (1 - k) * 160} 700 ${560 + (1 - k) * 180} 1000 ${380 + (1 - k) * 220} C1300 ${200 + (1 - k) * 260} 1700 ${240 + (1 - k) * 200} 2100 ${420 + (1 - k) * 200} C2250 500 2340 600 2400 700 V1400Z" fill="${col}"/>`;
+    for (let i = 0; i < 46; i++) { const a = -0.25 + (i / 45) * 3.3, R = 560 * k + 60, cx = 1250 + Math.cos(a + Math.PI) * R * 1.55, cy = 800 + Math.sin(a + Math.PI) * R - 30 * k;
+      v += `<circle cx="${Math.round(cx)}" cy="${Math.round(cy)}" r="${Math.round(70 + rw() * 70)}" fill="${col}"/>`; }
+  }
+  out('vague-brume', 2400, 1400, v); }
 console.log('decors ok');
