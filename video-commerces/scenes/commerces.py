@@ -245,5 +245,7 @@ if __name__ == '__main__' or True:
             t0 = time.time(); rendre(tt, f"{arg('--out', 'rendu-tmp/s')}_{tt:05.2f}.png"); print(f't={tt}: {time.time() - t0:.1f} s', flush=True)
     elif '--frames' in sys.argv:
         a, b = [int(v) for v in arg('--frames', '0-0').split('-')]
+        import os
         for f in range(a, b + 1):
+            if os.path.exists(f"{arg('--out', 'rendu-tmp/f')}{f:05d}.png"): continue   # reprise après interruption
             t0 = time.time(); rendre(f / FPS, f"{arg('--out', 'rendu-tmp/f')}{f:05d}.png"); print(f'f={f}: {time.time() - t0:.1f} s', flush=True)
